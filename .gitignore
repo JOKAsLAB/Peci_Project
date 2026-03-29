@@ -3,35 +3,6 @@
 .pytest_cache/
 .vite/
 
-# JavaScript dependencies and caches
-**/node_modules/
-**/.npm/
-**/.pnpm-store/
-
-# Flutter/Dart generated artifacts
-aluno/build/
-aluno/.dart_tool/
-aluno/.flutter-plugins-dependencies
-aluno/.idea/
-aluno/**/*.iml
-aluno/android/.gradle/
-aluno/android/local.properties
-aluno/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
-aluno/ios/Flutter/Generated.xcconfig
-aluno/ios/Flutter/flutter_export_environment.sh
-aluno/ios/Flutter/ephemeral/
-aluno/ios/Runner/GeneratedPluginRegistrant.h
-aluno/ios/Runner/GeneratedPluginRegistrant.m
-aluno/windows/flutter/ephemeral/
-
-# Python virtual environments
-ai_engine/.venv/
-backend/backend/.venv/
-
-# Local AI vector databases (generated)
-ai_engine/chroma_db_*/
-ai_engine/chroma_db*/
-
 # Python caches
 **/__pycache__/
 **/*.pyc

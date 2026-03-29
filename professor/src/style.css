@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #121212;
+  --color-surface: #1E1E1E;
+  --color-surface-alt: #262626;
+  --color-brand: #00B140;
+  --color-success: #00E676;
+  --color-error: #CF6679;
+  --color-warning: #FFB300;
+  --color-info: #64B5F6;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: rgba(255, 255, 255, 0.70);
+  --font-inter: 'Inter', sans-serif;
+  --radius-card: 16px;
+  --radius-btn: 12px;
+  --radius-chip: 20px;
+}
+
+html, body, #app {
+  min-height: 100%;
+}
+
+body {
+  background-color: #121212;
+  background-image:
+    radial-gradient(circle at 15% 8%, rgba(0, 177, 64, 0.16), transparent 35%),
+    radial-gradient(circle at 84% 12%, rgba(100, 181, 246, 0.08), transparent 28%),
+    linear-gradient(180deg, #121212 0%, #101010 100%);
+  color: #FFFFFF;
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(0, 177, 64, 0.35);
+  color: #FFFFFF;
+}
+
+.panel-surface {
+  background: linear-gradient(180deg, rgba(30, 30, 30, 0.95), rgba(24, 24, 24, 0.95));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.32);
+}
+
+/* Otimização de Scrollbar (Interface Dark) */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #121212; }
+::-webkit-scrollbar-thumb { background: #1E1E1E; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #00B140; }

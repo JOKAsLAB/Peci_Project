@@ -1,0 +1,40 @@
+name: peci_project
+description: "Aplicação Interativa de Suporte à Aprendizagem - PECI UA 2026"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.6.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  
+  # UI, Design e Gamificação (UA Style)
+  flutter_riverpod: ^2.5.1
+  google_fonts: ^6.2.1
+  lottie: ^3.1.0
+  
+  # Navegação e Infraestrutura
+  go_router: ^13.2.0
+  dio: ^5.4.1
+  
+  # Persistência Local (Modo Offline)
+  drift: ^2.16.0
+  sqlite3_flutter_libs: ^0.5.20
+  path_provider: ^2.1.2
+  path: ^1.9.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  
+  # Geração de Código
+  build_runner: ^2.4.8
+  drift_dev: ^2.16.0
+  riverpod_generator: ^2.3.11
+
+flutter:
+  uses-material-design: true
