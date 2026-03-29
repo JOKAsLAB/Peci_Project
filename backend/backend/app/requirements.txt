@@ -1,0 +1,11 @@
+fastapi==0.115.12         # Framework principal da API
+uvicorn==0.34.0           # Servidor ASGI para correr o FastAPI
+sqlalchemy==2.0.40        # ORM — fala com a base de dados
+asyncpg==0.30.0           # Driver assíncrono para PostgreSQL
+pydantic==2.11.2          # Validação de dados (schemas)
+pydantic-settings==2.9.1  # Lê variáveis do ficheiro .env
+python-jose==3.4.0        # Geração e validação de tokens JWT
+passlib==1.7.4            # Hashing de passwords (bcrypt)
+bcrypt==4.3.0             # Algoritmo de hash usado pelo passlib
+python-multipart==0.0.20  # Necessário para upload de ficheiros (materiais PDF)
+email-validator==2.2.0    # Necessário para campos EmailStr do Pydantic

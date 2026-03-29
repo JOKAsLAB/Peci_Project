@@ -1,0 +1,255 @@
+<template>
+  <div class="space-y-8">
+    <div class="flex justify-between items-end">
+      <div>
+        <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">Académico</p>
+        <h3 class="text-3xl font-bold">Unidades Curriculares</h3>
+      </div>
+      <button @click="openCreate" class="bg-brand text-white px-6 py-3 rounded-btn font-bold hover:brightness-110 transition-all flex items-center gap-2">
+        <i class="pi pi-plus"></i> Criar Disciplina
+      </button>
+    </div>
+
+    <div
+      v-if="store.error"
+      class="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-card text-sm"
+    >
+      <i class="pi pi-exclamation-triangle mr-2"></i> {{ store.error }}
+    </div>
+
+    <div class="grid grid-cols-4 gap-6">
+      <div class="bg-surface p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-sm">Total UCs</p>
+        <p class="text-3xl font-bold mt-2">{{ store.disciplines.length }}</p>
+      </div>
+      <div class="bg-surface p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-sm">UCs Ativas</p>
+        <p class="text-3xl font-bold mt-2 text-brand">{{ store.activeDisciplines.length }}</p>
+      </div>
+      <div class="bg-surface p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-sm">Alunos Inscritos</p>
+        <p class="text-3xl font-bold mt-2 text-success">{{ store.totalStudents }}</p>
+      </div>
+      <div class="bg-surface p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-sm">UCs Inativas</p>
+        <p class="text-3xl font-bold mt-2 text-error">{{ store.inactiveDisciplines.length }}</p>
+      </div>
+    </div>
+
+    <div class="bg-surface rounded-card border border-white/5 overflow-hidden">
+      <table class="w-full text-left">
+        <thead class="bg-black/20 text-text-secondary uppercase text-[10px] tracking-widest">
+          <tr>
+            <th class="px-8 py-5 font-semibold">Código / Acrónimo</th>
+            <th class="px-8 py-5 font-semibold">Designação</th>
+            <th class="px-8 py-5 font-semibold text-center">Semestre</th>
+            <th class="px-8 py-5 font-semibold text-center">Docente</th>
+            <th class="px-8 py-5 font-semibold text-center">Alunos</th>
+            <th class="px-8 py-5 font-semibold">Estado</th>
+            <th class="px-8 py-5 font-semibold text-right">Operações</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/5">
+          <tr v-for="d in store.disciplines" :key="d.id" class="hover:bg-white/2 transition-colors group">
+            <td class="px-8 py-5">
+              <span class="block font-mono text-brand text-xs">{{ d.code }}</span>
+              <span class="font-bold">{{ d.acronym }}</span>
+            </td>
+            <td class="px-8 py-5 font-medium">{{ d.name }}</td>
+            <td class="px-8 py-5 text-center">
+              <span class="bg-gray-800 px-3 py-1 rounded-full text-xs">{{ d.semester }}</span>
+            </td>
+            <td class="px-8 py-5 text-center text-text-secondary text-sm">
+              <div class="flex flex-wrap gap-1 justify-center">
+                <span v-for="prof in d.professors" :key="prof" class="bg-gray-800 px-2 py-0.5 rounded-full text-xs">{{ prof }}</span>
+              </div>
+            </td>
+            <td class="px-8 py-5 text-center">
+              <span class="text-brand font-bold">{{ d.students }}</span>
+            </td>
+            <td class="px-8 py-5">
+              <div
+                @click="store.supportsStatus ? store.toggleStatus(d.id) : null"
+                :class="store.supportsStatus ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'"
+                class="flex items-center gap-2"
+              >
+                <div class="w-2 h-2 rounded-full" :class="d.active ? 'bg-success' : 'bg-error'"></div>
+                <span class="text-xs">{{ d.active ? 'Ativa' : 'Inativa' }}</span>
+              </div>
+            </td>
+            <td class="px-8 py-5 text-right">
+              <div class="flex justify-end gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button @click="openEdit(d)" class="text-text-secondary hover:text-white"><i class="pi pi-pencil"></i></button>
+                <button @click="removeDiscipline(d.id)" class="text-text-secondary hover:text-error"><i class="pi pi-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Modal Criar / Editar -->
+    <Teleport to="body">
+      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showModal = false"></div>
+        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-lg p-8 shadow-2xl z-10">
+          <div class="flex justify-between items-center mb-6">
+            <h4 class="text-xl font-bold">{{ editingId ? 'Editar Disciplina' : 'Criar Disciplina' }}</h4>
+            <button @click="showModal = false" class="text-text-secondary hover:text-white"><i class="pi pi-times"></i></button>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Código UC</label>
+              <input v-model="form.code" type="text" placeholder="Ex: 41000"
+                     class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Nome Completo</label>
+                <input v-model="form.name" type="text" placeholder="Ex: Sistemas Digitais"
+                       class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
+              </div>
+              <div>
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Acrónimo</label>
+                <input v-model="form.acronym" type="text" placeholder="Ex: SD"
+                       class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Semestre</label>
+                <select v-model="form.semester" class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm">
+                  <option value="S1">S1 — 1º Semestre</option>
+                  <option value="S2">S2 — 2º Semestre</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Ano Letivo</label>
+                <input v-model="form.year" type="text" placeholder="2025/2026"
+                       class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
+              </div>
+            </div>
+            <div class="relative">
+              <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Docentes</label>
+              <input v-model="profSearch" type="text" placeholder="Procurar docente por nome, email ou NMec..."
+                     autocomplete="off"
+                     @input="onProfSearch" @focus="onProfSearch"
+                     class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
+              <!-- Professor suggestions dropdown -->
+              <div v-if="profSuggestions.length > 0" class="absolute left-0 right-0 top-full mt-1 bg-background border border-white/10 rounded-btn shadow-xl z-20 max-h-40 overflow-y-auto">
+                <div v-for="p in profSuggestions" :key="p.id"
+                     @click="addProfessor(p)"
+                     class="px-3 py-2 hover:bg-brand/10 cursor-pointer flex items-center justify-between text-sm transition-colors">
+                  <div>
+                    <span class="font-medium text-text-primary">{{ p.name }}</span>
+                    <span class="text-text-secondary text-xs ml-2">{{ p.email }}</span>
+                  </div>
+                  <span class="text-text-secondary text-xs">NMec {{ p.nmec }}</span>
+                </div>
+              </div>
+              <!-- Selected professors tags -->
+              <div v-if="selectedProfessors.length > 0" class="flex flex-wrap gap-2 mt-2">
+                <span v-for="(prof, idx) in selectedProfessors" :key="idx"
+                      class="bg-brand/20 text-brand text-xs px-3 py-1 rounded-full flex items-center gap-1">
+                  {{ prof }}
+                  <button @click="removeProfessor(idx)" class="hover:text-white ml-1"><i class="pi pi-times text-[10px]"></i></button>
+                </span>
+              </div>
+              <p class="text-text-secondary text-xs mt-1">Pesquise e selecione os docentes para esta UC.</p>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 mt-8">
+            <button @click="showModal = false" class="px-6 py-3 rounded-btn text-text-secondary hover:text-white border border-white/10 text-sm font-bold transition-all">
+              Cancelar
+            </button>
+            <button @click="save" class="bg-brand px-6 py-3 rounded-btn text-white font-bold hover:brightness-110 transition-all text-sm">
+              {{ editingId ? 'Guardar Alterações' : 'Criar Disciplina' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive, onMounted } from 'vue'
+import { useDisciplineStore } from '../stores/disciplineStore'
+import { useUserStore } from '../stores/userStore'
+
+const store = useDisciplineStore()
+const userStore = useUserStore()
+
+const showModal = ref(false)
+const editingId = ref(null)
+const form = reactive({ code: '', name: '', acronym: '', semester: 'S1', year: '2025/2026' })
+const profSearch = ref('')
+const profSuggestions = ref([])
+const selectedProfessors = ref([])
+
+function onProfSearch() {
+  const q = profSearch.value.trim().toLowerCase()
+  if (!q) { profSuggestions.value = []; return }
+  profSuggestions.value = userStore.professors
+    .filter(p => !selectedProfessors.value.includes(p.name))
+    .filter(p => p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q) || p.nmec.toLowerCase().includes(q))
+    .slice(0, 5)
+}
+
+function addProfessor(p) {
+  if (!selectedProfessors.value.includes(p.name)) {
+    selectedProfessors.value.push(p.name)
+  }
+  profSearch.value = ''
+  profSuggestions.value = []
+}
+
+function removeProfessor(idx) {
+  selectedProfessors.value.splice(idx, 1)
+}
+
+function resetForm() {
+  form.code = ''; form.name = ''; form.acronym = ''; form.semester = 'S1'; form.year = '2025/2026'
+  profSearch.value = ''; profSuggestions.value = []; selectedProfessors.value = []
+}
+
+function openCreate() {
+  editingId.value = null
+  resetForm()
+  showModal.value = true
+}
+
+function openEdit(d) {
+  editingId.value = d.id
+  form.code = d.code; form.name = d.name; form.acronym = d.acronym; form.semester = d.semester; form.year = d.year || '2025/2026'
+  selectedProfessors.value = [...(d.professors || [])]
+  profSearch.value = ''; profSuggestions.value = []
+  showModal.value = true
+}
+
+async function save() {
+  const data = { code: form.code, name: form.name, acronym: form.acronym, semester: form.semester, year: form.year, professors: [...selectedProfessors.value], students: 0, active: true }
+  if (editingId.value) {
+    await store.updateDiscipline(editingId.value, data)
+  } else {
+    await store.addDiscipline(data)
+  }
+
+  if (!store.error) {
+    showModal.value = false
+  }
+}
+
+async function removeDiscipline(id) {
+  await store.removeDiscipline(id)
+}
+
+onMounted(async () => {
+  await Promise.all([
+    store.loadDisciplines(),
+    userStore.loadUsers(),
+  ])
+})
+</script>

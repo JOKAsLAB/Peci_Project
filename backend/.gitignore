@@ -1,0 +1,28 @@
+# Dependências de JavaScript (Vue/React)
+node_modules/
+dist/
+.npm
+.vite
+
+# Dependências de Python (FastAPI)
+venv/
+__pycache__/
+*.py[cod]
+.env
+.venv/
+
+# Dependências de Flutter/Dart
+.dart_tool/
+build/
+.pub-cache/
+
+# Ficheiros de Sistema e IDE
+.DS_Store
+Thumbs.db
+.vscode/
+
+*.m
+*.h
+*.xcconfig
+*.sh
+/aluno

@@ -1,0 +1,61 @@
+# Workspace runtime artifacts
+.venv/
+.pytest_cache/
+.vite/
+
+# JavaScript dependencies and caches
+**/node_modules/
+**/.npm/
+**/.pnpm-store/
+
+# Flutter/Dart generated artifacts
+aluno/build/
+aluno/.dart_tool/
+aluno/.flutter-plugins-dependencies
+aluno/.idea/
+aluno/**/*.iml
+aluno/android/.gradle/
+aluno/android/local.properties
+aluno/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+aluno/ios/Flutter/Generated.xcconfig
+aluno/ios/Flutter/flutter_export_environment.sh
+aluno/ios/Flutter/ephemeral/
+aluno/ios/Runner/GeneratedPluginRegistrant.h
+aluno/ios/Runner/GeneratedPluginRegistrant.m
+aluno/windows/flutter/ephemeral/
+
+# Python virtual environments
+ai_engine/.venv/
+backend/backend/.venv/
+
+# Local AI vector databases (generated)
+ai_engine/chroma_db_*/
+ai_engine/chroma_db*/
+
+# Python caches
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Web build outputs
+admin/dist/
+admin/.vite/
+admin/coverage/
+professor/dist/
+professor/.vite/
+professor/coverage/
+
+# Backend test outputs
+backend/backend/.pytest_cache/
+backend/backend/htmlcov/
+backend/backend/.coverage
+
+# Local environment files
+backend/backend/app/.env
+infrastructure/.env
+
+# Common logs/system files
+*.log
+Thumbs.db
+.DS_Store
