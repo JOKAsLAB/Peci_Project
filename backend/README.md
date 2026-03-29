@@ -44,7 +44,7 @@ backend/backend/app/
 ├── main.py                   # FastAPI app, CORS, startup check, health routes, include routers
 ├── security.py               # Hash de passwords + criação/validação JWT
 ├── models/                   # SQLAlchemy models
-│   ├── enum.py               # Enums partilhados (roles, status, request types, etc.)
+│   ├── enums.py              # Enums partilhados (roles, status, request types, etc.)
 │   ├── user.py
 │   ├── academic.py
 │   ├── gamification.py
@@ -344,12 +344,15 @@ Requer role `Admin`:
 - `POST /course-units`
 - `PATCH /course-units/{id_uc}`
 - `DELETE /course-units/{id_uc}`
+	- `POST/PATCH` aceitam `professor_ids` para sincronizar associação professor-UC
+	- `GET/POST/PATCH` devolvem `professors[]` com `id`, `name`, `email`
 - `GET /requests`
 	- suporta filtro `status` por enum (`pending`, `approved`, `rejected`)
 	- devolve `request_type` e, quando aplicável, `professor_info` / `admin_info`
 - `PATCH /requests/{request_id}/decision`
 	- status de decisão tipado por enum (`pending`, `approved`, `rejected`)
 	- regra de negócio recomendada: decisões admin devem usar `approved` ou `rejected`
+	- em pedidos `access`, `approved` ativa conta docente (`Active`) e `rejected` desativa conta (`Deactivated`)
 
 Cada operação crítica escreve em `admin_audit_log`.
 

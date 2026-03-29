@@ -6,8 +6,14 @@ Suíte de validação rápida para os domínios principais da API:
 - academic
 - students
 - professors
-- admin (opcional)
+- admin
 - ai-tutor (stub esperado nesta branch)
+
+Inclui validação explícita do fluxo de aprovação docente:
+
+- registo de professor cria conta pendente (`Suspended`)
+- login bloqueado até decisão do admin
+- aprovação (`access`) desbloqueia login
 
 ## Pré-requisitos
 
@@ -53,3 +59,7 @@ set PGPASSWORD=password_aqui
 - `SMOKE_ADMIN_PASSWORD` (opcional)
 
 Sem `SMOKE_ADMIN_EMAIL` e `SMOKE_ADMIN_PASSWORD`, a suíte cria automaticamente uma conta admin local temporária para validar os endpoints de admin.
+
+## Estado observado da suíte
+
+- execução local mais recente: `35 passed`

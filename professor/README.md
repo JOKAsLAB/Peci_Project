@@ -20,6 +20,7 @@ O painel Professor cobre operações docentes e administrativas não curriculare
 - gestão de percursos de aprendizagem
 - gestão documental da UC
 - submissão e acompanhamento de pedidos ao Admin
+- registo docente com gate de aprovação administrativa antes do primeiro login
 
 ## Pré-requisitos
 
@@ -82,12 +83,22 @@ Executar testes agregados do monorepo (escopo web/backend/sql):
 - `POST /api/v1/auth/register` (registo docente)
 - `GET /api/v1/auth/me`
 
+Regras de negócio atuais:
+
+- registo docente cria conta em `Suspended` e pedido de acesso pendente (`request_type=access`)
+- login devolve `403` com `Account pending admin approval` enquanto não existir aprovação admin
+- só após decisão `approved` no admin é que o login no painel docente fica desbloqueado
+
 ### Pedidos ao admin
 
 - `GET /api/v1/professors/requests`
 - `POST /api/v1/professors/requests`
 
-O tipo funcional do pedido é serializado em prefixo técnico no título (`[access]`, `[platform]`, `[other]`) para compatibilidade com o contrato atual da API.
+Contrato atual:
+
+- o tipo funcional é enviado em `request_type` (`access|platform|operations|other`)
+- o frontend mantém fallback de leitura para prefixos legados no `title` apenas por retrocompatibilidade
+- submissão de pedido usa confirmação explícita no UI antes do `POST`
 
 ### Estado local e simulação
 
@@ -121,3 +132,4 @@ professor/
 - testes de stores: estáveis
 - build de produção: estável
 - integração backend ativa em auth e pedidos ao admin
+- fluxo pendente->aprovado de conta docente validado em E2E browser

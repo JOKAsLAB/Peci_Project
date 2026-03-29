@@ -20,6 +20,7 @@ script/
 ├── test/
 │   ├── run_backend_smoke.ps1
 │   ├── run_web_store_tests.ps1
+│   ├── run_web_e2e_tests.ps1
 │   ├── run_admin_auth_check.ps1
 │   ├── run_database_sql_tests.ps1
 │   ├── run_aluno_widget_tests.ps1
@@ -163,7 +164,29 @@ Comando:
 Parâmetros:
 - `-InstallDeps` (executa `npm install` antes dos testes em cada painel)
 
-### 3) `script/test/run_database_sql_tests.ps1`
+### 3) `script/test/run_web_e2e_tests.ps1`
+
+O que faz:
+- Garante backend dedicado para E2E (`-BackendBaseUrl`, default `http://127.0.0.1:8010`).
+- Arranca/reinicia frontends admin (`5174`) e professor (`5173`) de forma determinística.
+- Injeta `VITE_API_BASE_URL` para alinhar os painéis com o backend E2E.
+- Executa Playwright com os fluxos críticos cross-panel.
+
+Comando:
+```powershell
+.\script\test\run_web_e2e_tests.ps1
+```
+
+Parâmetros úteis:
+- `-InstallDeps`
+- `-Headed`
+- `-BackendBaseUrl`
+- `-AdminBaseUrl`
+- `-ProfessorBaseUrl`
+- `-StartupTimeoutSeconds`
+- `-AdminEmail` / `-AdminPassword`
+
+### 4) `script/test/run_database_sql_tests.ps1`
 
 O que faz:
 - Executa os SQL de validação em `script/test/sql`.
@@ -187,7 +210,7 @@ Notas:
 - A suíte executa `test_inserts.sql`, `test_admin_professor_integrity.sql` e `useful_selects.sql`.
 - O runner força `pager=off` no `psql` para evitar bloqueios interativos.
 
-### 4) `script/test/run_admin_auth_check.ps1`
+### 5) `script/test/run_admin_auth_check.ps1`
 
 O que faz:
 - Garante backend local ativo (via `script/run/ensure_web_backend.ps1`).
@@ -206,7 +229,7 @@ Parâmetros:
 - `-SkipInfra`
 - `-SkipBootstrapData`
 
-### 5) `script/test/run_aluno_widget_tests.ps1`
+### 6) `script/test/run_aluno_widget_tests.ps1`
 
 O que faz:
 - Executa `flutter test test/widget_test.dart` no módulo `aluno/`.
@@ -220,7 +243,7 @@ Comando:
 Parâmetros:
 - `-PubGet` (corre `flutter pub get` antes dos testes)
 
-### 6) `script/test/run_all_tests.ps1`
+### 7) `script/test/run_all_tests.ps1`
 
 O que faz:
 - Encadeia suite completa: backend smoke, testes web (admin/professor), SQL e widget tests Flutter.
@@ -234,19 +257,21 @@ Comando:
 Comando recomendado para iterações focadas em Admin/Professor (sem Flutter aluno):
 
 ```powershell
-.\script\test\run_all_tests.ps1 -SkipAluno -SqlPass <password>
+.\script\test\run_all_tests.ps1 -SkipAluno -SqlPass <password> -WebE2EBackendBaseUrl http://127.0.0.1:8012
 ```
 
 Parâmetros úteis:
 - `-SkipWeb`
+- `-SkipWebE2E`
 - `-SkipSql`
 - `-SkipAluno`
 - `-InstallBackendDeps`
 - `-InstallWebDeps`
 - `-RunSqlTruncate`
+- `-WebE2EBackendBaseUrl`
 - `-SqlServer`, `-SqlUser`, `-SqlDatabase`, `-SqlPass`, `-PsqlPath`
 
-### 7) `script/test/clean_test_artifacts.ps1`
+### 8) `script/test/clean_test_artifacts.ps1`
 
 O que faz:
 - Remove artefactos gerados por testes/build sem tocar em código-fonte.
@@ -262,7 +287,7 @@ Parâmetros:
 - `-IncludeAiArtifacts` (inclui `ai_engine` na varredura de artefactos gerados)
 - `-KeepTempLogs` (preserva logs temporários em `%TEMP%`)
 
-### 8) `script/test/run_release_validation.ps1`
+### 9) `script/test/run_release_validation.ps1`
 
 O que faz:
 - Executa validação agregada (`run_all_tests.ps1`) no escopo de release.

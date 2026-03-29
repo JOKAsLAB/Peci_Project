@@ -201,7 +201,7 @@ test.describe.serial('Admin + Professor critical web flows', () => {
     await modal.getByPlaceholder('2025/2026').fill('2025/2026');
 
     const professorSearch = modal.getByPlaceholder('Procurar docente por nome, email ou NMec...');
-    await professorSearch.fill(professor.name.split(' ')[0]);
+    await professorSearch.fill(professor.email);
     await modal.locator('div.cursor-pointer').filter({ hasText: professor.email }).first().click();
 
     await expect(modal.locator('span').filter({ hasText: professor.name })).toBeVisible();

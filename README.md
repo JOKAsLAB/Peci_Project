@@ -694,6 +694,7 @@ python -m streamlit run chatbot.py
 .\script\test\run_all_tests.ps1 # Executa suite agregada (backend smoke + web stores + web E2E + SQL + Flutter)
 .\script\test\clean_test_artifacts.ps1 # Limpa artefactos de testes/build antes de commit
 .\script\test\run_release_validation.ps1 -SqlPass <password> # Valida (admin/professor/backend/sql) e limpa no fim
+.\script\test\run_release_validation.ps1 -IncludeAluno -SqlPass <password> # Valida escopo completo (inclui Flutter) e limpa no fim
 ```
 
 Variáveis de ambiente opcionais para bootstrap local web:
@@ -947,7 +948,7 @@ Flags úteis nos scripts web:
 * Validação funcional local browser E2E executada com `./script/test/run_web_e2e_tests.ps1`: `2 passed` (fluxos críticos Admin + Professor com backend real).
 * Validação funcional local SQL executada com `./script/test/run_database_sql_tests.ps1 -DbPass <password>`: `test_inserts.sql`, `test_admin_professor_integrity.sql` e `useful_selects.sql` concluídos com fixtures alinhados aos enums ativos (`*_enum`, labels em uppercase) e `request_type` obrigatório.
 * Validação transversal agregada executada com `./script/test/run_all_tests.ps1 -SqlPass <password>`: backend smoke `35 passed`, web stores `25 passed`, web E2E `2 passed`, SQL concluído e Flutter widget tests `4 passed`.
-* Validação de release executada com `./script/test/run_release_validation.ps1 -SqlPass <password_aqui>`: backend smoke `34 passed`, web stores `24 passed`, SQL concluído e limpeza automática de artefactos aplicada no fim (escopo Admin/Professor).
+* Validação de release executada com `./script/test/run_release_validation.ps1 -IncludeAluno -SqlPass <password>`: backend smoke `35 passed`, web stores `25 passed`, web E2E `2 passed`, SQL concluído, Flutter widget tests `4 passed` e limpeza automática de artefactos aplicada no fim.
 * Higiene de publicação reforçada com `.gitignore` na raiz + `./script/test/clean_test_artifacts.ps1` para remover `dist`, caches e `__pycache__` antes de commit/push (logs temporários `%TEMP%` preservados por defeito no runner de release).
 * Validação de frontends alterados executada com sucesso: `npm run build` em `admin/` e `professor/`.
 * Hardening backend aplicado no ciclo atual: migração para `SettingsConfigDict` (Pydantic v2) e anotações `overlaps` nas relações SQLAlchemy sobre `exercise.ID_UC`, eliminando warnings ruidosos no smoke.

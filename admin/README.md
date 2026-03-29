@@ -18,7 +18,9 @@ O painel Admin cobre operações administrativas e de governação:
 - autenticação com role `Admin`
 - gestão de utilizadores
 - gestão de unidades curriculares
+- aprovação/rejeição de contas docentes com transição de estado da conta
 - decisão de pedidos administrativos
+- confirmações explícitas em ações críticas (aprovar/rejeitar/remover/alterar estado)
 - dashboard operacional
 
 Não cobre edição curricular de conteúdo pedagógico.
@@ -95,6 +97,11 @@ Persistência de sessão:
 - `DELETE /api/v1/admin/users/{user_id}`
 - criação via `POST /api/v1/auth/register`
 
+Notas de negócio:
+
+- registo de `Professor` via `POST /api/v1/auth/register` cria conta com `status=Suspended`
+- no mesmo registo é criado pedido `access` pendente para decisão do admin
+
 ### Unidades curriculares
 
 - `GET /api/v1/admin/course-units`
@@ -102,12 +109,21 @@ Persistência de sessão:
 - `PATCH /api/v1/admin/course-units/{id_uc}`
 - `DELETE /api/v1/admin/course-units/{id_uc}`
 
+Contrato atual de payload:
+
+- `POST/PATCH` aceitam `professor_ids: UUID[]`
+- `GET/POST/PATCH` devolvem `professors[]` com `{ id, name, email }`
+
 ### Pedidos administrativos
 
 - `GET /api/v1/admin/requests`
 - `PATCH /api/v1/admin/requests/{request_id}/decision`
 
-Pedido de conta docente (tipo funcional `access`) é filtrado no frontend a partir do prefixo técnico no título: `[access]`.
+Contrato atual de pedidos:
+
+- `request_type` é a fonte primária de tipagem (`access|platform|operations|other`)
+- `professor_info` e `admin_info` são devolvidos quando relações estão disponíveis
+- decisão de pedido `access` sincroniza o estado da conta docente (`approved` -> `Active`, `rejected` -> `Deactivated`)
 
 ## Estrutura relevante
 
@@ -130,3 +146,4 @@ admin/
 - testes de stores: estáveis
 - build de produção: estável
 - integração com backend para `users`, `course-units` e `requests`: ativa
+- fluxo de aprovação de docente e bloqueio de login até decisão admin: ativo
