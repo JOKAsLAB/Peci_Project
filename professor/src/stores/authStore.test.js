@@ -19,12 +19,12 @@ describe('professor authStore', () => {
     global.localStorage = createStorageMock()
   })
 
-  it('registerProfessor sends role Professor and persists authenticated session', async () => {
+  it('registerProfessor sends role Professor and keeps session unauthenticated', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         access_token: 'token-prof',
-        user: { id: 'p-1', role: 'Professor', name: 'Docente 1' },
+        user: { id: 'p-1', role: 'Professor', name: 'Docente 1', status: 'Suspended' },
       }),
     })
 
@@ -41,8 +41,19 @@ describe('professor authStore', () => {
     const firstCallBody = JSON.parse(fetch.mock.calls[0][1].body)
     expect(firstCallBody.role).toBe('Professor')
     expect(user.role).toBe('Professor')
-    expect(store.isAuthenticated).toBe(true)
-    expect(localStorage.getItem('peci_professor_auth_v1')).not.toBeNull()
+    expect(store.isAuthenticated).toBe(false)
+    expect(localStorage.getItem('peci_professor_auth_v1')).toBeNull()
+  })
+
+  it('propagates pending-approval login errors from backend', async () => {
+    fetch.mockResolvedValueOnce({
+      ok: false,
+      json: async () => ({ detail: 'Account pending admin approval' }),
+    })
+
+    const store = useAuthStore()
+    await expect(store.login('docente@ua.pt', 'pass123')).rejects.toThrow('Account pending admin approval')
+    expect(store.isAuthenticated).toBe(false)
   })
 
   it('rejects login when account role is not Professor', async () => {

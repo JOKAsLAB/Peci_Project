@@ -12,6 +12,7 @@ from app.models import (
 	Teaching_Material,
 	Topic,
 )
+from app.models.enums import RequestStatus
 from app.routers.deps import require_roles
 from app.schemas.academic import (
 	CourseUnitResponse,
@@ -66,6 +67,7 @@ def to_request_response(item: Request) -> AdminRequestResponse:
 		id_request=item.ID_Request,
 		id_professor=item.ID_Professor,
 		id_admin=item.ID_Admin,
+		request_type=item.Request_Type,
 		title=item.Title,
 		description=item.Description,
 		status=item.Status,
@@ -222,9 +224,10 @@ async def create_admin_request(
 ):
 	item = Request(
 		ID_Professor=current_professor.ID_User,
+		Request_Type=payload.request_type,
 		Title=payload.title,
 		Description=payload.description,
-		Status="pending",
+		Status=RequestStatus.PENDING,
 	)
 	db.add(item)
 	await db.flush()

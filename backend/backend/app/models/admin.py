@@ -13,11 +13,12 @@ from sqlalchemy import (
     Column, String, Text, DateTime,
     ForeignKey, Index, Integer
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ENUM
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.enums import RequestStatus, RequestType
 
 
 # =============================================================
@@ -45,9 +46,15 @@ class Request(Base):
         nullable=True   # pode não estar resolvido ainda
     )
 
+    # ATENÇÃO: create_type=True (OBRIGATÓRIO PARA ASYNCPG)
+    Request_Type = Column(ENUM(RequestType, name="request_type_enum", create_type=True), nullable=False)
+
     Title        = Column(String(200), nullable=False)
     Description  = Column(Text,        nullable=False)
-    Status       = Column(String(20), nullable=False, default="pending")
+    
+    # ATENÇÃO: create_type=True (OBRIGATÓRIO PARA ASYNCPG)
+    Status       = Column(ENUM(RequestStatus, name="request_status_enum", create_type=True), nullable=False, default=RequestStatus.PENDING)
+    
     AdminComment = Column(Text,        nullable=True)
 
     Creation_Date = Column(
@@ -64,6 +71,7 @@ class Request(Base):
     __table_args__ = (
         # Índices para performance
         Index("idx_request_status", "Status"),
+        Index("idx_request_type", "Request_Type"),
         Index("idx_request_professor", "ID_Professor"),
         Index("idx_request_admin", "ID_Admin"),
     )

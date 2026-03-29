@@ -7,9 +7,9 @@ BEGIN;
 
 INSERT INTO base_user ("ID_User", "Name", "Email", "Password_Hash", "Role", "Status")
 VALUES
-  ('10000000-0000-0000-0000-000000000001', 'Admin Integridade', 'admin.integridade@ua.pt', 'hash_admin', 'Admin', 'Active'),
-  ('10000000-0000-0000-0000-000000000002', 'Professor A', 'prof.a.integridade@ua.pt', 'hash_prof_a', 'Professor', 'Active'),
-  ('10000000-0000-0000-0000-000000000003', 'Professor B', 'prof.b.integridade@ua.pt', 'hash_prof_b', 'Professor', 'Active');
+  ('10000000-0000-0000-0000-000000000001', 'Admin Integridade', 'admin.integridade@ua.pt', 'hash_admin', 'ADMIN', 'ACTIVE'),
+  ('10000000-0000-0000-0000-000000000002', 'Professor A', 'prof.a.integridade@ua.pt', 'hash_prof_a', 'PROFESSOR', 'ACTIVE'),
+  ('10000000-0000-0000-0000-000000000003', 'Professor B', 'prof.b.integridade@ua.pt', 'hash_prof_b', 'PROFESSOR', 'ACTIVE');
 
 INSERT INTO admin ("ID_Admin", "Privilege_Level", "Contact")
 VALUES ('10000000-0000-0000-0000-000000000001', 3, 'admin.integridade@ua.pt');
@@ -25,10 +25,10 @@ VALUES (91001, 'UC Integridade Admin/Professor', '2S', 3);
 INSERT INTO professor_uc ("ID_Professor", "ID_UC")
 VALUES ('10000000-0000-0000-0000-000000000002', 91001);
 
-INSERT INTO request ("ID_Professor", "ID_Admin", "Title", "Description", "Status")
+INSERT INTO request ("ID_Professor", "ID_Admin", "Request_Type", "Title", "Description", "Status")
 VALUES
-  ('10000000-0000-0000-0000-000000000002', NULL, '[access] Pedido de acesso ao painel', 'Fluxo inicial pendente', 'pending'),
-  ('10000000-0000-0000-0000-000000000003', NULL, '[platform] Erro de plataforma', 'Fluxo inicial pendente', 'pending');
+  ('10000000-0000-0000-0000-000000000002', NULL, 'ACCESS', '[access] Pedido de acesso ao painel', 'Fluxo inicial pendente', 'PENDING'),
+  ('10000000-0000-0000-0000-000000000003', NULL, 'PLATFORM', '[platform] Erro de plataforma', 'Fluxo inicial pendente', 'PENDING');
 
 DO $$
 DECLARE
@@ -37,7 +37,7 @@ DECLARE
 BEGIN
   SELECT COUNT(*) INTO pending_count
   FROM request
-  WHERE "Status" = 'pending'
+  WHERE "Status" = 'PENDING'
     AND "ID_Professor" IN (
       '10000000-0000-0000-0000-000000000002',
       '10000000-0000-0000-0000-000000000003'
@@ -59,12 +59,12 @@ END $$;
 
 UPDATE request
 SET
-  "Status" = 'approved',
+  "Status" = 'APPROVED',
   "ID_Admin" = '10000000-0000-0000-0000-000000000001',
   "AdminComment" = 'Aprovado no teste transacional',
   "Resolution_Date" = NOW()
 WHERE "ID_Professor" = '10000000-0000-0000-0000-000000000002'
-  AND "Status" = 'pending';
+  AND "Status" = 'PENDING';
 
 DO $$
 DECLARE
@@ -74,7 +74,7 @@ BEGIN
   SELECT COUNT(*) INTO approved_count
   FROM request
   WHERE "ID_Professor" = '10000000-0000-0000-0000-000000000002'
-    AND "Status" = 'approved'
+    AND "Status" = 'APPROVED'
     AND "ID_Admin" = '10000000-0000-0000-0000-000000000001'
     AND "Resolution_Date" IS NOT NULL;
 
@@ -85,7 +85,7 @@ BEGIN
   SELECT COUNT(*) INTO unresolved_count
   FROM request
   WHERE "ID_Professor" = '10000000-0000-0000-0000-000000000003'
-    AND "Status" = 'pending'
+    AND "Status" = 'PENDING'
     AND "ID_Admin" IS NULL;
 
   IF unresolved_count <> 1 THEN

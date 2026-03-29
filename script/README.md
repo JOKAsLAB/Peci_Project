@@ -65,6 +65,8 @@ Flags úteis:
 - `-SkipBootstrapData`: no bootstrap, não executa bootstrap de schema/admin.
 - `-BackendBaseUrl`: URL base do backend (default: `http://127.0.0.1:8000`).
 - `-BackendStartupTimeoutSeconds`: timeout de arranque do backend.
+- `-RestartFrontendIfRunning`: se a porta `5174` estiver ocupada, termina o processo atual e arranca um Vite novo.
+- `-RestartBackendIfHealthy`: força reinício do backend mesmo quando `GET /health` já responde `200`.
 
 ### 2) `script/run/run_professor.ps1`
 
@@ -84,6 +86,8 @@ Flags úteis:
 - `-SkipBootstrapData`
 - `-BackendBaseUrl`
 - `-BackendStartupTimeoutSeconds`
+- `-RestartFrontendIfRunning`: se a porta `5173` estiver ocupada, termina o processo atual e arranca um Vite novo.
+- `-RestartBackendIfHealthy`: força reinício do backend mesmo quando `GET /health` já responde `200`.
 
 ### 3) `script/run/run_aluno.ps1`
 
@@ -120,6 +124,7 @@ Parâmetros:
 - `-StartupTimeoutSeconds` (default: `45`)
 - `-SkipInfra`
 - `-SkipBootstrapData`
+- `-RestartHealthyBackend` (se a API já estiver saudável, força stop na porta e relança o backend)
 
 ## Scripts de Teste
 

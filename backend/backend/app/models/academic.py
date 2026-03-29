@@ -11,14 +11,14 @@
 import uuid
 from sqlalchemy import (
     Column, String, Text, DateTime, Integer,
-    SmallInteger, ForeignKey, UniqueConstraint,
-    CheckConstraint, ForeignKeyConstraint
+    SmallInteger, ForeignKey, UniqueConstraint, ForeignKeyConstraint
 )
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID, JSONB, ENUM
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.enums import MaterialStatus, ExerciseType, DifficultyLevel
 
 
 # =============================================================
@@ -103,20 +103,16 @@ class Teaching_Material(Base):
         ForeignKey("professor.ID_Professor", ondelete="RESTRICT"),
         nullable=False
     )
-    Status         = Column(String(20),  nullable=False, default="Pending")
+    
+    # Substituição de VARCHAR e CheckConstraint por ENUM nativo (obrigatório create_type=True para asyncpg)
+    Status         = Column(ENUM(MaterialStatus, name="material_status_enum", create_type=True),  nullable=False, default=MaterialStatus.PENDING)
+    
     Title          = Column(String(200), nullable=False)
     File_Path      = Column(Text,        nullable=False)
     Extracted_Text = Column(Text,        nullable=True)
 
     # server_default=func.now() delega ao PostgreSQL — equivalente ao DEFAULT NOW() do SQL
     Upload_Date    = Column(DateTime, nullable=False, server_default=func.now())
-
-    __table_args__ = (
-        CheckConstraint(
-            "Status IN ('Pending', 'Indexed', 'Error')",
-            name="check_material_status"
-        ),
-    )
 
     # Relações inversas
     course_unit = relationship("Course_Unit", back_populates="teaching_materials")
@@ -150,10 +146,13 @@ class Exercise(Base):
         ForeignKey("teaching_material.ID_Material", ondelete="SET NULL"),
         nullable=True  # NULL = exercício fixo (não gerado por IA)
     )
-    Type         = Column(String(30),  nullable=False)
+    
+    # Substituição de VARCHAR e CheckConstraint por ENUM nativo
+    Type         = Column(ENUM(ExerciseType, name="exercise_type_enum", create_type=True),  nullable=False)
+    Difficulty   = Column(ENUM(DifficultyLevel, name="difficulty_level_enum", create_type=True),  nullable=False)
+    
     Question     = Column(Text,        nullable=False)
     Solution     = Column(JSONB,       nullable=False)
-    Difficulty   = Column(String(10),  nullable=False)
     Explanation  = Column(Text,        nullable=True)
 
     __table_args__ = (
@@ -171,14 +170,6 @@ class Exercise(Base):
             ["topic.ID_UC", "topic.Name"],
             ondelete="RESTRICT",
             name="fk_exercise_topic"
-        ),
-        CheckConstraint(
-            "Type IN ('Multiple Choice', 'True/False')",
-            name="check_exercise_type"
-        ),
-        CheckConstraint(
-            "Difficulty IN ('Easy', 'Medium', 'Hard')",
-            name="check_exercise_difficulty"
         ),
     )
 

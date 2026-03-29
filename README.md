@@ -49,8 +49,8 @@ O sistema opera numa arquitetura distribuída com quatro blocos principais:
 
 ### 4.1. Frontends (Neste Monorepo)
 * **Flutter Mobile (Aluno):** Aplicação principal — exercícios gamificados com 2 tipos de questão (escolha múltipla e V/F), Tutor IA contextual (bottom sheet com explicações passo a passo, exemplos e dicas), sistema de inscrição em disciplinas, sistema de XP e níveis dinâmico (N1–N6), bloqueio de orientação em retrato. Catálogo inicial com 31 exercícios distribuídos por 12 módulos para arranque controlado da integração real.
-* **Vue 3 + Vite + Pinia + Tailwind (Professor):** Painel docente completo — banco de exercícios central (58 exercícios) com filtros avançados (disciplina, módulo, dificuldade, tipo), upload de documentos da UC, laboratório de perguntas com LLM (mantido no código, oculto da navegação por decisão de fase), percursos de aprendizagem e pedidos administrativos ao admin.
-* **Vue 3 + Vite + Pinia + Tailwind (Admin):** Painel de administração — login com email e password, gestão de disciplinas com autocomplete de professores (seleção por tags), gestão de utilizadores (passwords ocultas na tabela), dashboard com métricas, aprovação/rejeição de pedidos de criação de conta de professor com nota administrativa e gestão de pedidos administrativos dos docentes. O admin fica focado em fluxos administrativos, não em gestão de matéria.
+* **Vue 3 + Vite + Pinia + Tailwind (Professor):** Painel docente completo — banco de exercícios central (58 exercícios) com filtros avançados (disciplina, módulo, dificuldade, tipo), upload de documentos da UC, laboratório de perguntas com LLM (mantido no código, oculto da navegação por decisão de fase), percursos de aprendizagem e pedidos administrativos ao admin. O registo de docente entra em estado pendente até aprovação administrativa.
+* **Vue 3 + Vite + Pinia + Tailwind (Admin):** Painel de administração — login com email e password, gestão de disciplinas com autocomplete de professores (seleção por tags), gestão de utilizadores (passwords ocultas na tabela), dashboard com métricas, aprovação/rejeição de pedidos de criação de conta de professor com nota administrativa, gestão de pedidos administrativos dos docentes e confirmações explícitas em ações críticas. O admin fica focado em fluxos administrativos, não em gestão de matéria.
 
 ### 4.2. Backend & API
 * **FastAPI (API Gateway):** App funcional em `backend/backend/app/main.py`, com `GET /`, `GET /health` e routers incluídos por domínio.
@@ -109,9 +109,9 @@ A equipa adotou uma estratégia de **"Arquitetura Pronta para o Docente"**:
 ### 5.4. Administrador
 | ID | User Story | Critérios de Aceitação |
 |---|---|---|
-| US10 | **Gestão de Disciplinas:** Como admin, quero gerir disciplinas com múltiplos professores por UC. | CRUD de disciplinas com autocomplete de professores (seleção por tags removíveis) (FR). Toggle ativo/inativo por disciplina (FR). |
+| US10 | **Gestão de Disciplinas:** Como admin, quero gerir disciplinas com múltiplos professores por UC. | CRUD de disciplinas com autocomplete de professores (seleção por tags removíveis) (FR). Atribuições de docentes persistidas no backend e visíveis após reload (FR). Toggle ativo/inativo por disciplina (FR). |
 | US11 | **Gestão de Utilizadores:** Como admin, quero gerir professores e alunos na plataforma. | Lista com filtros (todos/professores/alunos/ativos/inativos) (FR). Edição e remoção de utilizadores (FR). |
-| US11b | **Aprovação de Contas de Docente:** Como admin, quero aprovar ou rejeitar pedidos de registo de professores antes de ativar o acesso. | Lista de pedidos pendentes com dados do docente (FR). Aprovar/rejeitar com nota de revisão (FR). Ao aprovar, criação automática do utilizador com papel docente (FR). |
+| US11b | **Aprovação de Contas de Docente:** Como admin, quero aprovar ou rejeitar pedidos de registo de professores antes de ativar o acesso. | Lista de pedidos pendentes com dados reais do docente (FR). Aprovar/rejeitar com nota de revisão (FR). Ao aprovar, a conta passa de `Suspended` para `Active`; ao rejeitar, fica `Deactivated` (FR). |
 | US12 | **Dashboard:** Como admin, quero ter uma visão geral da plataforma com métricas. | Contadores de utilizadores e disciplinas (FR). Últimos logins e disciplinas ativas (FR). |
 | US13 | **Pedidos Administrativos dos Docentes:** Como admin, quero rever pedidos administrativos submetidos pelos docentes (acessos, suporte de plataforma e operações) sem intervir em matéria curricular. | Lista de pedidos administrativos com filtros por estado (FR). Aprovar/rejeitar com nota (FR). Sem gestão de exercícios/tópicos curriculares no admin (NFR). |
 
@@ -137,8 +137,8 @@ A interface exige o cumprimento de métricas de legibilidade modernas e performa
 Estado observado no branch atual:
 * **Topologia alvo:** Flutter/Vue como *thin clients* a consumir FastAPI Gateway com JWT e endpoints versionados.
 * **Topologia efetiva neste snapshot:** frontends ainda operam maioritariamente com estado local de bootstrap (Pinia no web e Riverpod no mobile); backend FastAPI já expõe endpoints versionados (`/api/v1/auth`, `/api/v1/academic`, `/api/v1/admin`, `/api/v1/professors`, `/api/v1/students`), com adoção progressiva pelos clientes.
-* **Autenticação web (estado atual):** Painéis admin/professor já autenticam contra FastAPI (`POST /api/v1/auth/login`, `GET /api/v1/auth/me`) com validação de role no cliente e persistência de sessão conforme escolha do utilizador no login (localStorage quando "Lembrar-me" ativo, sessionStorage quando desativado).
-* **Dados de domínio web (estado atual):** Admin já consome FastAPI para utilizadores (`GET/PATCH/DELETE /api/v1/admin/users` + criação via `POST /api/v1/auth/register`), UCs (`GET/POST/PATCH/DELETE /api/v1/admin/course-units`) e decisões administrativas (`GET/PATCH /api/v1/admin/requests`); painel professor já consome `GET/POST /api/v1/professors/requests`.
+* **Autenticação web (estado atual):** Painéis admin/professor já autenticam contra FastAPI (`POST /api/v1/auth/login`, `GET /api/v1/auth/me`) com validação de role no cliente e persistência de sessão conforme escolha do utilizador no login (localStorage quando "Lembrar-me" ativo, sessionStorage quando desativado). Registo de professor via `POST /api/v1/auth/register` entra em estado pendente (`Suspended`) até decisão do admin.
+* **Dados de domínio web (estado atual):** Admin já consome FastAPI para utilizadores (`GET/PATCH/DELETE /api/v1/admin/users` + criação via `POST /api/v1/auth/register`), UCs (`GET/POST/PATCH/DELETE /api/v1/admin/course-units` com `professor_ids` e retorno de metadados dos docentes) e decisões administrativas (`GET/PATCH /api/v1/admin/requests`); painel professor já consome `GET/POST /api/v1/professors/requests`.
 * **Autenticação mobile (estado atual):** Fluxo local de transição com `mockAuthProvider` no router do Flutter; integração ao backend ficará na próxima etapa incremental.
 * **RAG/Chatbot:** Disponível por execução local de `ai_engine/chatbot.py` (Streamlit), fora da malha API Gateway.
 
@@ -373,12 +373,18 @@ script/
 ├── test/
 │   ├── run_backend_smoke.ps1           # Execução automatizada da suíte smoke da API
 │   ├── run_web_store_tests.ps1          # Execução de testes Vitest (stores admin + professor)
+│   ├── run_web_e2e_tests.ps1            # Execução E2E browser (Playwright) para fluxos críticos Admin + Professor
 │   ├── run_admin_auth_check.ps1        # Validação e2e de login admin (login + /me)
 │   ├── run_database_sql_tests.ps1      # Runner dos testes SQL (insert/select/truncate opcional)
 │   ├── run_aluno_widget_tests.ps1      # Runner de widget tests Flutter
 │   ├── run_all_tests.ps1               # Runner agregado de todos os testes
 │   ├── clean_test_artifacts.ps1        # Limpeza de artefactos gerados por testes/build
 │   ├── run_release_validation.ps1      # Runner de release (valida e limpa)
+│   ├── e2e/
+│   │   ├── package.json                 # Dependências Playwright da suite browser
+│   │   ├── playwright.config.js         # Configuração de execução E2E
+│   │   └── tests/
+│   │       └── admin-professor-flows.spec.js # Fluxos críticos Admin + Professor
 │   └── sql/
 │       ├── test_inserts.sql            # Massa de teste e validação SQL
 │       ├── test_admin_professor_integrity.sql # Integridade transacional Admin/Professor (sem persistir alterações)
@@ -479,10 +485,11 @@ Este índice lista apenas os ficheiros de maior valor semântico para evolução
 * `script/run/ensure_web_backend.ps1` — garante API FastAPI saudável antes dos painéis web, incluindo criação automática de `backend/backend/app/.env`, criação de `.venv`, instalação de dependências em falta e bootstrap idempotente de schema/admin local.
 * `script/test/run_backend_smoke.ps1` — arranca API local temporária, corre smoke tests e encerra servidor automaticamente.
 * `script/test/run_web_store_tests.ps1` — executa a suíte Vitest dos stores dos painéis admin/professor.
+* `script/test/run_web_e2e_tests.ps1` — executa testes browser E2E (Playwright) para fluxos críticos de integração real Admin↔Professor↔Backend.
 * `script/test/run_admin_auth_check.ps1` — valida o login admin real e confirmação de role (`/auth/login` + `/auth/me`).
 * `script/test/run_database_sql_tests.ps1` — executa testes SQL centralizados em `script/test/sql`.
 * `script/test/run_aluno_widget_tests.ps1` — executa widget tests do módulo Flutter `aluno/`.
-* `script/test/run_all_tests.ps1` — runner agregado para backend smoke + web stores + SQL + widget tests Flutter.
+* `script/test/run_all_tests.ps1` — runner agregado para backend smoke + web stores + web E2E + SQL + widget tests Flutter.
 * `script/test/clean_test_artifacts.ps1` — remove artefactos gerados (dist, caches, pyc, pytest cache) antes de commit/push.
 * `script/test/run_release_validation.ps1` — executa validação integrada e limpeza automática para publicação.
 * `script/README.md` — guia detalhado de execução e testes dos scripts do projeto.
@@ -521,7 +528,7 @@ Este índice lista apenas os ficheiros de maior valor semântico para evolução
 ### 12.2. Painel Docente (Vue.js)
 | Funcionalidade | Estado | Detalhes |
 |---|---|---|
-| Login / Registo | Implementado | Gate de autenticação no App.vue, "Terminar Sessão" funcional, sincronização com `authStore` e persistência local de sessão |
+| Login / Registo | Implementado | Gate de autenticação no App.vue, sincronização com `authStore` e persistência local de sessão; registo docente fica pendente de aprovação admin antes do primeiro login |
 | Dashboard | Implementado | Métricas de conteúdo (exercícios publicados/rascunho), percursos publicados, documentos indexados e pedidos administrativos pendentes |
 | Banco de Exercícios | Implementado | 58 exercícios (3 disciplinas, 11 módulos), filtros avançados, paginação (15/página), modal de detalhe |
 | Upload de Documentos da UC | Implementado | Catálogo inicial de documentos e fluxo de upload pronto para persistência backend/IA |
@@ -529,17 +536,17 @@ Este índice lista apenas os ficheiros de maior valor semântico para evolução
 | Turmas / Quizzes / Estatísticas de Alunos (Legado de Protótipo) | Descontinuado nesta fase | Rotas, stores e views removidas para manter foco no domínio ativo de conteúdo curricular + pedidos administrativos |
 | Percursos de Aprendizagem | Implementado | 3 percursos (SD 5 módulos, AC 4 módulos, SE 3 módulos), exercícios (MC, V/F) |
 | Conteúdo Académico | Implementado | Gestão curricular direta no banco de exercícios/percursos, sem workflow de pedido ao admin |
-| Pedidos ao Admin | Implementado | Submissão de pedidos administrativos (acesso/plataforma/operações) com acompanhamento de estado |
+| Pedidos ao Admin | Implementado | Submissão de pedidos administrativos (acesso/plataforma/operações) com confirmação explícita e acompanhamento de estado |
 
 ### 12.3. Painel de Administração (Vue.js)
 | Funcionalidade | Estado | Detalhes |
 |---|---|---|
 | Login / Registo | Implementado | Login com email e password, gate de autenticação com prop `isAdmin`, sincronização com `authStore` e persistência local de sessão |
 | Dashboard | Implementado | Métricas da plataforma, últimos logins, disciplinas ativas |
-| Gestão de Disciplinas | Implementado | 4 UCs, autocomplete de professores com seleção por tags removíveis, toggle ativo/inativo |
-| Gestão de Utilizadores | Implementado | 22 utilizadores (3 professores, 19 alunos), passwords ocultas na tabela, filtros, CRUD, toggle estado |
-| Aprovação de Contas Docentes | Implementado | Aba dedicada para rever pedidos de registo de professor (pendente/aprovado/rejeitado), aprovar/rejeitar com nota e criação automática de utilizador docente ao aprovar |
-| Pedidos Administrativos dos Docentes | Implementado | Inbox administrativo para aprovar/rejeitar pedidos não curriculares (acesso/plataforma/operações) |
+| Gestão de Disciplinas | Implementado | 4 UCs, autocomplete de professores com seleção por tags removíveis, persistência de docentes associados no backend e confirmação explícita na remoção |
+| Gestão de Utilizadores | Implementado | 22 utilizadores (3 professores, 19 alunos), passwords ocultas na tabela, filtros, CRUD, toggle estado com confirmação em ações críticas |
+| Aprovação de Contas Docentes | Implementado | Aba dedicada para rever pedidos de registo de professor (pendente/aprovado/rejeitado), aprovar/rejeitar com confirmação e transição de estado (`Suspended`→`Active` / `Deactivated`) |
+| Pedidos Administrativos dos Docentes | Implementado | Inbox administrativo para aprovar/rejeitar pedidos não curriculares (acesso/plataforma/operações), com confirmação explícita de decisão |
 | Fluxos Curriculares | Fora de Escopo (Admin) | Gestão de matéria curricular permanece no painel docente |
 
 ## 13. Tipos de Exercício Suportados
@@ -588,7 +595,7 @@ Cada exercício inclui obrigatoriamente:
 | `pydantic` | 2.11.2 | Validação de dados |
 | `pydantic-settings` | 2.9.1 | Gestão de configuração por ambiente |
 | `python-jose` | 3.4.0 | JWT para autenticação/autorização |
-| `passlib` + `bcrypt` | 1.7.4 / 4.3.0 | Hashing de passwords |
+| `passlib` + `bcrypt` | 1.7.4 / 4.0.1 | Hashing de passwords |
 | `python-multipart` | 0.0.20 | Upload multipart (materiais) |
 | `email-validator` | 2.2.0 | Suporte a `EmailStr` nos schemas Pydantic |
 
@@ -680,10 +687,11 @@ python -m streamlit run chatbot.py
 .\script\run\ensure_web_backend.ps1 # Garante API e precondicoes locais (env, venv, deps, schema, admin)
 .\script\test\run_backend_smoke.ps1 # Arranca API local, aguarda /health, corre smoke tests e encerra o servidor
 .\script\test\run_web_store_tests.ps1 # Executa testes Vitest dos stores Admin + Professor
+.\script\test\run_web_e2e_tests.ps1 # Executa fluxo browser E2E Admin + Professor (Playwright)
 .\script\test\run_admin_auth_check.ps1 # Valida login admin real e role devolvida por /auth/me
 .\script\test\run_database_sql_tests.ps1 # Executa scripts SQL de validacao em script/test/sql
 .\script\test\run_aluno_widget_tests.ps1 # Executa widget tests Flutter do modulo aluno
-.\script\test\run_all_tests.ps1 # Executa suite agregada (backend smoke + web + SQL + Flutter)
+.\script\test\run_all_tests.ps1 # Executa suite agregada (backend smoke + web stores + web E2E + SQL + Flutter)
 .\script\test\clean_test_artifacts.ps1 # Limpa artefactos de testes/build antes de commit
 .\script\test\run_release_validation.ps1 -SqlPass <password> # Valida (admin/professor/backend/sql) e limpa no fim
 ```
@@ -815,10 +823,11 @@ Flags úteis nos scripts web:
 
 ### 17.6. Fluxo de Validação Local da API (Smoke E2E)
 1. O operador executa `./script/test/run_backend_smoke.ps1` na raiz do monorepo.
-2. O script inicia `uvicorn app.main:app`, aguarda `GET /health` e injeta `SMOKE_BASE_URL` para a suíte.
-3. A suíte em `backend/backend/tests/smoke/test_api_smoke.py` valida domínios auth/academic/students/professors/admin e o stub IA.
-4. Sem credenciais admin explícitas, a suíte cria automaticamente uma conta admin local temporária para cobrir endpoints administrativos.
-5. No final, o processo do servidor é encerrado automaticamente, preservando execução local determinística.
+2. O script valida o `BaseUrl`; quando a porta local pedida já está ocupada, seleciona automaticamente uma porta livre para arrancar `uvicorn app.main:app` e manter isolamento determinístico.
+3. O runner aguarda `GET /health` no endpoint efetivo e injeta `SMOKE_BASE_URL` alinhado com a porta realmente usada.
+4. A suíte em `backend/backend/tests/smoke/test_api_smoke.py` valida domínios auth/academic/students/professors/admin e o stub IA.
+5. Sem credenciais admin explícitas, a suíte cria automaticamente uma conta admin local temporária para cobrir endpoints administrativos.
+6. No final, o processo do servidor é encerrado automaticamente, preservando execução local determinística.
 
 ### 17.11. Fluxo de Validação dos Stores Web (Admin/Professor)
 1. O operador executa `./script/test/run_web_store_tests.ps1` na raiz do monorepo.
@@ -826,12 +835,20 @@ Flags úteis nos scripts web:
 3. A suíte valida stores API-backed (auth, users, disciplines, requests) e stores locais/simuladas (question lab, exercise/path) com mocks de `fetch`, storage e timers.
 4. O fluxo garante que decisões de sessão (`remember`), serialização de pedidos administrativos (`[type]`) e mutações transacionais de estado permanecem consistentes sem dependência da UI.
 
+### 17.12. Fluxo de Validação Browser E2E (Admin/Professor)
+1. O operador executa `./script/test/run_web_e2e_tests.ps1` na raiz do monorepo.
+2. O runner garante backend local saudável em URL dedicada para E2E (`-BackendBaseUrl`, default `http://127.0.0.1:8010`) via `script/run/ensure_web_backend.ps1`; no runner agregado (`run_all_tests.ps1`) a execução E2E usa por defeito `http://127.0.0.1:8012` para reduzir colisões com instâncias locais pré-existentes.
+3. O runner arranca Vite dos painéis admin/professor em modo determinístico (reinicia listeners prévios em `5174` e `5173`) e injeta `VITE_API_BASE_URL` para apontar ao backend E2E.
+4. A suíte Playwright (`script/test/e2e/tests/admin-professor-flows.spec.js`) valida fluxos críticos fim-a-fim: registo docente pendente, aprovação admin e desbloqueio de login, pedido administrativo com decisão do admin, e CRUD de UC com atribuição persistida de docente.
+5. No fim da execução, os servidores frontend iniciados pelo runner são terminados automaticamente para evitar deriva de estado local.
+
 ### 17.7. Fluxo de Autenticação Web via FastAPI (Fase 1 de Integração)
-1. O utilizador submete credenciais no painel `admin/` ou `professor/`.
-2. O `authStore` da aplicação invoca `POST /api/v1/auth/login` para obtenção do `access_token` JWT.
-3. O cliente valida sessão e role através de `GET /api/v1/auth/me`.
-4. O token e o perfil validado são persistidos no browser sem guardar password: `localStorage` quando "Lembrar-me" está ativo, `sessionStorage` quando desativado.
-5. No arranque de cada painel, a sessão persistida é revalidada no backend; em falha, a sessão local é limpa e o utilizador regressa ao login.
+1. No registo de docente (`POST /api/v1/auth/register` com role `Professor`), a conta é criada em `Suspended` e é aberto automaticamente um pedido administrativo de acesso (`request_type=access`, `status=pending`).
+2. Enquanto o pedido estiver pendente, tentativas de login do docente devolvem `403` com detalhe `Account pending admin approval`.
+3. O admin decide o pedido em `PATCH /api/v1/admin/requests/{id}/decision`; ao aprovar, a conta passa para `Active`; ao rejeitar, para `Deactivated`.
+4. Após aprovação, o `authStore` docente invoca `POST /api/v1/auth/login` para obtenção do `access_token` JWT e valida sessão/role com `GET /api/v1/auth/me`.
+5. O token e o perfil validado são persistidos no browser sem guardar password: `localStorage` quando "Lembrar-me" está ativo, `sessionStorage` quando desativado.
+6. No arranque de cada painel, a sessão persistida é revalidada no backend; em falha, a sessão local é limpa e o utilizador regressa ao login.
 
 ### 17.10. Onde Ficam Email e Password (Admin)
 1. O email e a password são enviados pelo frontend apenas no pedido `POST /api/v1/auth/login`.
@@ -844,8 +861,9 @@ Flags úteis nos scripts web:
 1. No painel admin, as vistas de Utilizadores, UCs e Pedidos carregam estado inicial diretamente do backend com token JWT.
 2. Operações de mutação no painel admin deixam de alterar apenas estado local e passam a persistir no backend (`PATCH/DELETE` de utilizadores, `POST/PATCH/DELETE` de UCs, `PATCH` de decisão de pedidos).
 3. Criação de contas de aluno/docente no admin passa por `POST /api/v1/auth/register`, seguida de sincronização da lista de utilizadores via `GET /api/v1/admin/users`.
+    * Registos de docente por este endpoint entram em fluxo de aprovação (`Suspended` + pedido `access`) antes de login no painel docente.
 4. No painel professor, pedidos ao admin são listados e criados por `GET/POST /api/v1/professors/requests`, com estado refletido conforme decisão administrativa.
-5. O tipo funcional do pedido (`access`, `platform`, `other`) é serializado no título por prefixo técnico (`[type]`) para manter compatibilidade com o contrato atual do backend sem alterações de schema.
+5. A criação de pedido no professor envia `request_type` explícito no payload (`access`, `platform`, `operations`, `other`), conforme contrato atual do backend; parsing de prefixo no título é mantido apenas para retrocompatibilidade de registos legados.
 
 ### 17.9. Fluxo de Bootstrap Local Reproduzível (Admin/Professor)
 1. O operador executa `./script/run/run_admin.ps1` ou `./script/run/run_professor.ps1` na raiz.
@@ -889,7 +907,9 @@ Flags úteis nos scripts web:
 * Contratos versionados disponíveis sob prefixo `/api/v1/*` com autenticação JWT (`Bearer`) nas rotas protegidas.
 * CORS backend configurado para origens web locais dos painéis (`5173` e `5174`) para permitir consumo browser dos endpoints autenticados.
 * Fluxos web de domínio já validados contra backend nos painéis: `admin/users`, `admin/course-units`, `admin/requests` e `professors/requests`.
-* Tipologia de pedidos administrativos no frontend é codificada no `title` com prefixo `[access|platform|other]` até evolução explícita do schema API.
+* Registo de docente via `POST /api/v1/auth/register` cria pedido de acesso pendente e bloqueia login até decisão administrativa (`PATCH /api/v1/admin/requests/{id}/decision`).
+* `POST /api/v1/professors/requests` requer `request_type` e mantém semântica de domínio (`access|platform|operations|other`) alinhada com os enums do backend.
+* A codificação `[type]` no `title` permanece apenas como fallback de leitura para pedidos legados sem `request_type` persistido.
 * `POST /api/v1/ai-tutor/query` mantém estado de stub (resposta `501`) até integração com RAG.
 * A documentação local do backend está em `backend/README.md`.
 * Contratos API documentados nesta raiz representam estado implementado parcial + roadmap de integração frontend.
@@ -922,10 +942,11 @@ Flags úteis nos scripts web:
     * `infrastructure/.env.example`, `infrastructure/docker-compose.yml`: presentes
 * `docker compose config` não executado no ambiente atual por ausência de Docker CLI (`docker-cli-missing`).
 * Validação funcional local do bootstrap web executada com `.\script\run\ensure_web_backend.ps1`: backend ficou saudável e conta admin local foi garantida.
-* Validação funcional local backend/API executada com `pytest tests/smoke -q` em `backend/backend`: `34 passed`.
-* Validação funcional local dos stores web executada com `./script/test/run_web_store_tests.ps1`: `24 passed` (Admin `14`, Professor `10`).
-* Validação funcional local SQL executada com `./script/test/run_database_sql_tests.ps1 -DbPass <password>`: `test_inserts.sql`, `test_admin_professor_integrity.sql` e `useful_selects.sql` concluídos.
-* Validação transversal agregada executada com `./script/test/run_all_tests.ps1 -SkipAluno -SqlPass <password>`: backend + web + SQL sem falhas (escopo Admin/Professor).
+* Validação funcional local backend/API executada com `pytest tests/smoke -q` em `backend/backend`: `35 passed`.
+* Validação funcional local dos stores web executada com `./script/test/run_web_store_tests.ps1`: `25 passed` (Admin `14`, Professor `11`).
+* Validação funcional local browser E2E executada com `./script/test/run_web_e2e_tests.ps1`: `2 passed` (fluxos críticos Admin + Professor com backend real).
+* Validação funcional local SQL executada com `./script/test/run_database_sql_tests.ps1 -DbPass <password>`: `test_inserts.sql`, `test_admin_professor_integrity.sql` e `useful_selects.sql` concluídos com fixtures alinhados aos enums ativos (`*_enum`, labels em uppercase) e `request_type` obrigatório.
+* Validação transversal agregada executada com `./script/test/run_all_tests.ps1 -SqlPass <password>`: backend smoke `35 passed`, web stores `25 passed`, web E2E `2 passed`, SQL concluído e Flutter widget tests `4 passed`.
 * Validação de release executada com `./script/test/run_release_validation.ps1 -SqlPass <password_aqui>`: backend smoke `34 passed`, web stores `24 passed`, SQL concluído e limpeza automática de artefactos aplicada no fim (escopo Admin/Professor).
 * Higiene de publicação reforçada com `.gitignore` na raiz + `./script/test/clean_test_artifacts.ps1` para remover `dist`, caches e `__pycache__` antes de commit/push (logs temporários `%TEMP%` preservados por defeito no runner de release).
 * Validação de frontends alterados executada com sucesso: `npm run build` em `admin/` e `professor/`.

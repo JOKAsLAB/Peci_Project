@@ -11,6 +11,7 @@ from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
 from app.models import Admin, Base_User
+from app.models.enums import UserRole, UserStatus
 from app.security import hash_password
 
 
@@ -97,25 +98,50 @@ def _login(email: str, password: str) -> dict:
     return response.json()
 
 
+def _approve_professor_access_request(professor_user_id: str, admin_token: str) -> None:
+    pending_requests = _request("GET", "/api/v1/admin/requests?status=pending", token=admin_token)
+    assert pending_requests.status_code == 200, pending_requests.text
+
+    access_request = next(
+        (
+            item
+            for item in pending_requests.json()
+            if item.get("id_professor") == professor_user_id and item.get("request_type") == "access"
+        ),
+        None,
+    )
+    assert access_request is not None, "Pedido de acesso pendente do professor nao encontrado"
+
+    decision = _request(
+        "PATCH",
+        f"/api/v1/admin/requests/{access_request['id_request']}/decision",
+        token=admin_token,
+        json={"status": "approved", "admin_comment": "Aprovado automaticamente no smoke"},
+    )
+    assert decision.status_code == 200, decision.text
+
+
 async def _ensure_local_admin(email: str, password: str) -> None:
     async with AsyncSessionLocal() as db:
         existing = await db.scalar(select(Base_User).where(Base_User.Email == email))
 
         if not existing:
-            existing = Base_User(
+            existing = Admin(
                 Name="Smoke Admin",
                 Email=email,
                 Password_Hash=hash_password(password),
-                Role="Admin",
-                Status="Active",
+                Role=UserRole.ADMIN,
+                Status=UserStatus.ACTIVE,
+                Privilege_Level=3,
+                Contact=email,
             )
             db.add(existing)
             await db.flush()
         else:
             existing.Name = "Smoke Admin"
             existing.Password_Hash = hash_password(password)
-            existing.Role = "Admin"
-            existing.Status = "Active"
+            existing.Role = UserRole.ADMIN
+            existing.Status = UserStatus.ACTIVE
 
         admin_row = await db.scalar(select(Admin).where(Admin.ID_Admin == existing.ID_User))
         if not admin_row:
@@ -139,8 +165,11 @@ def student_account() -> dict[str, str]:
 
 
 @pytest.fixture(scope="session")
-def professor_account() -> dict[str, str]:
-    return _register_account("Professor")
+def professor_account(admin_account: dict[str, str]) -> dict[str, str]:
+    account = _register_account("Professor")
+    _approve_professor_access_request(account["user_id"], admin_account["token"])
+    account["token"] = _login(account["email"], account["password"])["access_token"]
+    return account
 
 
 @pytest.fixture(scope="session")
@@ -269,6 +298,27 @@ def test_auth_register_rejects_duplicate_email(student_account: dict[str, str]) 
     }
     response = requests.post(_url("/api/v1/auth/register"), json=payload, timeout=TIMEOUT)
     assert response.status_code == 409
+
+
+def test_professor_registration_requires_admin_approval(admin_account: dict[str, str]) -> None:
+    pending_professor = _register_account("Professor")
+
+    blocked_login = requests.post(
+        _url("/api/v1/auth/login"),
+        json={"email": pending_professor["email"], "password": pending_professor["password"]},
+        timeout=TIMEOUT,
+    )
+    assert blocked_login.status_code == 403, blocked_login.text
+    assert blocked_login.json().get("detail") == "Account pending admin approval"
+
+    _approve_professor_access_request(pending_professor["user_id"], admin_account["token"])
+
+    unblocked_login = requests.post(
+        _url("/api/v1/auth/login"),
+        json={"email": pending_professor["email"], "password": pending_professor["password"]},
+        timeout=TIMEOUT,
+    )
+    assert unblocked_login.status_code == 200, unblocked_login.text
 
 
 def test_auth_me_rejects_malformed_token() -> None:
@@ -462,6 +512,7 @@ def test_professor_request_lifecycle_with_admin(
     admin_account: dict[str, str],
 ) -> None:
     create_payload = {
+        "request_type": "operations",
         "title": f"Pedido smoke {uuid.uuid4().hex[:6]}",
         "description": "Validacao de fluxo professor-admin",
     }
@@ -515,15 +566,20 @@ def test_professor_request_lifecycle_with_admin(
     assert request_id in approved_ids
 
 
-def test_professor_requests_are_isolated_by_identity() -> None:
+def test_professor_requests_are_isolated_by_identity(admin_account: dict[str, str]) -> None:
     professor_a = _register_account("Professor")
     professor_b = _register_account("Professor")
+
+    _approve_professor_access_request(professor_a["user_id"], admin_account["token"])
+    _approve_professor_access_request(professor_b["user_id"], admin_account["token"])
+    professor_a["token"] = _login(professor_a["email"], professor_a["password"])["access_token"]
+    professor_b["token"] = _login(professor_b["email"], professor_b["password"])["access_token"]
 
     created_a = _request(
         "POST",
         "/api/v1/professors/requests",
         token=professor_a["token"],
-        json={"title": f"Pedido A {uuid.uuid4().hex[:5]}", "description": "Req A"},
+        json={"request_type": "platform", "title": f"Pedido A {uuid.uuid4().hex[:5]}", "description": "Req A"},
     )
     assert created_a.status_code == 201, created_a.text
     request_a_id = created_a.json()["id_request"]
@@ -532,7 +588,7 @@ def test_professor_requests_are_isolated_by_identity() -> None:
         "POST",
         "/api/v1/professors/requests",
         token=professor_b["token"],
-        json={"title": f"Pedido B {uuid.uuid4().hex[:5]}", "description": "Req B"},
+        json={"request_type": "access", "title": f"Pedido B {uuid.uuid4().hex[:5]}", "description": "Req B"},
     )
     assert created_b.status_code == 201, created_b.text
     request_b_id = created_b.json()["id_request"]

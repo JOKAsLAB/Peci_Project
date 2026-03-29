@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { useAuthStore } from './authStore';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
-const REQUEST_TYPE_PREFIX_RE = /^\s*\[(access|platform|other)\]\s*/i;
+const REQUEST_TYPE_PREFIX_RE = /^\s*\[(access|platform|operations|other)\]\s*/i;
 
 function decodeTitle(rawTitle) {
   const title = String(rawTitle || '');
@@ -42,10 +42,11 @@ function extractErrorMessage(payload, fallback) {
 
 function toFrontendRequest(item) {
   const decoded = decodeTitle(item.title);
+  const requestType = item.request_type ? String(item.request_type).toLowerCase() : decoded.type;
   const professorRef = String(item.id_professor || '');
   return {
     id: item.id_request,
-    type: decoded.type,
+    type: requestType,
     professor: `Professor ${professorRef.slice(0, 8) || 'N/A'}`,
     title: decoded.title || 'Pedido administrativo',
     description: item.description,

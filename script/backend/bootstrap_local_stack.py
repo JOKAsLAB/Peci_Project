@@ -3,7 +3,7 @@ import os
 import sys
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import insert, select, update
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BACKEND_ROOT = REPO_ROOT / "backend" / "backend"
@@ -13,6 +13,7 @@ if str(BACKEND_ROOT) not in sys.path:
 from app.database import AsyncSessionLocal, Base, engine
 import app.models  # noqa: F401
 from app.models import Admin, Base_User
+from app.models.enums import UserRole, UserStatus
 from app.security import hash_password
 
 
@@ -20,6 +21,14 @@ DEFAULT_ADMIN_EMAIL = "admin@ua.pt"
 LEGACY_ADMIN_EMAIL = "admin@peci.local"
 DEFAULT_ADMIN_PASSWORD = "admin123"
 DEFAULT_ADMIN_NAME = "Admin Local"
+
+
+def _env_or_default(var_name: str, default: str) -> str:
+    value = os.getenv(var_name)
+    if value is None:
+        return default
+    stripped = value.strip()
+    return stripped if stripped else default
 
 
 def _truthy(value: str | None) -> bool:
@@ -34,9 +43,9 @@ async def ensure_schema() -> None:
 
 
 async def ensure_admin() -> tuple[str, str, bool, bool]:
-    admin_email = os.getenv("PECI_ADMIN_EMAIL", DEFAULT_ADMIN_EMAIL)
-    admin_password = os.getenv("PECI_ADMIN_PASSWORD", DEFAULT_ADMIN_PASSWORD)
-    admin_name = os.getenv("PECI_ADMIN_NAME", DEFAULT_ADMIN_NAME)
+    admin_email = _env_or_default("PECI_ADMIN_EMAIL", DEFAULT_ADMIN_EMAIL)
+    admin_password = _env_or_default("PECI_ADMIN_PASSWORD", DEFAULT_ADMIN_PASSWORD)
+    admin_name = _env_or_default("PECI_ADMIN_NAME", DEFAULT_ADMIN_NAME)
     reset_password = _truthy(os.getenv("PECI_ADMIN_RESET_PASSWORD"))
 
     created_now = False
@@ -52,37 +61,52 @@ async def ensure_admin() -> tuple[str, str, bool, bool]:
                 user = legacy_user
 
         if user is None:
-            user = Base_User(
+            # Joined-table inheritance: criar diretamente Admin evita flush incompatível
+            # com identidade polimórfica e garante preenchimento da base_user.
+            user = Admin(
                 Name=admin_name,
                 Email=admin_email,
                 Password_Hash=hash_password(admin_password),
-                Role="Admin",
-                Status="Active",
+                Role=UserRole.ADMIN,
+                Status=UserStatus.ACTIVE,
+                Privilege_Level=3,
+                Contact=admin_email,
             )
             db.add(user)
             await db.flush()
             created_now = True
         else:
-            if user.Role != "Admin":
-                user.Role = "Admin"
-            if user.Status != "Active":
-                user.Status = "Active"
+            if user.Role != UserRole.ADMIN:
+                user.Role = UserRole.ADMIN
+            if user.Status != UserStatus.ACTIVE:
+                user.Status = UserStatus.ACTIVE
+            if not user.Name:
+                user.Name = admin_name
             if reset_password:
                 user.Password_Hash = hash_password(admin_password)
 
-        admin_row = await db.scalar(select(Admin).where(Admin.ID_Admin == user.ID_User))
-        if admin_row is None:
-            db.add(
-                Admin(
-                    ID_Admin=user.ID_User,
-                    Privilege_Level=3,
-                    Contact=admin_email,
-                )
+            admin_id = await db.scalar(
+                select(Admin.__table__.c.ID_Admin).where(Admin.__table__.c.ID_Admin == user.ID_User)
             )
-        else:
-            admin_row.Privilege_Level = 3
-            if not admin_row.Contact:
-                admin_row.Contact = admin_email
+
+            if admin_id is None:
+                # Inserção direta na tabela admin para não disparar novo INSERT em base_user.
+                await db.execute(
+                    insert(Admin.__table__).values(
+                        ID_Admin=user.ID_User,
+                        Privilege_Level=3,
+                        Contact=admin_email,
+                    )
+                )
+            else:
+                await db.execute(
+                    update(Admin.__table__)
+                    .where(Admin.__table__.c.ID_Admin == user.ID_User)
+                    .values(
+                        Privilege_Level=3,
+                        Contact=admin_email,
+                    )
+                )
 
         await db.commit()
 

@@ -9,13 +9,14 @@
 import uuid
 from sqlalchemy import (
     Column, DateTime, Date, Integer,
-    ForeignKey, CheckConstraint, String, UniqueConstraint
+    ForeignKey, UniqueConstraint
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ENUM
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.enums import ProgressStatus, SyncStatus
 
 
 # =============================================================
@@ -45,9 +46,12 @@ class Progress(Base):
         nullable=False
     )
     Attempts    = Column(Integer,    nullable=False, default=1)
-    Status      = Column(String(20), nullable=False)
+    
+    # Substituição de VARCHAR e CheckConstraint por ENUM nativo
+    Status      = Column(ENUM(ProgressStatus, name="progress_status_enum", create_type=True), nullable=False)
+    Sync_Status = Column(ENUM(SyncStatus, name="sync_status_enum", create_type=True), nullable=False, default=SyncStatus.PENDING)
+    
     XP_Earned   = Column(Integer,    nullable=False, default=0)
-    Sync_Status = Column(String(20), nullable=False, default="Pending")
 
     # Renomeado de Date para Record_Date — evita conflito com o tipo Date do SQLAlchemy
     # Mapeia para a coluna "Date" do schema SQL via name="Date"
@@ -56,25 +60,6 @@ class Progress(Base):
         DateTime,
         nullable=False,
         server_default=func.now()  # equivalente ao DEFAULT NOW() do SQL
-    )
-
-    __table_args__ = (
-        CheckConstraint(
-            "Status IN ('Correct', 'Incorrect', 'Partial')",
-            name="check_progress_status"
-        ),
-        CheckConstraint(
-            "Sync_Status IN ('Pending', 'Synced', 'Failed')",
-            name="check_progress_sync_status"
-        ),
-        CheckConstraint(
-            "Attempts >= 1",
-            name="check_progress_attempts"
-        ),
-        CheckConstraint(
-            "XP_Earned >= 0",
-            name="check_progress_xp"
-        ),
     )
 
     # Relações inversas
@@ -104,16 +89,14 @@ class Streak(Base):
         ForeignKey("student.ID_Student", ondelete="CASCADE"),
         nullable=False
     )
-    Sync_Status = Column(String(20), nullable=False, default="Pending")
+    
+    # Substituição de VARCHAR e CheckConstraint por ENUM nativo
+    Sync_Status = Column(ENUM(SyncStatus, name="sync_status_enum", create_type=True), nullable=False, default=SyncStatus.PENDING)
 
     # server_default delega ao PostgreSQL — equivalente ao DEFAULT CURRENT_DATE do SQL
     Log_Date    = Column(Date, nullable=False, server_default=func.current_date())
 
     __table_args__ = (
-        CheckConstraint(
-            "Sync_Status IN ('Pending', 'Synced', 'Failed')",
-            name="check_streak_sync_status"
-        ),
         # Garante que um estudante só tem um registo de streak por dia
         # Sem isto, o mesmo estudante poderia ter dois registos no mesmo dia,
         # corrompendo a lógica de dias consecutivos

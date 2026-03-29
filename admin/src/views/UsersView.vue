@@ -458,10 +458,18 @@ async function save() {
 }
 
 async function onRemoveUser(userId) {
+  const confirmed = window.confirm('Tem a certeza que pretende remover este utilizador?')
+  if (!confirmed) return
+
   await userStore.removeUser(userId);
 }
 
 async function onToggleStatus(userId) {
+  const target = userStore.users.find((u) => u.id === userId)
+  const nextStatus = target?.active ? 'inativo' : 'ativo'
+  const confirmed = window.confirm(`Alterar o estado deste utilizador para ${nextStatus}?`)
+  if (!confirmed) return
+
   await userStore.toggleStatus(userId);
 }
 

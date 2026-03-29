@@ -29,7 +29,13 @@ describe('admin disciplineStore', () => {
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ([
-        { id_uc: 41953, name: 'Projeto em Engenharia', semester: '2S', curricular_year: 3 },
+        {
+          id_uc: 41953,
+          name: 'Projeto em Engenharia',
+          semester: '2S',
+          curricular_year: 3,
+          professors: [{ id: 'prof-1', name: 'Docente Teste', email: 'docente@ua.pt' }],
+        },
       ]),
     })
 
@@ -39,6 +45,7 @@ describe('admin disciplineStore', () => {
     expect(store.disciplines).toHaveLength(1)
     expect(store.disciplines[0].code).toBe('41953')
     expect(store.disciplines[0].semester).toBe('2S')
+    expect(store.disciplines[0].professors).toEqual(['Docente Teste'])
   })
 
   it('rejects invalid UC code before reaching backend', async () => {
@@ -53,21 +60,38 @@ describe('admin disciplineStore', () => {
     fetch
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ id_uc: 50001, name: 'Nova UC', semester: '1S', curricular_year: 2 }),
+        json: async () => ({
+          id_uc: 50001,
+          name: 'Nova UC',
+          semester: '1S',
+          curricular_year: 2,
+          professors: [{ id: 'prof-1', name: 'Docente A', email: 'doc.a@ua.pt' }],
+        }),
       })
       .mockResolvedValueOnce({
         ok: true,
-        json: async () => ({ id_uc: 50001, name: 'UC Atualizada', semester: '2S', curricular_year: 2 }),
+        json: async () => ({
+          id_uc: 50001,
+          name: 'UC Atualizada',
+          semester: '2S',
+          curricular_year: 2,
+          professors: [{ id: 'prof-2', name: 'Docente B', email: 'doc.b@ua.pt' }],
+        }),
       })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ message: 'deleted' }) })
 
     const store = useDisciplineStore()
 
-    await store.addDiscipline({ code: '50001', name: 'Nova UC', semester: '1S', year: '2/3' })
+    await store.addDiscipline({ code: '50001', name: 'Nova UC', semester: '1S', year: '2/3', professorIds: ['prof-1'] })
     expect(store.disciplines).toHaveLength(1)
+    const createPayload = JSON.parse(fetch.mock.calls[0][1].body)
+    expect(createPayload.professor_ids).toEqual(['prof-1'])
 
-    await store.updateDiscipline(50001, { name: 'UC Atualizada', semester: '2S', year: '2/3' })
+    await store.updateDiscipline(50001, { name: 'UC Atualizada', semester: '2S', year: '2/3', professorIds: ['prof-2'] })
     expect(store.disciplines[0].name).toBe('UC Atualizada')
+    expect(store.disciplines[0].professors).toEqual(['Docente B'])
+    const updatePayload = JSON.parse(fetch.mock.calls[1][1].body)
+    expect(updatePayload.professor_ids).toEqual(['prof-2'])
 
     await store.removeDiscipline(50001)
     expect(store.disciplines).toHaveLength(0)

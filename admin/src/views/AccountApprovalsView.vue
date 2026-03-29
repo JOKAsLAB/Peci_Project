@@ -106,7 +106,7 @@
             class="flex flex-col gap-3 min-w-56"
           >
             <button
-              @click="approve(request.id)"
+              @click="approve(request)"
               :disabled="userStore.isLoading"
               class="bg-success text-black px-4 py-2 rounded-btn font-bold hover:brightness-110 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
@@ -114,7 +114,7 @@
               Aprovar Conta
             </button>
             <button
-              @click="reject(request.id)"
+              @click="reject(request)"
               :disabled="userStore.isLoading"
               class="bg-error text-white px-4 py-2 rounded-btn font-bold hover:brightness-110 transition-all text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
@@ -193,19 +193,25 @@ function statusClass(status) {
   return 'bg-warning/10 text-warning border border-warning/20';
 }
 
-async function approve(requestId) {
-  const note = reviewNotes[requestId] || '';
-  await userStore.approveProfessorRequest(requestId, note);
+async function approve(request) {
+  const confirmed = window.confirm(`Aprovar a conta docente de ${request.name}?`)
+  if (!confirmed) return
+
+  const note = reviewNotes[request.id] || '';
+  await userStore.approveProfessorRequest(request.id, note);
   if (!userStore.error) {
-    delete reviewNotes[requestId]; // Limpa a memória para chaves antigas
+    delete reviewNotes[request.id]; // Limpa a memória para chaves antigas
   }
 }
 
-async function reject(requestId) {
-  const note = reviewNotes[requestId] || '';
-  await userStore.rejectProfessorRequest(requestId, note);
+async function reject(request) {
+  const confirmed = window.confirm(`Rejeitar o pedido de conta docente de ${request.name}?`)
+  if (!confirmed) return
+
+  const note = reviewNotes[request.id] || '';
+  await userStore.rejectProfessorRequest(request.id, note);
   if (!userStore.error) {
-    delete reviewNotes[requestId];
+    delete reviewNotes[request.id];
   }
 }
 

@@ -24,12 +24,13 @@ describe('professor adminRequestStore', () => {
     authStore.user = { id: 'prof-1', role: 'Professor' }
   })
 
-  it('encodes request type in title when creating admin request', async () => {
+  it('sends request_type and plain title when creating admin request', async () => {
     fetch.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
         id_request: 42,
-        title: '[platform] Falha no upload',
+        request_type: 'platform',
+        title: 'Falha no upload',
         description: 'Erro ao subir ficheiro',
         status: 'pending',
         creation_date: '2026-03-22T10:00:00',
@@ -45,7 +46,8 @@ describe('professor adminRequestStore', () => {
     })
 
     const requestBody = JSON.parse(fetch.mock.calls[0][1].body)
-    expect(requestBody.title).toBe('[platform] Falha no upload')
+    expect(requestBody.request_type).toBe('platform')
+    expect(requestBody.title).toBe('Falha no upload')
     expect(store.requests[0].type).toBe('platform')
     expect(store.requests[0].title).toBe('Falha no upload')
   })

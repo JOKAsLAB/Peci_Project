@@ -3,7 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Base_User, Professor, Student
+from app.models import Admin, Base_User, Professor, Request, Student
+from app.models.enums import RequestStatus, RequestType, UserRole, UserStatus
 from app.routers.deps import get_current_user
 from app.schemas.user import AuthResponse, LoginRequest, RegisterRequest, UserResponse
 from app.security import create_access_token, hash_password, verify_password
@@ -28,29 +29,50 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 	if existing:
 		raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-	new_user = Base_User(
-		Name=payload.name,
-		Email=payload.email,
-		Password_Hash=hash_password(payload.password),
-		Role=payload.role,
-		Status="Active",
-	)
+	is_professor_registration = payload.role == UserRole.PROFESSOR
+
+	common = {
+		"Name": payload.name,
+		"Email": payload.email,
+		"Password_Hash": hash_password(payload.password),
+		"Role": payload.role,
+		"Status": UserStatus.SUSPENDED if is_professor_registration else UserStatus.ACTIVE,
+	}
+
+	if payload.role == UserRole.STUDENT:
+		new_user = Student(**common)
+	elif payload.role == UserRole.PROFESSOR:
+		new_user = Professor(
+			**common,
+			Department=payload.department,
+			Office=payload.office,
+			Short_Bio=payload.short_bio,
+		)
+	elif payload.role == UserRole.ADMIN:
+		new_user = Admin(
+			**common,
+			Privilege_Level=3,
+			Contact=payload.email,
+		)
+	else:
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role")
+
 	db.add(new_user)
+
 	await db.flush()
 
-	if payload.role == "Student":
-		db.add(Student(ID_Student=new_user.ID_User))
-	else:
+	if is_professor_registration:
 		db.add(
-			Professor(
+			Request(
 				ID_Professor=new_user.ID_User,
-				Department=payload.department,
-				Office=payload.office,
-				Short_Bio=payload.short_bio,
+				Request_Type=RequestType.ACCESS,
+				Title="Pedido de acesso ao painel docente",
+				Description="Registo de conta docente pendente de aprovacao administrativa.",
+				Status=RequestStatus.PENDING,
 			)
 		)
+		await db.flush()
 
-	await db.flush()
 	token = create_access_token(subject=str(new_user.ID_User), role=new_user.Role)
 	return AuthResponse(access_token=token, user=to_user_response(new_user))
 
@@ -61,7 +83,10 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
 	if not user or not verify_password(payload.password, user.Password_Hash):
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
-	if user.Status != "Active":
+	if user.Role == UserRole.PROFESSOR and user.Status == UserStatus.SUSPENDED:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account pending admin approval")
+
+	if user.Status != UserStatus.ACTIVE:
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is not active")
 
 	token = create_access_token(subject=str(user.ID_User), role=user.Role)

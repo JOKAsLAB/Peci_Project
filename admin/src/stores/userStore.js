@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useAuthStore } from './authStore'
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '')
-const REQUEST_TYPE_PREFIX_RE = /^\s*\[(access|platform|other)\]\s*/i
+const REQUEST_TYPE_PREFIX_RE = /^\s*\[(access|platform|operations|other)\]\s*/i
 
 function _roleToFrontend(role) {
   if (role === 'Professor') return 'professor'
@@ -76,13 +76,16 @@ function _toFrontendUser(item) {
 
 function _toProfessorRequest(item) {
   const parsed = _extractRequestType(item.title)
+  const requestType = item.request_type ? String(item.request_type).toLowerCase() : parsed.type
   const professorRef = String(item.id_professor || '')
+  const professorInfo = item.professor_info && typeof item.professor_info === 'object' ? item.professor_info : null
+  const resolvedProfessorId = String(professorInfo?.id || professorRef)
   return {
     id: item.id_request,
-    type: parsed.type,
-    name: `Professor ${professorRef.slice(0, 8) || 'N/A'}`,
-    nmec: professorRef.slice(0, 6).toUpperCase() || '-',
-    email: '-',
+    type: requestType,
+    name: professorInfo?.name || `Professor ${resolvedProfessorId.slice(0, 8) || 'N/A'}`,
+    nmec: resolvedProfessorId.slice(0, 6).toUpperCase() || '-',
+    email: professorInfo?.email || '-',
     password: '',
     requestedAt: _formatDate(item.creation_date),
     department: '-',

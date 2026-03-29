@@ -2,7 +2,8 @@ param(
     [string]$BaseUrl = "http://127.0.0.1:8000",
     [int]$StartupTimeoutSeconds = 45,
     [switch]$SkipInfra,
-    [switch]$SkipBootstrapData
+    [switch]$SkipBootstrapData,
+    [switch]$RestartHealthyBackend
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,6 +17,13 @@ $backendEnv = Join-Path $backendDir "app/.env"
 $backendRequirements = Join-Path $backendDir "app/requirements.txt"
 $backendBootstrapScript = Join-Path $repoRoot "script/backend/bootstrap_local_stack.py"
 $healthUrl = "$BaseUrl/health"
+
+try {
+    $baseUri = [Uri]$BaseUrl
+}
+catch {
+    throw "BaseUrl invalido: $BaseUrl"
+}
 
 function Test-ApiHealthy {
     param([string]$Url)
@@ -80,6 +88,31 @@ function Ensure-Infrastructure {
     }
     finally {
         Pop-Location
+    }
+}
+
+function Stop-ProcessListeningOnPort {
+    param([int]$Port)
+
+    $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $listener) {
+        return $false
+    }
+
+    $processId = $listener.OwningProcess
+    if (-not $processId) {
+        return $false
+    }
+
+    try {
+        Stop-Process -Id $processId -Force -ErrorAction Stop
+        Write-Host "[SISTEMA] Processo backend existente terminado (PID $processId) para reinicio limpo." -ForegroundColor Yellow
+        Start-Sleep -Milliseconds 500
+        return $true
+    }
+    catch {
+        Write-Warning "Nao foi possivel terminar automaticamente o processo na porta $Port (PID $processId)."
+        return $false
     }
 }
 
@@ -227,8 +260,15 @@ function Invoke-BackendBootstrap {
 }
 
 if (Test-ApiHealthy -Url $healthUrl) {
-    Write-Host "[SISTEMA] Backend ja esta saudavel em $BaseUrl" -ForegroundColor Green
-    exit 0
+    if (-not $RestartHealthyBackend) {
+        Write-Host "[SISTEMA] Backend ja esta saudavel em $BaseUrl" -ForegroundColor Green
+        exit 0
+    }
+
+    if (-not (Stop-ProcessListeningOnPort -Port $baseUri.Port)) {
+        Write-Warning "Nao foi possivel reiniciar o backend automaticamente na porta $($baseUri.Port). A manter a instancia saudavel em execucao."
+        exit 0
+    }
 }
 
 if (-not $SkipInfra) {
@@ -255,7 +295,7 @@ $errLog = Join-Path $env:TEMP "peci_backend.err.log"
 Write-Host "[SISTEMA] A iniciar backend FastAPI em background ($BaseUrl)..." -ForegroundColor Cyan
 $startProcessArgs = @{
     FilePath = $pythonExe
-    ArgumentList = @("-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000", "--reload")
+    ArgumentList = @("-m", "uvicorn", "app.main:app", "--host", $baseUri.Host, "--port", "$($baseUri.Port)", "--reload")
     WorkingDirectory = $backendDir
     PassThru = $true
     WindowStyle = "Hidden"

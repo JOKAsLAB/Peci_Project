@@ -98,7 +98,10 @@ export const useAuthStore = defineStore('auth', () => {
       throw new Error(_extractErrorMessage(registerData, 'Falha ao registar conta docente.'))
     }
 
-    _setSession(registerData)
+    if (registerData?.user?.role !== 'Professor') {
+      throw new Error('Falha ao registar conta docente.')
+    }
+
     return registerData.user
   }
 

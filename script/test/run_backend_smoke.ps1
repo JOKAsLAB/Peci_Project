@@ -22,6 +22,35 @@ if (-not (Test-Path $backendDir)) {
 
 $serverProc = $null
 
+function Get-FreeTcpPort {
+    $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 0)
+    try {
+        $listener.Start()
+        return $listener.LocalEndpoint.Port
+    }
+    finally {
+        $listener.Stop()
+    }
+}
+
+function Resolve-BaseUrl {
+    param([string]$Url)
+
+    try {
+        return [System.Uri]$Url
+    }
+    catch {
+        throw "BaseUrl invalido: $Url"
+    }
+}
+
+function Test-PortBusy {
+    param([int]$Port)
+
+    $listener = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    return $null -ne $listener
+}
+
 Push-Location $backendDir
 try {
     if ($InstallDeps) {
@@ -32,16 +61,29 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "Failed to install dev requirements" }
     }
 
-    $env:SMOKE_BASE_URL = $BaseUrl
+    $baseUri = Resolve-BaseUrl -Url $BaseUrl
+    if ($baseUri.Host -ne "127.0.0.1" -and $baseUri.Host -ne "localhost") {
+        throw "run_backend_smoke.ps1 exige BaseUrl local (localhost/127.0.0.1). Recebido: $BaseUrl"
+    }
+
+    $effectivePort = $baseUri.Port
+    if (Test-PortBusy -Port $effectivePort) {
+        $fallbackPort = Get-FreeTcpPort
+        Write-Warning "Porta $effectivePort ocupada. A usar porta livre alternativa $fallbackPort para smoke tests."
+        $effectivePort = $fallbackPort
+    }
+
+    $effectiveBaseUrl = "http://127.0.0.1:$effectivePort"
+    $env:SMOKE_BASE_URL = $effectiveBaseUrl
 
     if ($AdminEmail -and $AdminPassword) {
         $env:SMOKE_ADMIN_EMAIL = $AdminEmail
         $env:SMOKE_ADMIN_PASSWORD = $AdminPassword
     }
 
-    $serverProc = Start-Process -FilePath $pythonExe -ArgumentList @("-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "8000") -PassThru -WindowStyle Hidden
+    $serverProc = Start-Process -FilePath $pythonExe -ArgumentList @("-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "$effectivePort") -PassThru -WindowStyle Hidden
 
-    $healthUrl = "$BaseUrl/health"
+    $healthUrl = "$effectiveBaseUrl/health"
     $deadline = (Get-Date).AddSeconds($StartupTimeoutSeconds)
     $ready = $false
 

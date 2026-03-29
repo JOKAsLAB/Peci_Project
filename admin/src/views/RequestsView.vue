@@ -37,7 +37,7 @@
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-3">
             <span class="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-chip"
-              :class="req.type === 'access' ? 'bg-brand/10 text-brand' : req.type === 'platform' ? 'bg-blue-500/10 text-blue-400' : 'bg-warning/10 text-warning'">
+              :class="req.type === 'access' ? 'bg-brand/10 text-brand' : req.type === 'platform' ? 'bg-blue-500/10 text-blue-400' : req.type === 'operations' ? 'bg-cyan-500/10 text-cyan-300' : 'bg-warning/10 text-warning'">
               {{ typeLabel(req.type) }}
             </span>
             <span class="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-chip"
@@ -75,7 +75,7 @@ const requestStore = useAdminRequestStore();
 const statusFilter = ref('all');
 const adminNotes = reactive({});
 
-const typeLabels = { access: 'Acesso', platform: 'Plataforma', other: 'Outro' };
+const typeLabels = { access: 'Acesso', platform: 'Plataforma', operations: 'Operações', other: 'Outro' };
 function typeLabel(type) {
   return typeLabels[type] || 'Outro';
 }
@@ -86,10 +86,16 @@ const filteredRequests = computed(() => {
 });
 
 async function approve(id) {
+  const confirmed = window.confirm('Aprovar este pedido administrativo?')
+  if (!confirmed) return
+
   await requestStore.updateRequestStatus(id, 'approved', adminNotes[id] || '');
 }
 
 async function reject(id) {
+  const confirmed = window.confirm('Rejeitar este pedido administrativo?')
+  if (!confirmed) return
+
   await requestStore.updateRequestStatus(id, 'rejected', adminNotes[id] || '');
 }
 

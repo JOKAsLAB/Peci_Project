@@ -62,6 +62,7 @@
             <td class="px-8 py-5 text-center text-text-secondary text-sm">
               <div class="flex flex-wrap gap-1 justify-center">
                 <span v-for="prof in d.professors" :key="prof" class="bg-gray-800 px-2 py-0.5 rounded-full text-xs">{{ prof }}</span>
+                <span v-if="!d.professors || d.professors.length === 0" class="text-xs text-text-secondary/70">Sem docentes</span>
               </div>
             </td>
             <td class="px-8 py-5 text-center">
@@ -150,10 +151,10 @@
               </div>
               <!-- Selected professors tags -->
               <div v-if="selectedProfessors.length > 0" class="flex flex-wrap gap-2 mt-2">
-                <span v-for="(prof, idx) in selectedProfessors" :key="idx"
+                <span v-for="prof in selectedProfessors" :key="prof.id"
                       class="bg-brand/20 text-brand text-xs px-3 py-1 rounded-full flex items-center gap-1">
-                  {{ prof }}
-                  <button @click="removeProfessor(idx)" class="hover:text-white ml-1"><i class="pi pi-times text-[10px]"></i></button>
+                  {{ prof.name }}
+                  <button @click="removeProfessor(prof.id)" class="hover:text-white ml-1"><i class="pi pi-times text-[10px]"></i></button>
                 </span>
               </div>
               <p class="text-text-secondary text-xs mt-1">Pesquise e selecione os docentes para esta UC.</p>
@@ -192,22 +193,28 @@ const selectedProfessors = ref([])
 function onProfSearch() {
   const q = profSearch.value.trim().toLowerCase()
   if (!q) { profSuggestions.value = []; return }
+  const selectedProfessorIds = new Set(selectedProfessors.value.map((p) => p.id))
   profSuggestions.value = userStore.professors
-    .filter(p => !selectedProfessors.value.includes(p.name))
+    .filter((p) => !selectedProfessorIds.has(p.id))
     .filter(p => p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q) || p.nmec.toLowerCase().includes(q))
     .slice(0, 5)
 }
 
 function addProfessor(p) {
-  if (!selectedProfessors.value.includes(p.name)) {
-    selectedProfessors.value.push(p.name)
+  if (!selectedProfessors.value.some((existing) => existing.id === p.id)) {
+    selectedProfessors.value.push({
+      id: p.id,
+      name: p.name,
+      email: p.email,
+      nmec: p.nmec,
+    })
   }
   profSearch.value = ''
   profSuggestions.value = []
 }
 
-function removeProfessor(idx) {
-  selectedProfessors.value.splice(idx, 1)
+function removeProfessor(professorId) {
+  selectedProfessors.value = selectedProfessors.value.filter((prof) => prof.id !== professorId)
 }
 
 function resetForm() {
@@ -224,13 +231,39 @@ function openCreate() {
 function openEdit(d) {
   editingId.value = d.id
   form.code = d.code; form.name = d.name; form.acronym = d.acronym; form.semester = d.semester; form.year = d.year || '2025/2026'
-  selectedProfessors.value = [...(d.professors || [])]
+  selectedProfessors.value = (d.professorItems || []).map((professor) => {
+    const match = userStore.professors.find((candidate) => candidate.id === professor.id)
+    if (match) {
+      return {
+        id: match.id,
+        name: match.name,
+        email: match.email,
+        nmec: match.nmec,
+      }
+    }
+
+    return {
+      id: professor.id,
+      name: professor.name,
+      email: professor.email,
+      nmec: String(professor.id).slice(0, 6).toUpperCase(),
+    }
+  })
   profSearch.value = ''; profSuggestions.value = []
   showModal.value = true
 }
 
 async function save() {
-  const data = { code: form.code, name: form.name, acronym: form.acronym, semester: form.semester, year: form.year, professors: [...selectedProfessors.value], students: 0, active: true }
+  const data = {
+    code: form.code,
+    name: form.name,
+    acronym: form.acronym,
+    semester: form.semester,
+    year: form.year,
+    professorIds: selectedProfessors.value.map((professor) => professor.id),
+    students: 0,
+    active: true,
+  }
   if (editingId.value) {
     await store.updateDiscipline(editingId.value, data)
   } else {
@@ -243,6 +276,8 @@ async function save() {
 }
 
 async function removeDiscipline(id) {
+  const confirmed = window.confirm('Tem a certeza que pretende remover esta disciplina?')
+  if (!confirmed) return
   await store.removeDiscipline(id)
 }
 

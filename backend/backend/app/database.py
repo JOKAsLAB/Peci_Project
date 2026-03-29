@@ -9,12 +9,11 @@
 # 5. Cria a Base declarativa que os models vão herdar
 # =============================================================
 
-
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.orm import declarative_base
 
 # Carrega o .env
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
@@ -37,8 +36,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
+        extra="ignore"
     )
-
 
 settings = Settings()
 
@@ -50,20 +49,31 @@ DATABASE_URL = f"postgresql+asyncpg://{settings.DB_USER}:{settings.DB_PASSWORD}@
 
 # -------------------------------------------------------------
 # Engine assíncrona
-# echo=True mostra as queries SQL no terminal — útil para debug.
-# Mudar para echo=False em produção.
+# echo=False maximiza o throughput em produção.
+# Configuração rigorosa de pooling e validação de conexões (pre-ping)
+# para prevenir o esgotamento de sockets e mitigar falhas de I/O.
 # -------------------------------------------------------------
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_async_engine(
+    DATABASE_URL,
+    echo=False,
+    pool_size=20,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_pre_ping=True
+)
 
 # -------------------------------------------------------------
 # Sessão assíncrona
 # É através da sessão que os routers fazem SELECT, INSERT, etc.
 # expire_on_commit=False evita erros ao aceder a dados após commit.
+# Utilização obrigatória da factory assíncrona nativa (async_sessionmaker).
 # -------------------------------------------------------------
-AsyncSessionLocal = sessionmaker(
+AsyncSessionLocal = async_sessionmaker(
     bind=engine,
     class_=AsyncSession,
     expire_on_commit=False,
+    autocommit=False,
+    autoflush=False
 )
 
 # -------------------------------------------------------------
@@ -72,7 +82,6 @@ AsyncSessionLocal = sessionmaker(
 # Exemplo: class Base_User(Base): ...
 # -------------------------------------------------------------
 Base = declarative_base()
-
 
 # -------------------------------------------------------------
 # Dependência de sessão — usada pelos routers do FastAPI

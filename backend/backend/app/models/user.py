@@ -14,11 +14,12 @@ from sqlalchemy import (
     Column, String, Text, Date, DateTime,
     Integer, SmallInteger, ForeignKey, CheckConstraint
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ENUM
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.database import Base
+from app.models.enums import UserRole, UserStatus
 
 
 # =============================================================
@@ -31,28 +32,26 @@ class Base_User(Base):
     ID_User = Column(
         UUID(as_uuid=True),
         primary_key=True,
-        default=uuid.uuid4  # equivalente ao gen_random_uuid() do PostgreSQL
+        server_default=func.gen_random_uuid()  # Delegação otimizada para o motor PostgreSQL
     )
     Name              = Column(String(100), nullable=False)
     Email             = Column(String(150), nullable=False, unique=True)
     Password_Hash     = Column(Text,        nullable=False)
-    Role              = Column(String(20),  nullable=False)
-    Status            = Column(String(20),  nullable=False, default="Active")
+    
+    # ATENÇÃO: create_type=True (OBRIGATÓRIO PARA ASYNCPG)
+    Role              = Column(ENUM(UserRole, name="user_role_enum", create_type=True), nullable=False)
+    Status            = Column(ENUM(UserStatus, name="user_status_enum", create_type=True), nullable=False, default=UserStatus.ACTIVE)
 
     # server_default delega ao PostgreSQL — equivalente ao DEFAULT CURRENT_DATE do SQL
     Registration_Date = Column(Date, nullable=False, server_default=func.current_date())
 
-    # Constraints CHECK (mesmo que no SQL)
-    __table_args__ = (
-        CheckConstraint("Role IN ('Student', 'Professor', 'Admin')",         name="check_role"),
-        CheckConstraint("Status IN ('Active', 'Suspended', 'Deactivated')",  name="check_status"),
-    )
-
-    # Relações — permitem aceder ao registo filho diretamente
-    # uselist=False — relação um-para-um (um utilizador tem apenas um Student/Professor/Admin)
-    student   = relationship("Student",   back_populates="user", uselist=False)
-    professor = relationship("Professor", back_populates="user", uselist=False)
-    admin     = relationship("Admin",     back_populates="user", uselist=False)
+    # Definição do comportamento polimórfico (Joined Table Inheritance)
+    # Elimina a necessidade de relações manuais "uselist=False"
+    __mapper_args__ = {
+        "polymorphic_on": Role,
+        "polymorphic_identity": "base",
+        "with_polymorphic": "*"
+    }
 
 
 # =============================================================
@@ -60,7 +59,7 @@ class Base_User(Base):
 # ID_Student é PK e FK ao mesmo tempo — é o mesmo UUID do Base_User.
 # Contém dados de gamificação: nível, XP, streak, último acesso.
 # =============================================================
-class Student(Base):
+class Student(Base_User):
     __tablename__ = "student"
 
     ID_Student    = Column(
@@ -73,8 +72,11 @@ class Student(Base):
     Streak_Days   = Column(Integer,  nullable=False, default=0)  # streak atual, tipo Duolingo
     Last_Access   = Column(DateTime, nullable=True)
 
-    # Relação inversa com Base_User
-    user = relationship("Base_User", back_populates="student")
+    __mapper_args__ = {
+        "polymorphic_identity": UserRole.STUDENT,
+    }
+
+    # Relação inversa removida: a herança ORM resolve a ligação ao Base_User automaticamente.
 
     # Relações com tabelas filhas
     progress_records = relationship("Progress", back_populates="student")
@@ -86,7 +88,7 @@ class Student(Base):
 # ID_Professor é PK e FK — é o mesmo UUID do Base_User.
 # Contém dados profissionais do professor.
 # =============================================================
-class Professor(Base):
+class Professor(Base_User):
     __tablename__ = "professor"
 
     ID_Professor = Column(
@@ -98,13 +100,14 @@ class Professor(Base):
     Office     = Column(String(50),  nullable=True)
     Short_Bio  = Column(Text,        nullable=True)
 
-    # Relação inversa com Base_User
-    user = relationship("Base_User", back_populates="professor")
+    __mapper_args__ = {
+        "polymorphic_identity": UserRole.PROFESSOR,
+    }
 
     # Relações com tabelas filhas
     professor_ucs      = relationship("Professor_UC",      back_populates="professor")
     teaching_materials = relationship("Teaching_Material", back_populates="professor")
-    requests           = relationship("Request",           back_populates="professor")
+    requests           = relationship("Request",           back_populates="professor", passive_deletes=True)
 
 
 # =============================================================
@@ -112,7 +115,7 @@ class Professor(Base):
 # ID_Admin é PK e FK — é o mesmo UUID do Base_User.
 # Privilege_Level: 1 (básico), 2 (moderador), 3 (superadmin).
 # =============================================================
-class Admin(Base):
+class Admin(Base_User):
     __tablename__ = "admin"
 
     ID_Admin        = Column(
@@ -124,13 +127,15 @@ class Admin(Base):
     Contact         = Column(String(150),  nullable=True)
 
     __table_args__ = (
-        CheckConstraint("Privilege_Level BETWEEN 1 AND 3", name="check_privilege_level"),
+        # IMPORTANTE: A string do CheckConstraint deve coincidir EXACTAMENTE 
+        # com o nome da variável da coluna definida acima.
+        CheckConstraint('"Privilege_Level" BETWEEN 1 AND 3', name="check_privilege_level"),
     )
 
-    # Relação inversa com Base_User
-    user = relationship("Base_User", back_populates="admin")
+    __mapper_args__ = {
+        "polymorphic_identity": UserRole.ADMIN,
+    }
 
-    # Relações com tabelas filhas
     requests          = relationship("Request",          back_populates="admin")
     audit_log_entries = relationship("Admin_Audit_Log",  back_populates="admin")
 
@@ -162,4 +167,3 @@ class Professor_UC(Base):
     course_unit = relationship(
                             "Course_Unit", 
                             back_populates="professor_ucs")
-    

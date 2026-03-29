@@ -3,10 +3,10 @@ import { ref } from 'vue';
 import { useAuthStore } from './authStore';
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
-const REQUEST_TYPE_PREFIX_RE = /^\s*\[(access|platform|other)\]\s*/i;
+const REQUEST_TYPE_PREFIX_RE = /^\s*\[(access|platform|operations|other)\]\s*/i;
 
 function encodeTitle(type, title) {
-  const normalizedType = ['access', 'platform', 'other'].includes(type) ? type : 'other';
+  const normalizedType = ['access', 'platform', 'operations', 'other'].includes(type) ? type : 'other';
   return `[${normalizedType}] ${title}`;
 }
 
@@ -47,9 +47,10 @@ function extractErrorMessage(payload, fallback) {
 
 function toFrontendRequest(item) {
   const decoded = decodeTitle(item.title);
+  const requestType = item.request_type ? String(item.request_type).toLowerCase() : decoded.type;
   return {
     id: item.id_request,
-    type: decoded.type,
+    type: requestType,
     title: decoded.title,
     description: item.description,
     status: item.status,
@@ -110,7 +111,8 @@ export const useAdminRequestStore = defineStore('professorAdminRequests', () => 
           ...authHeaders(),
         },
         body: JSON.stringify({
-          title: encodeTitle(payload.type, payload.title),
+          request_type: payload.type,
+          title: payload.title,
           description: payload.description,
         }),
       });

@@ -168,7 +168,10 @@ const login = async () => {
     await authStore.login(email.value, password.value)
     emit('authenticated')
   } catch (error) {
-    errorMessage.value = error?.message || 'Falha ao autenticar.'
+    const message = error?.message || 'Falha ao autenticar.'
+    errorMessage.value = message === 'Account pending admin approval'
+      ? 'Conta em análise. Aguarda aprovação do administrador para entrares no painel.'
+      : message
   } finally {
     loading.value = false
   }
@@ -211,9 +214,8 @@ const register = async () => {
       shortBio: 'Conta criada a partir do painel docente',
     })
 
-    regSuccess.value = 'Conta criada com sucesso. Sessão iniciada.'
+    regSuccess.value = 'Pedido enviado com sucesso. A tua conta ficará disponível após aprovação do administrador.'
     showRegister.value = false
-    emit('authenticated')
   } catch (error) {
     regError.value = error?.message || 'Falha ao registar conta.'
   } finally {

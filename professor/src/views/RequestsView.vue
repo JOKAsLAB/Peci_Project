@@ -68,7 +68,9 @@
                   ? 'bg-brand/10 text-brand'
                   : req.type === 'platform'
                     ? 'bg-blue-500/10 text-blue-400'
-                    : req.type === 'other'
+                    : req.type === 'operations'
+                      ? 'bg-cyan-500/10 text-cyan-300'
+                      : req.type === 'other'
                       ? 'bg-warning/10 text-warning'
                       : 'bg-success/10 text-success'
               "
@@ -163,7 +165,8 @@
               >
                 <option value="access">Acesso / Permissões</option>
                 <option value="platform">Plataforma / Bug</option>
-                <option value="other">Pedido Operacional</option>
+                <option value="operations">Pedido Operacional</option>
+                <option value="other">Outro</option>
               </select>
             </div>
             <div>
@@ -215,6 +218,7 @@ const requestStore = useAdminRequestStore();
 const typeLabels = {
   access: 'Acesso',
   platform: 'Plataforma',
+  operations: 'Operações',
   other: 'Outro',
 };
 function typeLabel(type) {
@@ -240,6 +244,10 @@ const newRequest = reactive({
 
 async function submitRequest() {
   if (!newRequest.title || !newRequest.description) return;
+
+  const confirmed = window.confirm('Submeter este pedido ao administrador?')
+  if (!confirmed) return
+
   try {
     await requestStore.addRequest({ ...newRequest });
     newRequest.title = '';

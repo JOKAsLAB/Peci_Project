@@ -34,7 +34,19 @@ function _makeAcronym(name, fallback) {
   return String(fallback || 'UC')
 }
 
+function _toFrontendProfessor(item) {
+  return {
+    id: item.id,
+    name: item.name,
+    email: item.email,
+  }
+}
+
 function _toFrontendDiscipline(item) {
+  const professorItems = Array.isArray(item.professors)
+    ? item.professors.map(_toFrontendProfessor)
+    : []
+
   return {
     id: item.id_uc,
     code: String(item.id_uc),
@@ -45,7 +57,8 @@ function _toFrontendDiscipline(item) {
     active: true,
     year: item.curricular_year ? `${item.curricular_year}/${item.curricular_year + 1}` : '-',
     curricularYear: item.curricular_year,
-    professors: [],
+    professors: professorItems.map((professor) => professor.name),
+    professorItems,
   }
 }
 
@@ -110,6 +123,7 @@ export const useDisciplineStore = defineStore('disciplines', () => {
         name: data.name,
         semester: data.semester || null,
         curricular_year: _parseCurricularYear(data.year),
+        professor_ids: Array.isArray(data.professorIds) ? data.professorIds : [],
       }
 
       if (Number.isNaN(payload.id_uc)) {
@@ -146,6 +160,7 @@ export const useDisciplineStore = defineStore('disciplines', () => {
         name: data.name,
         semester: data.semester || null,
         curricular_year: _parseCurricularYear(data.year),
+        professor_ids: Array.isArray(data.professorIds) ? data.professorIds : [],
       }
 
       const response = await fetch(`${API_BASE_URL}/api/v1/admin/course-units/${id}`, {

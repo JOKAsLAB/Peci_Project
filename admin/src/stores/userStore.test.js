@@ -87,11 +87,17 @@ describe('admin userStore', () => {
           id_request: 10,
           id_professor: 'prof-1',
           title: '[access] Pedido de acesso ao painel',
+          request_type: 'access',
           description: 'Ativar perfil docente',
           status: 'pending',
           admin_comment: null,
           creation_date: '2026-03-20T00:00:00',
           resolution_date: null,
+          professor_info: {
+            id: 'prof-1',
+            name: 'Docente Teste',
+            email: 'docente@ua.pt',
+          },
         },
         {
           id_request: 11,
@@ -111,6 +117,8 @@ describe('admin userStore', () => {
 
     expect(store.pendingProfessorRequests).toHaveLength(1)
     expect(store.pendingProfessorRequests[0].type).toBe('access')
+    expect(store.pendingProfessorRequests[0].name).toBe('Docente Teste')
+    expect(store.pendingProfessorRequests[0].email).toBe('docente@ua.pt')
     expect(store.pendingProfessorCount).toBe(1)
   })
 

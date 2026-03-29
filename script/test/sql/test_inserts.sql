@@ -11,9 +11,9 @@
 -- Base_User primeiro — toda a gente depende desta tabela.
 -- Inserimos 1 student, 1 professor e 1 admin.
 INSERT INTO base_user ("ID_User", "Name", "Email", "Password_Hash", "Role", "Status") VALUES
-    ('00000000-0000-0000-0000-000000000001', 'Ana Silva',    'ana.silva@ua.pt',    'hash_ana',    'Student',   'Active'),
-    ('00000000-0000-0000-0000-000000000002', 'Carlos Mota',  'carlos.mota@ua.pt',  'hash_carlos', 'Professor', 'Active'),
-    ('00000000-0000-0000-0000-000000000003', 'Rita Sousa',   'rita.sousa@ua.pt',   'hash_rita',   'Admin',     'Active')
+    ('00000000-0000-0000-0000-000000000001', 'Ana Silva',    'ana.silva@ua.pt',    'hash_ana',    'STUDENT',   'ACTIVE'),
+    ('00000000-0000-0000-0000-000000000002', 'Carlos Mota',  'carlos.mota@ua.pt',  'hash_carlos', 'PROFESSOR', 'ACTIVE'),
+    ('00000000-0000-0000-0000-000000000003', 'Rita Sousa',   'rita.sousa@ua.pt',   'hash_rita',   'ADMIN',     'ACTIVE')
 ON CONFLICT ("ID_User") DO NOTHING;
 
 -- Student: ID_Student é o mesmo UUID que o ID_User da Ana.
@@ -49,11 +49,11 @@ ON CONFLICT ("ID_Professor", "ID_UC") DO NOTHING;
 -- Topic: pertence à UC 41953, com ordem definida.
 INSERT INTO topic ("ID_UC", "Name", "N_Order")
 VALUES (41953, 'Portas Logicas', 1)
-ON CONFLICT DO NOTHING;
+ON CONFLICT ("ID_UC", "Name") DO NOTHING;
 
 INSERT INTO topic ("ID_UC", "Name", "N_Order")
 VALUES (41953, 'Mapas de Karnaugh', 2)
-ON CONFLICT DO NOTHING;
+ON CONFLICT ("ID_UC", "Name") DO NOTHING;
 
 -- Teaching_Material: PDF uploaded pelo Carlos para a UC 41953.
 INSERT INTO teaching_material ("ID_Material", "ID_UC", "ID_Professor", "Status", "Title", "File_Path", "Extracted_Text") VALUES
@@ -61,7 +61,7 @@ INSERT INTO teaching_material ("ID_Material", "ID_UC", "ID_Professor", "Status",
         '00000000-0000-0000-0000-000000000010',
         41953,
         '00000000-0000-0000-0000-000000000002',
-        'Indexed',
+        'INDEXED',
         'Aula 1 — Portas Lógicas',
         '/materials/aula1_portas_logicas.pdf',
         'Texto extraído do PDF sobre portas lógicas AND, OR, NOT...'
@@ -76,10 +76,10 @@ INSERT INTO exercise ("ID_Exercise", "ID_UC", "Topic_Name", "Material_Ref", "Typ
         41953,
         'Portas Logicas',
         '00000000-0000-0000-0000-000000000010',
-        'Multiple Choice',
+        'MULTIPLE_CHOICE',
         'Qual é o resultado de AND(1, 0)?',
         '{"correct": "0", "options": ["0", "1"]}',
-        'Easy',
+        'EASY',
         'A porta AND só devolve 1 se ambas as entradas forem 1.'
     )
 ON CONFLICT ("ID_Exercise") DO NOTHING;
@@ -90,20 +90,21 @@ ON CONFLICT ("ID_Exercise") DO NOTHING;
 -- =============================================================
 
 -- Progress: Ana resolveu o exercício acima.
-INSERT INTO progress ("ID_Student", "ID_Exercise", "Attempts", "Status", "XP_Earned", "Sync_Status") VALUES
+INSERT INTO progress ("ID_Progress", "ID_Student", "ID_Exercise", "Attempts", "Status", "XP_Earned", "Sync_Status") VALUES
     (
+        '00000000-0000-0000-0000-000000000030',
         '00000000-0000-0000-0000-000000000001',
         '00000000-0000-0000-0000-000000000020',
         1,
-        'Correct',
+        'CORRECT',
         10,
-        'Synced'
+        'SYNCED'
     )
-ON CONFLICT DO NOTHING;
+ON CONFLICT ("ID_Progress") DO NOTHING;
 
 -- Streak: Ana estudou hoje.
-INSERT INTO streak ("ID_Student", "Log_Date", "Sync_Status") VALUES
-    ('00000000-0000-0000-0000-000000000001', CURRENT_DATE, 'Synced')
+INSERT INTO streak ("ID_Streak", "ID_Student", "Log_Date", "Sync_Status") VALUES
+    ('00000000-0000-0000-0000-000000000040', '00000000-0000-0000-0000-000000000001', CURRENT_DATE, 'SYNCED')
 ON CONFLICT ("ID_Student", "Log_Date") DO NOTHING;
 
 
@@ -113,13 +114,14 @@ ON CONFLICT ("ID_Student", "Log_Date") DO NOTHING;
 
 -- Request: Carlos pede ao admin para criar uma nova UC.
 -- ID_Admin é NULL — pedido ainda não atribuído.
-INSERT INTO request ("ID_Professor", "ID_Admin", "Title", "Description", "Status") VALUES
+INSERT INTO request ("ID_Professor", "ID_Admin", "Request_Type", "Title", "Description", "Status") VALUES
     (
         '00000000-0000-0000-0000-000000000002',
         NULL,
+        'OPERATIONS',
         'Criar UC de Arquitetura de Computadores',
         'Precisamos de uma UC de AC para o 2º semestre do 3º ano.',
-        'pending'
+        'PENDING'
     );
 
 -- Admin_Audit_Log: Rita apagou um utilizador fictício.
