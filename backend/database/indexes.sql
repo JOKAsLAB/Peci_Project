@@ -5,6 +5,10 @@
 -- Students looking up their own progress
 CREATE INDEX idx_progress_student   ON Progress(ID_Student);
 
+-- Student enrollments by student and by UC
+CREATE INDEX idx_student_uc_student ON Student_UC(ID_Student);
+CREATE INDEX idx_student_uc_uc      ON Student_UC(ID_UC);
+
 -- Filtering exercises by UC or topic
 CREATE INDEX idx_exercise_uc        ON Exercise(ID_UC);
 CREATE INDEX idx_exercise_topic     ON Exercise(ID_UC, Topic_Name);

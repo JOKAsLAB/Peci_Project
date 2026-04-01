@@ -79,6 +79,7 @@ class Student(Base_User):
     # Relação inversa removida: a herança ORM resolve a ligação ao Base_User automaticamente.
 
     # Relações com tabelas filhas
+    student_ucs      = relationship("Student_UC", back_populates="student", passive_deletes=True)
     progress_records = relationship("Progress", back_populates="student")
     streak_records   = relationship("Streak",   back_populates="student")
 
@@ -167,3 +168,27 @@ class Professor_UC(Base):
     course_unit = relationship(
                             "Course_Unit", 
                             back_populates="professor_ucs")
+
+
+# =============================================================
+# Student_UC
+# Tabela de junção — em que UCs cada estudante está inscrito.
+# PK composta: (ID_Student, ID_UC).
+# =============================================================
+class Student_UC(Base):
+    __tablename__ = "student_uc"
+
+    ID_Student = Column(
+        UUID(as_uuid=True),
+        ForeignKey("student.ID_Student", ondelete="CASCADE"),
+        primary_key=True
+    )
+    ID_UC = Column(
+        Integer,
+        ForeignKey("course_unit.ID_UC", ondelete="CASCADE"),
+        primary_key=True
+    )
+
+    # Relações
+    student = relationship("Student", back_populates="student_ucs")
+    course_unit = relationship("Course_Unit", back_populates="student_ucs")

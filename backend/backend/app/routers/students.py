@@ -1,13 +1,13 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Base_User, Exercise, Progress, Streak, Student
+from app.models import Base_User, Course_Unit, Exercise, Progress, Streak, Student, Student_UC
 from app.routers.deps import require_roles
-from app.schemas.academic import ExerciseResponse
+from app.schemas.academic import CourseUnitResponse, ExerciseResponse
 from app.schemas.gamification import (
 	ProgressCreateRequest,
 	ProgressResponse,
@@ -16,6 +16,21 @@ from app.schemas.gamification import (
 )
 
 router = APIRouter(prefix="/api/v1/students", tags=["students"])
+
+
+async def _student_uc_table_exists(db: AsyncSession) -> bool:
+	"""Compatibility gate: environments without migrations should still serve students endpoints."""
+	result = await db.scalar(text("SELECT to_regclass('public.student_uc')"))
+	return result is not None
+
+
+def to_course_response(course: Course_Unit) -> CourseUnitResponse:
+	return CourseUnitResponse(
+		id_uc=course.ID_UC,
+		name=course.Name,
+		semester=course.Semester,
+		curricular_year=course.Curricular_Year,
+	)
 
 
 def to_exercise_response(item: Exercise) -> ExerciseResponse:
@@ -72,6 +87,25 @@ async def my_profile(
 	)
 
 
+@router.get("/course-units", response_model=list[CourseUnitResponse])
+async def list_course_units(
+	db: AsyncSession = Depends(get_db),
+	current_student: Base_User = Depends(require_roles("Student")),
+):
+	if await _student_uc_table_exists(db):
+		allowed_ucs = select(Student_UC.ID_UC).where(Student_UC.ID_Student == current_student.ID_User)
+		items = (
+			await db.scalars(
+				select(Course_Unit)
+				.where(Course_Unit.ID_UC.in_(allowed_ucs))
+				.order_by(Course_Unit.Name.asc())
+			)
+		).all()
+	else:
+		items = (await db.scalars(select(Course_Unit).order_by(Course_Unit.Name.asc()))).all()
+	return [to_course_response(item) for item in items]
+
+
 @router.get("/exercises", response_model=list[ExerciseResponse])
 async def list_exercises(
 	id_uc: int | None = Query(default=None),
@@ -84,6 +118,9 @@ async def list_exercises(
 	current_student: Base_User = Depends(require_roles("Student")),
 ):
 	stmt = select(Exercise)
+	if await _student_uc_table_exists(db):
+		allowed_ucs = select(Student_UC.ID_UC).where(Student_UC.ID_Student == current_student.ID_User)
+		stmt = stmt.where(Exercise.ID_UC.in_(allowed_ucs))
 	if id_uc is not None:
 		stmt = stmt.where(Exercise.ID_UC == id_uc)
 	if topic_name is not None:
@@ -107,6 +144,16 @@ async def create_progress(
 	exercise = await db.scalar(select(Exercise).where(Exercise.ID_Exercise == payload.id_exercise))
 	if not exercise:
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+
+	if await _student_uc_table_exists(db):
+		has_access = await db.scalar(
+			select(Student_UC).where(
+				Student_UC.ID_Student == current_student.ID_User,
+				Student_UC.ID_UC == exercise.ID_UC,
+			)
+		)
+		if not has_access:
+			raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Exercise is not available for this student")
 
 	item = Progress(
 		ID_Student=current_student.ID_User,

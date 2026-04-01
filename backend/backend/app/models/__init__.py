@@ -34,6 +34,7 @@ from app.models.user import (
     Professor,
     Admin,
     Professor_UC,
+    Student_UC,
 )
 
 # --- Bloco 2: Conteúdo Académico ---
@@ -67,6 +68,7 @@ __all__ = [
     "Professor",
     "Admin",
     "Professor_UC",
+    "Student_UC",
     # Conteúdo Académico
     "Course_Unit",
     "Topic",

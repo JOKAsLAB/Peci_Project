@@ -23,6 +23,9 @@ CONCURRENCY_WORKERS = int(os.getenv("SMOKE_CONCURRENCY_WORKERS", "8"))
 CONCURRENCY_REQUESTS = int(os.getenv("SMOKE_CONCURRENCY_REQUESTS", "32"))
 LOAD_REQUESTS = int(os.getenv("SMOKE_LOAD_REQUESTS", "120"))
 LOAD_MAX_P95_MS = float(os.getenv("SMOKE_LOAD_MAX_P95_MS", "3000"))
+SCALE_BULK_USERS = int(os.getenv("SMOKE_SCALE_BULK_USERS", "24"))
+SCALE_LOGIN_MAX_P95_MS = float(os.getenv("SMOKE_SCALE_LOGIN_MAX_P95_MS", "6000"))
+SCALE_ADMIN_QUERY_ROUNDS = int(os.getenv("SMOKE_SCALE_ADMIN_QUERY_ROUNDS", "48"))
 
 
 def _unique_email(prefix: str) -> str:
@@ -333,7 +336,7 @@ def test_auth_me_rejects_malformed_token() -> None:
 @pytest.mark.parametrize(
     "method,path,body",
     [
-        ("GET", "/api/v1/academic/course-units", None),
+        ("GET", "/api/v1/students/course-units", None),
         ("GET", "/api/v1/students/me", None),
         ("GET", "/api/v1/professors/requests", None),
         ("GET", "/api/v1/admin/users", None),
@@ -356,8 +359,8 @@ def test_rbac_professor_cannot_access_student_area(professor_account: dict[str, 
     assert response.status_code == 403
 
 
-def test_academic_endpoints(student_account: dict[str, str]) -> None:
-    response_courses = _request("GET", "/api/v1/academic/course-units", token=student_account["token"])
+def test_student_catalog_endpoints(student_account: dict[str, str]) -> None:
+    response_courses = _request("GET", "/api/v1/students/course-units", token=student_account["token"])
     assert response_courses.status_code == 200, response_courses.text
     course_units = response_courses.json()
     assert isinstance(course_units, list)
@@ -365,7 +368,7 @@ def test_academic_endpoints(student_account: dict[str, str]) -> None:
 
     response_exercises = _request(
         "GET",
-        "/api/v1/academic/exercises?limit=5&id_uc=41953&difficulty=Easy",
+        "/api/v1/students/exercises?limit=5&id_uc=41953&difficulty=Easy",
         token=student_account["token"],
     )
     assert response_exercises.status_code == 200, response_exercises.text
@@ -376,10 +379,10 @@ def test_academic_endpoints(student_account: dict[str, str]) -> None:
         assert item["difficulty"] == "Easy"
 
 
-def test_academic_invalid_pagination_returns_422(student_account: dict[str, str]) -> None:
+def test_students_invalid_exercises_pagination_returns_422(student_account: dict[str, str]) -> None:
     response = _request(
         "GET",
-        "/api/v1/academic/exercises?limit=0",
+        "/api/v1/students/exercises?limit=0",
         token=student_account["token"],
     )
     assert response.status_code == 422
@@ -704,9 +707,9 @@ def test_concurrency_students_me_parallel_reads(student_account: dict[str, str])
     assert max(latencies) < (TIMEOUT * 1000.0), f"Timeout percebido em burst: max={max(latencies):.2f}ms"
 
 
-def test_concurrency_academic_parallel_reads(student_account: dict[str, str]) -> None:
+def test_concurrency_students_exercises_parallel_reads(student_account: dict[str, str]) -> None:
     results = _parallel_get(
-        path="/api/v1/academic/exercises?limit=5",
+        path="/api/v1/students/exercises?limit=5",
         token=student_account["token"],
         total=CONCURRENCY_REQUESTS,
         workers=CONCURRENCY_WORKERS,
@@ -723,7 +726,7 @@ def test_concurrency_mixed_role_reads(
 ) -> None:
     tasks = [
         ("/api/v1/students/me", student_account["token"]),
-        ("/api/v1/academic/course-units", student_account["token"]),
+        ("/api/v1/students/course-units", student_account["token"]),
         ("/api/v1/professors/requests", professor_account["token"]),
         ("/api/v1/professors/exercises?limit=5", professor_account["token"]),
         ("/api/v1/admin/users", admin_account["token"]),
@@ -761,9 +764,9 @@ def test_load_health_endpoint() -> None:
     )
 
 
-def test_load_authenticated_academic_endpoint(student_account: dict[str, str]) -> None:
+def test_load_authenticated_students_course_units_endpoint(student_account: dict[str, str]) -> None:
     results = _sequential_get(
-        path="/api/v1/academic/course-units",
+        path="/api/v1/students/course-units",
         token=student_account["token"],
         total=LOAD_REQUESTS,
     )
@@ -775,11 +778,11 @@ def test_load_authenticated_academic_endpoint(student_account: dict[str, str]) -
     p95_ms = _percentile_ms(latencies, 0.95)
 
     assert success_rate == 100.0, (
-        f"Load academic com erros: success_rate={success_rate:.1f}% "
+        f"Load students/course-units com erros: success_rate={success_rate:.1f}% "
         f"mean={mean_ms:.2f}ms p95={p95_ms:.2f}ms"
     )
     assert p95_ms <= LOAD_MAX_P95_MS, (
-        f"p95 acima do limite em academic: p95={p95_ms:.2f}ms limite={LOAD_MAX_P95_MS:.2f}ms"
+        f"p95 acima do limite em students/course-units: p95={p95_ms:.2f}ms limite={LOAD_MAX_P95_MS:.2f}ms"
     )
 
 
@@ -864,3 +867,97 @@ def test_ai_tutor_endpoint_is_stub(student_account: dict[str, str]) -> None:
         json={"question": "Explica portas logicas"},
     )
     assert response.status_code == 501, response.text
+
+
+def test_scale_bulk_student_parallel_login() -> None:
+    accounts = [_register_account("Student") for _ in range(SCALE_BULK_USERS)]
+
+    def _login_latency(account: dict[str, str]) -> tuple[int, float]:
+        start = time.perf_counter()
+        response = requests.post(
+            _url("/api/v1/auth/login"),
+            json={"email": account["email"], "password": account["password"]},
+            timeout=TIMEOUT,
+        )
+        elapsed_ms = (time.perf_counter() - start) * 1000.0
+        return response.status_code, elapsed_ms
+
+    statuses: list[int] = []
+    latencies: list[float] = []
+    workers = max(4, min(CONCURRENCY_WORKERS * 2, SCALE_BULK_USERS))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(_login_latency, account) for account in accounts]
+        for future in as_completed(futures):
+            status_code, elapsed_ms = future.result()
+            statuses.append(status_code)
+            latencies.append(elapsed_ms)
+
+    p95_ms = _percentile_ms(latencies, 0.95)
+    assert statuses and all(code == 200 for code in statuses), f"Falhas no login em lote: {statuses}"
+    assert p95_ms <= SCALE_LOGIN_MAX_P95_MS, (
+        f"Login em lote acima do p95 esperado: p95={p95_ms:.2f}ms limite={SCALE_LOGIN_MAX_P95_MS:.2f}ms"
+    )
+
+
+def test_scale_parallel_cookie_sessions() -> None:
+    accounts = [_register_account("Student") for _ in range(max(8, SCALE_BULK_USERS // 2))]
+
+    def _session_roundtrip(account: dict[str, str]) -> tuple[int, int, float]:
+        session = requests.Session()
+        start = time.perf_counter()
+        login = session.post(
+            _url("/api/v1/auth/login"),
+            json={"email": account["email"], "password": account["password"]},
+            timeout=TIMEOUT,
+        )
+        me = session.get(_url("/api/v1/auth/me"), timeout=TIMEOUT)
+        elapsed_ms = (time.perf_counter() - start) * 1000.0
+        return login.status_code, me.status_code, elapsed_ms
+
+    login_codes: list[int] = []
+    me_codes: list[int] = []
+    latencies: list[float] = []
+    workers = max(4, min(CONCURRENCY_WORKERS * 2, len(accounts)))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(_session_roundtrip, account) for account in accounts]
+        for future in as_completed(futures):
+            login_code, me_code, elapsed_ms = future.result()
+            login_codes.append(login_code)
+            me_codes.append(me_code)
+            latencies.append(elapsed_ms)
+
+    assert login_codes and all(code == 200 for code in login_codes), f"Login cookie falhou: {login_codes}"
+    assert me_codes and all(code == 200 for code in me_codes), f"Sessao cookie /me falhou: {me_codes}"
+    assert max(latencies) < (TIMEOUT * 1000.0), f"Timeout em roundtrip cookie: max={max(latencies):.2f}ms"
+
+
+def test_scale_parallel_admin_user_queries(admin_account: dict[str, str], student_account: dict[str, str]) -> None:
+    query_paths = [
+        "/api/v1/admin/users",
+        "/api/v1/admin/users?role=Student",
+        "/api/v1/admin/users?status=Active",
+        f"/api/v1/admin/users?q={student_account['email']}",
+    ]
+
+    def _query(path: str) -> tuple[int, float]:
+        start = time.perf_counter()
+        response = _request("GET", path, token=admin_account["token"])
+        elapsed_ms = (time.perf_counter() - start) * 1000.0
+        return response.status_code, elapsed_ms
+
+    tasks = [query_paths[idx % len(query_paths)] for idx in range(SCALE_ADMIN_QUERY_ROUNDS)]
+    statuses: list[int] = []
+    latencies: list[float] = []
+    workers = max(4, min(CONCURRENCY_WORKERS * 2, len(tasks)))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = [executor.submit(_query, path) for path in tasks]
+        for future in as_completed(futures):
+            status_code, elapsed_ms = future.result()
+            statuses.append(status_code)
+            latencies.append(elapsed_ms)
+
+    p95_ms = _percentile_ms(latencies, 0.95)
+    assert statuses and all(code == 200 for code in statuses), f"Falhas em queries admin paralelas: {statuses}"
+    assert p95_ms <= LOAD_MAX_P95_MS, (
+        f"Admin queries paralelas acima do p95 esperado: p95={p95_ms:.2f}ms limite={LOAD_MAX_P95_MS:.2f}ms"
+    )

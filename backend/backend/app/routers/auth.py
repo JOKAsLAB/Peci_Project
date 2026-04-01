@@ -1,30 +1,43 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_db, settings
 from app.models import Admin, Base_User, Professor, Request, Student
 from app.models.enums import RequestStatus, RequestType, UserRole, UserStatus
 from app.routers.deps import get_current_user
-from app.schemas.user import AuthResponse, LoginRequest, RegisterRequest, UserResponse
+from app.schemas.user import AuthResponse, LoginRequest, MessageResponse, RegisterRequest, UserResponse
 from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
+def _set_auth_cookie(response: Response, token: str) -> None:
+    response.set_cookie(
+        key=settings.AUTH_COOKIE_NAME,
+        value=token,
+        httponly=True,
+        secure=settings.AUTH_COOKIE_SECURE,
+        samesite=settings.AUTH_COOKIE_SAMESITE,
+        domain=settings.AUTH_COOKIE_DOMAIN,
+        path=settings.AUTH_COOKIE_PATH,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    )
+
+
 def to_user_response(user: Base_User) -> UserResponse:
-	return UserResponse(
-		id=user.ID_User,
-		name=user.Name,
-		email=user.Email,
-		role=user.Role,
-		status=user.Status,
-		registration_date=user.Registration_Date,
-	)
+    return UserResponse(
+        id=user.ID_User,
+        name=user.Name,
+        email=user.Email,
+        role=user.Role,
+        status=user.Status,
+        registration_date=user.Registration_Date,
+    )
 
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)):
+async def register(payload: RegisterRequest, response: Response, db: AsyncSession = Depends(get_db)):
 	existing = await db.scalar(select(Base_User).where(Base_User.Email == payload.email))
 	if existing:
 		raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
@@ -74,11 +87,12 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 		await db.flush()
 
 	token = create_access_token(subject=str(new_user.ID_User), role=new_user.Role)
+	_set_auth_cookie(response, token)
 	return AuthResponse(access_token=token, user=to_user_response(new_user))
 
 
 @router.post("/login", response_model=AuthResponse)
-async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(payload: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
 	user = await db.scalar(select(Base_User).where(Base_User.Email == payload.email))
 	if not user or not verify_password(payload.password, user.Password_Hash):
 		raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
@@ -90,7 +104,18 @@ async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is not active")
 
 	token = create_access_token(subject=str(user.ID_User), role=user.Role)
+	_set_auth_cookie(response, token)
 	return AuthResponse(access_token=token, user=to_user_response(user))
+
+
+@router.post("/logout", response_model=MessageResponse)
+async def logout(response: Response):
+	response.delete_cookie(
+		key=settings.AUTH_COOKIE_NAME,
+		domain=settings.AUTH_COOKIE_DOMAIN,
+		path=settings.AUTH_COOKIE_PATH,
+	)
+	return MessageResponse(message="Logout successful")
 
 
 @router.get("/me", response_model=UserResponse)

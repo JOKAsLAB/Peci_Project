@@ -1,19 +1,20 @@
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_db, settings
 from app.models import Base_User
 from app.security import decode_access_token
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    request: Request,
+    token: str | None = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db),
 ) -> Base_User:
     credentials_error = HTTPException(
@@ -22,8 +23,16 @@ async def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
+    cookie_token = request.cookies.get(settings.AUTH_COOKIE_NAME)
+    raw_token = token or cookie_token
+    if not raw_token:
+        raise credentials_error
+
+    if raw_token.lower().startswith("bearer "):
+        raw_token = raw_token.split(" ", 1)[1]
+
     try:
-        payload = decode_access_token(token)
+        payload = decode_access_token(raw_token)
         user_id = payload.get("sub")
         if not user_id:
             raise credentials_error
