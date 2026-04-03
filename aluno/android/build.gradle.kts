@@ -5,10 +5,15 @@ allprojects {
     }
 }
 
+val buildDirOverride = System.getenv("PECI_ALUNO_BUILD_DIR")
+val resolvedBuildDirPath = if (buildDirOverride.isNullOrBlank()) {
+    "../../build"
+} else {
+    buildDirOverride
+}
+
 val newBuildDir: Directory =
-    rootProject.layout.buildDirectory
-        .dir("../../build")
-        .get()
+    rootProject.layout.projectDirectory.dir(resolvedBuildDirPath)
 rootProject.layout.buildDirectory.value(newBuildDir)
 
 subprojects {

@@ -37,6 +37,7 @@ class Course_Unit(Base):
 
     # Relações com tabelas filhas
     professor_ucs      = relationship("Professor_UC",      back_populates="course_unit")
+    student_ucs        = relationship("Student_UC",        back_populates="course_unit", passive_deletes=True)
     topics             = relationship("Topic",             back_populates="course_unit")
     teaching_materials = relationship("Teaching_Material", back_populates="course_unit")
     exercises          = relationship("Exercise",          back_populates="course_unit")

@@ -1,34 +1,36 @@
-# Workspace runtime artifacts
+# Python virtualenv and caches
 .venv/
-.pytest_cache/
-.vite/
-
-# Python caches
+**/.venv/
 **/__pycache__/
-**/*.pyc
-**/*.pyo
-**/*.pyd
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
 
-# Web build outputs
-admin/dist/
-admin/.vite/
-admin/coverage/
-professor/dist/
-professor/.vite/
-professor/coverage/
+# Node/Vite artifacts
+**/node_modules/
+**/dist/
+**/.vite/
+**/coverage/
 
-# Backend test outputs
-backend/backend/.pytest_cache/
-backend/backend/htmlcov/
-backend/backend/.coverage
+# Flutter/Dart artifacts
+**/.dart_tool/
+**/build/
+**/build_runtime/
+**/.packages
 
-# Local environment files
-backend/backend/app/.env
-infrastructure/.env
+# Environment files
+**/.env
+!**/.env.example
 
-# Common logs/system files
-*.log
-Thumbs.db
+# OS/editor junk
 .DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.temp
+
+# Local private notes (never commit)
+local_notes/
 
 backend/database/tests

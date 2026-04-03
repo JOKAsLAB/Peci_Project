@@ -77,6 +77,15 @@ CREATE TABLE Professor_UC (
 );
 
 
+-- Junction table: which students are enrolled in which Course Units.
+-- A student can be enrolled in N UCs; a UC can have N students.
+CREATE TABLE Student_UC (
+    ID_Student UUID NOT NULL REFERENCES Student(ID_Student) ON DELETE CASCADE,
+    ID_UC      INT  NOT NULL REFERENCES Course_Unit(ID_UC) ON DELETE CASCADE,
+    PRIMARY KEY (ID_Student, ID_UC)
+);
+
+
 -- A Topic belongs to one Course Unit.
 -- PK is composite (ID_UC + Name) because topic names are unique within a UC.
 -- N_Order defines the order topics appear in the course path.

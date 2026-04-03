@@ -1,6 +1,3 @@
 {
-    "python.terminal.activateEnvironment": false,
-    "python.terminal.activateEnvInCurrentTerminal": false,
-    "python-envs.terminal.autoActivationType": "off",
-    "python-envs.terminal.showActivateButton": false
+    "cmake.sourceDirectory": "C:/universidade/peci/Peci_Project/aluno/windows"
 }
