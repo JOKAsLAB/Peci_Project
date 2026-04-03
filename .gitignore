@@ -30,3 +30,5 @@ infrastructure/.env
 *.log
 Thumbs.db
 .DS_Store
+
+backend/database/tests
