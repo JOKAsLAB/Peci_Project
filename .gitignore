@@ -33,4 +33,4 @@ Thumbs.db
 # Local private notes (never commit)
 local_notes/
 
-backend/database/tests
+.vscode/
