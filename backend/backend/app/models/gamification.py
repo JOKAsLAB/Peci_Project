@@ -31,27 +31,30 @@ class Progress(Base):
     __tablename__ = "progress"
 
     ID_Progress = Column(
+        "id_progress",
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4
     )
     ID_Student  = Column(
+        "id_student",
         UUID(as_uuid=True),
-        ForeignKey("student.ID_Student", ondelete="CASCADE"),
+        ForeignKey("student.id_student", ondelete="CASCADE"),
         nullable=False
     )
     ID_Exercise = Column(
+        "id_exercise",
         UUID(as_uuid=True),
-        ForeignKey("exercise.ID_Exercise", ondelete="CASCADE"),
+        ForeignKey("exercise.id_exercise", ondelete="CASCADE"),
         nullable=False
     )
-    Attempts    = Column(Integer,    nullable=False, default=1)
+    Attempts    = Column("attempts", Integer,    nullable=False, default=1)
     
     # Substituição de VARCHAR e CheckConstraint por ENUM nativo
-    Status      = Column(ENUM(ProgressStatus, name="progress_status_enum", create_type=True), nullable=False)
-    Sync_Status = Column(ENUM(SyncStatus, name="sync_status_enum", create_type=True), nullable=False, default=SyncStatus.PENDING)
+    Status      = Column("status", ENUM(ProgressStatus, name="progress_status_enum", create_type=True), nullable=False)
+    Sync_Status = Column("sync_status", ENUM(SyncStatus, name="sync_status_enum", create_type=True), nullable=False, default=SyncStatus.PENDING)
     
-    XP_Earned   = Column(Integer,    nullable=False, default=0)
+    XP_Earned   = Column("xp_earned", Integer,    nullable=False, default=0)
 
     # Renomeado de Date para Record_Date — evita conflito com o tipo Date do SQLAlchemy
     # Mapeia para a coluna "Date" do schema SQL via name="Date"
@@ -80,21 +83,23 @@ class Streak(Base):
     __tablename__ = "streak"
 
     ID_Streak   = Column(
+        "id_streak",
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4
     )
     ID_Student  = Column(
+        "id_student",
         UUID(as_uuid=True),
-        ForeignKey("student.ID_Student", ondelete="CASCADE"),
+        ForeignKey("student.id_student", ondelete="CASCADE"),
         nullable=False
     )
     
     # Substituição de VARCHAR e CheckConstraint por ENUM nativo
-    Sync_Status = Column(ENUM(SyncStatus, name="sync_status_enum", create_type=True), nullable=False, default=SyncStatus.PENDING)
+    Sync_Status = Column("sync_status", ENUM(SyncStatus, name="sync_status_enum", create_type=True), nullable=False, default=SyncStatus.PENDING)
 
     # server_default delega ao PostgreSQL — equivalente ao DEFAULT CURRENT_DATE do SQL
-    Log_Date    = Column(Date, nullable=False, server_default=func.current_date())
+    Log_Date    = Column("log_date", Date, nullable=False, server_default=func.current_date())
 
     __table_args__ = (
         # Garante que um estudante só tem um registo de streak por dia

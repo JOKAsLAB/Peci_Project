@@ -9,7 +9,6 @@
 # As relações entre tabelas são definidas com relationship().
 # =============================================================
 
-import uuid
 from sqlalchemy import (
     Column, String, Text, Date, DateTime,
     Integer, SmallInteger, ForeignKey, CheckConstraint
@@ -30,20 +29,21 @@ class Base_User(Base):
     __tablename__ = "base_user"
 
     ID_User = Column(
+        "id_user",              # nome real na BD
         UUID(as_uuid=True),
         primary_key=True,
         server_default=func.gen_random_uuid()  # Delegação otimizada para o motor PostgreSQL
     )
-    Name              = Column(String(100), nullable=False)
-    Email             = Column(String(150), nullable=False, unique=True)
-    Password_Hash     = Column(Text,        nullable=False)
-    
+    Name              = Column("name",              String(100), nullable=False)
+    Email             = Column("email",             String(150), nullable=False, unique=True)
+    Password_Hash     = Column("password_hash",     Text,        nullable=False)
+
     # ATENÇÃO: create_type=True (OBRIGATÓRIO PARA ASYNCPG)
-    Role              = Column(ENUM(UserRole, name="user_role_enum", create_type=True), nullable=False)
-    Status            = Column(ENUM(UserStatus, name="user_status_enum", create_type=True), nullable=False, default=UserStatus.ACTIVE)
+    Role              = Column("role",              ENUM(UserRole, name="user_role_enum", create_type=True), nullable=False)
+    Status            = Column("status",            ENUM(UserStatus, name="user_status_enum", create_type=True), nullable=False, default=UserStatus.ACTIVE)
 
     # server_default delega ao PostgreSQL — equivalente ao DEFAULT CURRENT_DATE do SQL
-    Registration_Date = Column(Date, nullable=False, server_default=func.current_date())
+    Registration_Date = Column("registration_date", Date, nullable=False, server_default=func.current_date())
 
     # Definição do comportamento polimórfico (Joined Table Inheritance)
     # Elimina a necessidade de relações manuais "uselist=False"
@@ -63,20 +63,19 @@ class Student(Base_User):
     __tablename__ = "student"
 
     ID_Student    = Column(
+        "id_student",
         UUID(as_uuid=True),
-        ForeignKey("base_user.ID_User", ondelete="CASCADE"),
+        ForeignKey("base_user.id_user", ondelete="CASCADE"),
         primary_key=True
     )
-    Current_Level = Column(Integer,  nullable=False, default=1)
-    Total_XP      = Column(Integer,  nullable=False, default=0)
-    Streak_Days   = Column(Integer,  nullable=False, default=0)  # streak atual, tipo Duolingo
-    Last_Access   = Column(DateTime, nullable=True)
+    Current_Level = Column("current_level", Integer,  nullable=False, default=1)
+    Total_XP      = Column("total_xp", Integer,  nullable=False, default=0)
+    Streak_Days   = Column("streak_days", Integer,  nullable=False, default=0)  # streak atual, tipo Duolingo
+    Last_Access   = Column("last_access", DateTime, nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": UserRole.STUDENT,
     }
-
-    # Relação inversa removida: a herança ORM resolve a ligação ao Base_User automaticamente.
 
     # Relações com tabelas filhas
     student_ucs      = relationship("Student_UC", back_populates="student", passive_deletes=True)
@@ -93,13 +92,14 @@ class Professor(Base_User):
     __tablename__ = "professor"
 
     ID_Professor = Column(
+        "id_professor",
         UUID(as_uuid=True),
-        ForeignKey("base_user.ID_User", ondelete="CASCADE"),
+        ForeignKey("base_user.id_user", ondelete="CASCADE"),
         primary_key=True
     )
-    Department = Column(String(100), nullable=True)
-    Office     = Column(String(50),  nullable=True)
-    Short_Bio  = Column(Text,        nullable=True)
+    Department = Column("department", String(100), nullable=True)
+    Office     = Column("office", String(50),  nullable=True)
+    Short_Bio  = Column("short_bio", Text,        nullable=True)
 
     __mapper_args__ = {
         "polymorphic_identity": UserRole.PROFESSOR,
@@ -120,12 +120,13 @@ class Admin(Base_User):
     __tablename__ = "admin"
 
     ID_Admin        = Column(
+        "id_admin",
         UUID(as_uuid=True),
-        ForeignKey("base_user.ID_User", ondelete="CASCADE"),
+        ForeignKey("base_user.id_user", ondelete="CASCADE"),
         primary_key=True
     )
-    Privilege_Level = Column(SmallInteger, nullable=False)
-    Contact         = Column(String(150),  nullable=True)
+    Privilege_Level = Column("privilege_level", SmallInteger, nullable=False)
+    Contact         = Column("contact", String(150),  nullable=True)
 
     __table_args__ = (
         # IMPORTANTE: A string do CheckConstraint deve coincidir EXACTAMENTE 
@@ -152,13 +153,15 @@ class Professor_UC(Base):
     __tablename__ = "professor_uc"
 
     ID_Professor = Column(
+        "id_professor",
         UUID(as_uuid=True),
-        ForeignKey("professor.ID_Professor", ondelete="CASCADE"),
+        ForeignKey("professor.id_professor", ondelete="CASCADE"),
         primary_key=True
     )
     ID_UC = Column(
+        "id_uc",
         Integer,
-        ForeignKey("course_unit.ID_UC", ondelete="CASCADE"),
+        ForeignKey("course_unit.id_uc", ondelete="CASCADE"),
         primary_key=True
     )
 
@@ -180,12 +183,12 @@ class Student_UC(Base):
 
     ID_Student = Column(
         UUID(as_uuid=True),
-        ForeignKey("student.ID_Student", ondelete="CASCADE"),
+        ForeignKey("student.id_student", ondelete="CASCADE"),
         primary_key=True
     )
     ID_UC = Column(
         Integer,
-        ForeignKey("course_unit.ID_UC", ondelete="CASCADE"),
+        ForeignKey("course_unit.id_uc", ondelete="CASCADE"),
         primary_key=True
     )
 

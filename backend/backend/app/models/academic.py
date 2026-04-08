@@ -30,10 +30,10 @@ from app.models.enums import MaterialStatus, ExerciseType, DifficultyLevel
 class Course_Unit(Base):
     __tablename__ = "course_unit"
 
-    ID_UC           = Column(Integer,      primary_key=True)  # código real da UA, ex: 41953
-    Name            = Column(String(100),  nullable=False)
-    Semester        = Column(String(20),   nullable=True)
-    Curricular_Year = Column(SmallInteger, nullable=True)
+    ID_UC           = Column("id_uc", Integer,      primary_key=True)  # código real da UA, ex: 41953
+    Name            = Column("name", String(100),  nullable=False)
+    Semester        = Column("semester", String(20),   nullable=True)
+    Curricular_Year = Column("curricular_year", SmallInteger, nullable=True)
 
     # Relações com tabelas filhas
     professor_ucs      = relationship("Professor_UC",      back_populates="course_unit")
@@ -54,18 +54,19 @@ class Topic(Base):
     __tablename__ = "topic"
 
     ID_UC   = Column(
+        "id_uc",
         Integer,
-        ForeignKey("course_unit.ID_UC", ondelete="CASCADE"),
+        ForeignKey("course_unit.id_uc", ondelete="CASCADE"),
         primary_key=True
     )
-    Name    = Column(String(100), primary_key=True, nullable=False)
-    N_Order = Column(SmallInteger, nullable=False)
+    Name    = Column("name", String(100), primary_key=True, nullable=False)
+    N_Order = Column("n_order", SmallInteger, nullable=False)
 
     __table_args__ = (
         # Garante que não há dois tópicos com a mesma ordem na mesma UC.
         # DEFERRABLE permite reordenar sem conflitos durante a transação.
         UniqueConstraint(
-            "ID_UC", "N_Order",
+            "id_uc", "n_order",
             name="uq_topic_order",
             deferrable=True,
             initially="DEFERRED"
@@ -90,18 +91,21 @@ class Teaching_Material(Base):
     __tablename__ = "teaching_material"
 
     ID_Material    = Column(
+        "id_material",
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4
     )
     ID_UC          = Column(
+        "id_uc",
         Integer,
-        ForeignKey("course_unit.ID_UC", ondelete="RESTRICT"),
+        ForeignKey("course_unit.id_uc", ondelete="RESTRICT"),
         nullable=False
     )
     ID_Professor   = Column(
+        "id_professor",
         UUID(as_uuid=True),
-        ForeignKey("professor.ID_Professor", ondelete="RESTRICT"),
+        ForeignKey("professor.id_professor", ondelete="RESTRICT"),
         nullable=False
     )
     
