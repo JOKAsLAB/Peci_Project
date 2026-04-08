@@ -106,7 +106,7 @@ class Streak(Base):
         # Sem isto, o mesmo estudante poderia ter dois registos no mesmo dia,
         # corrompendo a lógica de dias consecutivos
         UniqueConstraint(
-            "ID_Student", "Log_Date",
+            "id_student", "log_date",
             name="uq_streak_student_date"
         ),
     )

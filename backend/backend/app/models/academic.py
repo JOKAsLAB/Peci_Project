@@ -110,14 +110,12 @@ class Teaching_Material(Base):
     )
     
     # Substituição de VARCHAR e CheckConstraint por ENUM nativo (obrigatório create_type=True para asyncpg)
-    Status         = Column(ENUM(MaterialStatus, name="material_status_enum", create_type=True),  nullable=False, default=MaterialStatus.PENDING)
+    Status         = Column("status", ENUM(MaterialStatus, name="material_status_enum", create_type=True),  nullable=False, default=MaterialStatus.PENDING)
     
-    Title          = Column(String(200), nullable=False)
-    File_Path      = Column(Text,        nullable=False)
-    Extracted_Text = Column(Text,        nullable=True)
+    Title          = Column("title", String(200), nullable=False)
 
     # server_default=func.now() delega ao PostgreSQL — equivalente ao DEFAULT NOW() do SQL
-    Upload_Date    = Column(DateTime, nullable=False, server_default=func.now())
+    Upload_Date    = Column("upload_date", DateTime, nullable=False, server_default=func.now())
 
     # Relações inversas
     course_unit = relationship("Course_Unit", back_populates="teaching_materials")
@@ -140,39 +138,41 @@ class Exercise(Base):
     __tablename__ = "exercise"
 
     ID_Exercise  = Column(
+        "id_exercise",
         UUID(as_uuid=True),
         primary_key=True,
         default=uuid.uuid4
     )
-    ID_UC        = Column(Integer,     nullable=False)
-    Topic_Name   = Column(String(100), nullable=False)
+    ID_UC        = Column("id_uc", Integer,     nullable=False)
+    Topic_Name   = Column("topic_name", String(100), nullable=False)
     Material_Ref = Column(
+        "material_ref",
         UUID(as_uuid=True),
         ForeignKey("teaching_material.ID_Material", ondelete="SET NULL"),
         nullable=True  # NULL = exercício fixo (não gerado por IA)
     )
     
     # Substituição de VARCHAR e CheckConstraint por ENUM nativo
-    Type         = Column(ENUM(ExerciseType, name="exercise_type_enum", create_type=True),  nullable=False)
-    Difficulty   = Column(ENUM(DifficultyLevel, name="difficulty_level_enum", create_type=True),  nullable=False)
-    
-    Question     = Column(Text,        nullable=False)
-    Solution     = Column(JSONB,       nullable=False)
-    Explanation  = Column(Text,        nullable=True)
+    Type         = Column("type", ENUM(ExerciseType, name="exercise_type_enum", create_type=True),  nullable=False)
+    Difficulty   = Column("difficulty", ENUM(DifficultyLevel, name="difficulty_level_enum", create_type=True),  nullable=False)
+
+    Question     = Column("question", Text,        nullable=False)
+    Solution     = Column("solution", JSONB,       nullable=False)
+    Explanation  = Column("explanation", Text,        nullable=True)
 
     __table_args__ = (
         # FK simples para Course_Unit
         ForeignKeyConstraint(
-            ["ID_UC"],
-            ["course_unit.ID_UC"],
+            ["id_uc"],
+            ["course_unit.id_uc"],
             ondelete="RESTRICT",
             name="fk_exercise_uc"
         ),
         # FK composta para Topic — garante que o tópico pertence à mesma UC
         # Espelha: FOREIGN KEY (ID_UC, Topic_Name) REFERENCES Topic(ID_UC, Name)
         ForeignKeyConstraint(
-            ["ID_UC", "Topic_Name"],
-            ["topic.ID_UC", "topic.Name"],
+            ["id_uc", "topic_name"],
+            ["topic.id_uc", "topic.name"],
             ondelete="RESTRICT",
             name="fk_exercise_topic"
         ),
