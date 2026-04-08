@@ -111,8 +111,6 @@ CREATE TABLE Teaching_Material (
     Status         VARCHAR(20)  NOT NULL DEFAULT 'Pending'
                                 CHECK (Status IN ('Pending', 'Indexed', 'Error')),
     Title          VARCHAR(200) NOT NULL,
-    File_Path      TEXT         NOT NULL,
-    Extracted_Text TEXT,
     Upload_Date    TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 

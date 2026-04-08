@@ -82,8 +82,6 @@ class MaterialResponse(BaseModel):
     id_professor: UUID
     status: MaterialStatus
     title: str
-    file_path: str
-    extracted_text: str | None = None
     upload_date: datetime | None = None
 
     class Config:
@@ -93,5 +91,3 @@ class MaterialResponse(BaseModel):
 class MaterialCreateRequest(BaseModel):
     id_uc: int
     title: str = Field(min_length=2, max_length=200)
-    file_path: str = Field(min_length=3)
-    extracted_text: str | None = None
