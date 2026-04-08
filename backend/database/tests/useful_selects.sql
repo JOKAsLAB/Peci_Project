@@ -14,6 +14,8 @@ SELECT 'Course_Unit',      COUNT(*) FROM Course_Unit
 UNION ALL
 SELECT 'Professor_UC',     COUNT(*) FROM Professor_UC
 UNION ALL
+SELECT 'Student_UC',       COUNT(*) FROM Student_UC
+UNION ALL
 SELECT 'Topic',            COUNT(*) FROM Topic
 UNION ALL
 SELECT 'Teaching_Material',COUNT(*) FROM Teaching_Material

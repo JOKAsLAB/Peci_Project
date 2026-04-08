@@ -5,6 +5,23 @@
 
 
 -- =============================================================
+-- BLOCK 0: ENUM TYPES
+-- Native PostgreSQL ENUMs — used by the models via SQLAlchemy.
+-- Defined before the tables that depend on them.
+-- =============================================================
+
+CREATE TYPE user_role_enum        AS ENUM ('Student', 'Professor', 'Admin');
+CREATE TYPE user_status_enum      AS ENUM ('Active', 'Suspended', 'Deactivated');
+CREATE TYPE material_status_enum  AS ENUM ('Pending', 'Indexed', 'Error');
+CREATE TYPE exercise_type_enum    AS ENUM ('Multiple Choice', 'True/False');
+CREATE TYPE difficulty_level_enum AS ENUM ('Easy', 'Medium', 'Hard');
+CREATE TYPE progress_status_enum  AS ENUM ('Correct', 'Incorrect', 'Partial');
+CREATE TYPE sync_status_enum      AS ENUM ('Pending', 'Synced', 'Failed');
+CREATE TYPE request_status_enum   AS ENUM ('pending', 'approved', 'rejected');
+CREATE TYPE request_type_enum     AS ENUM ('access', 'platform', 'operations', 'other');
+
+
+-- =============================================================
 -- BLOCK 1: USERS AND PERSONAS
 -- =============================================================
 
@@ -12,14 +29,13 @@
 -- Role defines which sub-table the user belongs to.
 -- Status controls account state (active, suspended, deactivated).
 CREATE TABLE Base_User (
-    ID_User           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    Name              VARCHAR(100)  NOT NULL,
-    Email             VARCHAR(150)  UNIQUE NOT NULL,
-    Password_Hash     TEXT          NOT NULL,
-    Role              VARCHAR(20)   NOT NULL CHECK (Role IN ('Student', 'Professor', 'Admin')),
-    Status            VARCHAR(20)   NOT NULL DEFAULT 'Active'
-                                    CHECK (Status IN ('Active', 'Suspended', 'Deactivated')),
-    Registration_Date DATE          NOT NULL DEFAULT CURRENT_DATE
+    ID_User           UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
+    Name              VARCHAR(100)        NOT NULL,
+    Email             VARCHAR(150)        UNIQUE NOT NULL,
+    Password_Hash     TEXT                NOT NULL,
+    Role              user_role_enum      NOT NULL,
+    Status            user_status_enum    NOT NULL DEFAULT 'Active',
+    Registration_Date DATE                NOT NULL DEFAULT CURRENT_DATE
 );
 
 
@@ -105,13 +121,12 @@ CREATE TABLE Topic (
 -- Extracted_Text stores the raw text extracted from the PDF for the LLM.
 -- File_Path stores the path/URL to the file on disk or object storage.
 CREATE TABLE Teaching_Material (
-    ID_Material    UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    ID_UC          INT          NOT NULL REFERENCES Course_Unit(ID_UC) ON DELETE RESTRICT,
-    ID_Professor   UUID         NOT NULL REFERENCES Professor(ID_Professor) ON DELETE RESTRICT,
-    Status         VARCHAR(20)  NOT NULL DEFAULT 'Pending'
-                                CHECK (Status IN ('Pending', 'Indexed', 'Error')),
-    Title          VARCHAR(200) NOT NULL,
-    Upload_Date    TIMESTAMP    NOT NULL DEFAULT NOW()
+    ID_Material    UUID                  PRIMARY KEY DEFAULT gen_random_uuid(),
+    ID_UC          INT                   NOT NULL REFERENCES Course_Unit(ID_UC) ON DELETE RESTRICT,
+    ID_Professor   UUID                  NOT NULL REFERENCES Professor(ID_Professor) ON DELETE RESTRICT,
+    Status         material_status_enum  NOT NULL DEFAULT 'Pending',
+    Title          VARCHAR(200)          NOT NULL,
+    Upload_Date    TIMESTAMP             NOT NULL DEFAULT NOW()
 );
 
 
@@ -120,14 +135,14 @@ CREATE TABLE Teaching_Material (
 -- Solution is JSONB to support different formats per exercise type.
 -- Difficulty is text: Easy, Medium, Hard.
 CREATE TABLE Exercise (
-    ID_Exercise  UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
-    ID_UC        INT          NOT NULL REFERENCES Course_Unit(ID_UC) ON DELETE RESTRICT,
-    Topic_Name   VARCHAR(100) NOT NULL,
-    Material_Ref UUID         REFERENCES Teaching_Material(ID_Material) ON DELETE SET NULL,
-    Type         VARCHAR(30)  NOT NULL CHECK (Type IN ('Multiple Choice', 'True/False')),
-    Question     TEXT         NOT NULL,
-    Solution     JSONB        NOT NULL,
-    Difficulty   VARCHAR(10)  NOT NULL CHECK (Difficulty IN ('Easy', 'Medium', 'Hard')),
+    ID_Exercise  UUID                  PRIMARY KEY DEFAULT gen_random_uuid(),
+    ID_UC        INT                   NOT NULL REFERENCES Course_Unit(ID_UC) ON DELETE RESTRICT,
+    Topic_Name   VARCHAR(100)          NOT NULL,
+    Material_Ref UUID                  REFERENCES Teaching_Material(ID_Material) ON DELETE SET NULL,
+    Type         exercise_type_enum    NOT NULL,
+    Question     TEXT                  NOT NULL,
+    Solution     JSONB                 NOT NULL,
+    Difficulty   difficulty_level_enum NOT NULL,
     Explanation  TEXT,
     FOREIGN KEY (ID_UC, Topic_Name) REFERENCES Topic(ID_UC, Name) ON DELETE RESTRICT
 );
@@ -141,15 +156,14 @@ CREATE TABLE Exercise (
 -- Sync_Status tracks whether this record has been synced with the mobile app.
 -- Status: whether the student answered correctly or not.
 CREATE TABLE Progress (
-    ID_Progress  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    ID_Student   UUID        NOT NULL REFERENCES Student(ID_Student) ON DELETE CASCADE,
-    ID_Exercise  UUID        NOT NULL REFERENCES Exercise(ID_Exercise) ON DELETE CASCADE,
-    Attempts     INT         NOT NULL DEFAULT 1,
-    Status       VARCHAR(20) NOT NULL CHECK (Status IN ('Correct', 'Incorrect', 'Partial')),
-    Date         TIMESTAMP   NOT NULL DEFAULT NOW(),
-    XP_Earned    INT         NOT NULL DEFAULT 0,
-    Sync_Status  VARCHAR(20) NOT NULL DEFAULT 'Pending'
-                             CHECK (Sync_Status IN ('Pending', 'Synced', 'Failed'))
+    ID_Progress  UUID                PRIMARY KEY DEFAULT gen_random_uuid(),
+    ID_Student   UUID                NOT NULL REFERENCES Student(ID_Student) ON DELETE CASCADE,
+    ID_Exercise  UUID                NOT NULL REFERENCES Exercise(ID_Exercise) ON DELETE CASCADE,
+    Attempts     INT                 NOT NULL DEFAULT 1,
+    Status       progress_status_enum NOT NULL,
+    Date         TIMESTAMP           NOT NULL DEFAULT NOW(),
+    XP_Earned    INT                 NOT NULL DEFAULT 0,
+    Sync_Status  sync_status_enum    NOT NULL DEFAULT 'Pending'
 );
 
 
@@ -157,11 +171,10 @@ CREATE TABLE Progress (
 -- Used to validate consecutive-day streaks.
 -- Sync_Status: same mobile sync logic as Progress.
 CREATE TABLE Streak (
-    ID_Streak   UUID   PRIMARY KEY DEFAULT gen_random_uuid(),
-    ID_Student  UUID   NOT NULL REFERENCES Student(ID_Student) ON DELETE CASCADE,
-    Log_Date    DATE   NOT NULL DEFAULT CURRENT_DATE,
-    Sync_Status VARCHAR(20) NOT NULL DEFAULT 'Pending'
-                            CHECK (Sync_Status IN ('Pending', 'Synced', 'Failed'))                
+    ID_Streak   UUID              PRIMARY KEY DEFAULT gen_random_uuid(),
+    ID_Student  UUID              NOT NULL REFERENCES Student(ID_Student) ON DELETE CASCADE,
+    Log_Date    DATE              NOT NULL DEFAULT CURRENT_DATE,
+    Sync_Status sync_status_enum  NOT NULL DEFAULT 'Pending'
 );
 
 
@@ -173,15 +186,15 @@ CREATE TABLE Streak (
 -- ID_Admin is nullable: request starts unassigned (pending) until an admin picks it up.
 -- Resolution_Date is set when the admin approves or rejects.
 CREATE TABLE Request (
-    ID_Request       SERIAL       PRIMARY KEY,
-    ID_Professor     UUID         NOT NULL REFERENCES Professor(ID_Professor) ON DELETE CASCADE,
-    ID_Admin         UUID         REFERENCES Admin(ID_Admin) ON DELETE SET NULL,
-    Title            VARCHAR(200) NOT NULL,
-    Description      TEXT         NOT NULL,
-    Status           VARCHAR(20)  NOT NULL DEFAULT 'pending'
-                                  CHECK (Status IN ('pending', 'approved', 'rejected')),
+    ID_Request       SERIAL               PRIMARY KEY,
+    ID_Professor     UUID                 NOT NULL REFERENCES Professor(ID_Professor) ON DELETE CASCADE,
+    ID_Admin         UUID                 REFERENCES Admin(ID_Admin) ON DELETE SET NULL,
+    Title            VARCHAR(200)         NOT NULL,
+    Description      TEXT                 NOT NULL,
+    Status           request_status_enum  NOT NULL DEFAULT 'pending',
+    Request_Type     request_type_enum    NOT NULL DEFAULT 'other',
     AdminComment     TEXT,
-    Creation_Date    TIMESTAMP    NOT NULL DEFAULT NOW(),
+    Creation_Date    TIMESTAMP            NOT NULL DEFAULT NOW(),
     Resolution_Date  TIMESTAMP,
 
     -- Consistency check: pending requests must have no resolution date;

@@ -16,6 +16,10 @@ DROP TABLE IF EXISTS Topic;
 -- Professor_UC depende de Professor e Course_Unit
 DROP TABLE IF EXISTS Professor_UC;
 
+-- Depende de Student e Course_Unit
+DROP TABLE IF EXISTS Student_UC;
+
+
 -- Course_Unit já não tem ninguém a depender dela
 DROP TABLE IF EXISTS Course_Unit;
 
