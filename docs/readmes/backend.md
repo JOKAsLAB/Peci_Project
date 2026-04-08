@@ -186,3 +186,21 @@ Suite agregada completa (inclui opcionalmente aluno):
 - Backend com variaveis de ambiente de producao
 - Frontend a apontar para API publica via `VITE_API_BASE_URL`
 - Nao entregar pastas internas de teste para clientes/professores
+
+## (For Devs) Para testar fazer um registo:
+Pôr o server a correr e noutro terminal (é um exemplo):
+```
+Powershell:
+$body = @{
+    name = "Carlos"
+    email = "carlos@test.com"
+    password = "123456"
+    role = "Student"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Method POST `
+  -Uri "http://127.0.0.1:8000/api/v1/auth/register" `
+  -Body $body `
+  -ContentType "application/json"
+```
+

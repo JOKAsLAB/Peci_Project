@@ -31,6 +31,17 @@ DROP TABLE IF EXISTS Admin;
 -- Base_User é a última — toda a gente dependia dela
 DROP TABLE IF EXISTS Base_User;
 
+-- ENUMs — apagados depois das tabelas que os usavam
+DROP TYPE IF EXISTS user_role_enum;
+DROP TYPE IF EXISTS user_status_enum;
+DROP TYPE IF EXISTS material_status_enum;
+DROP TYPE IF EXISTS exercise_type_enum;
+DROP TYPE IF EXISTS difficulty_level_enum;
+DROP TYPE IF EXISTS progress_status_enum;
+DROP TYPE IF EXISTS sync_status_enum;
+DROP TYPE IF EXISTS request_status_enum;
+DROP TYPE IF EXISTS request_type_enum;
+
 /* All tables:
 DROP TABLE IF EXISTS 
     Admin_Audit_Log, Streak, Progress, Request,

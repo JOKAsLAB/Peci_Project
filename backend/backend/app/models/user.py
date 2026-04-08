@@ -14,6 +14,7 @@ from sqlalchemy import (
     Integer, SmallInteger, ForeignKey, CheckConstraint
 )
 from sqlalchemy.dialects.postgresql import UUID, ENUM
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -39,8 +40,26 @@ class Base_User(Base):
     Password_Hash     = Column("password_hash",     Text,        nullable=False)
 
     # ATENÇÃO: create_type=True (OBRIGATÓRIO PARA ASYNCPG)
-    Role              = Column("role",              ENUM(UserRole, name="user_role_enum", create_type=True), nullable=False)
-    Status            = Column("status",            ENUM(UserStatus, name="user_status_enum", create_type=True), nullable=False, default=UserStatus.ACTIVE)
+    Role = Column(
+        "role",
+        SAEnum(
+            UserRole,
+            name="user_role_enum",
+            values_callable=lambda enum: [e.value for e in enum] # Garante que os valores do ENUM são as strings definidas em UserRole
+        ),
+        nullable=False
+    )
+    
+    Status = Column(
+        "status",
+        SAEnum(
+            UserStatus,
+            name="user_status_enum",
+            values_callable=lambda enum: [e.value for e in enum]
+        ),
+        nullable=False,
+        default=UserStatus.ACTIVE
+    )
 
     # server_default delega ao PostgreSQL — equivalente ao DEFAULT CURRENT_DATE do SQL
     Registration_Date = Column("registration_date", Date, nullable=False, server_default=func.current_date())

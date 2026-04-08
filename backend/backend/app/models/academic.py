@@ -148,7 +148,7 @@ class Exercise(Base):
     Material_Ref = Column(
         "material_ref",
         UUID(as_uuid=True),
-        ForeignKey("teaching_material.ID_Material", ondelete="SET NULL"),
+        ForeignKey("teaching_material.id_material", ondelete="SET NULL"),
         nullable=True  # NULL = exercício fixo (não gerado por IA)
     )
     

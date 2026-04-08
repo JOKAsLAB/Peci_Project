@@ -193,7 +193,7 @@ CREATE TABLE Request (
     Description      TEXT                 NOT NULL,
     Status           request_status_enum  NOT NULL DEFAULT 'pending',
     Request_Type     request_type_enum    NOT NULL DEFAULT 'other',
-    AdminComment     TEXT,
+    Admin_Comment     TEXT,
     Creation_Date    TIMESTAMP            NOT NULL DEFAULT NOW(),
     Resolution_Date  TIMESTAMP,
 
