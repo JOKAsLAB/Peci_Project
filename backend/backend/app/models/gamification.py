@@ -11,7 +11,8 @@ from sqlalchemy import (
     Column, DateTime, Date, Integer,
     ForeignKey, UniqueConstraint
 )
-from sqlalchemy.dialects.postgresql import UUID, ENUM
+from sqlalchemy.dialects.postgresql import UUID
+from app.models.utils import EnumColumn
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -51,8 +52,17 @@ class Progress(Base):
     Attempts    = Column("attempts", Integer,    nullable=False, default=1)
     
     # Substituição de VARCHAR e CheckConstraint por ENUM nativo
-    Status      = Column("status", ENUM(ProgressStatus, name="progress_status_enum", create_type=True), nullable=False)
-    Sync_Status = Column("sync_status", ENUM(SyncStatus, name="sync_status_enum", create_type=True), nullable=False, default=SyncStatus.PENDING)
+    Status = Column(
+        "status", 
+        EnumColumn(ProgressStatus, name="progress_status_enum", create_type=True),
+        nullable=False
+    )
+    Sync_Status = Column(
+        "sync_status", 
+        EnumColumn(SyncStatus, name="sync_status_enum", create_type=True),
+        nullable=False,
+        default=SyncStatus.PENDING
+    )
     
     XP_Earned   = Column("xp_earned", Integer,    nullable=False, default=0)
 
@@ -96,7 +106,12 @@ class Streak(Base):
     )
     
     # Substituição de VARCHAR e CheckConstraint por ENUM nativo
-    Sync_Status = Column("sync_status", ENUM(SyncStatus, name="sync_status_enum", create_type=True), nullable=False, default=SyncStatus.PENDING)
+    Sync_Status = Column(
+        "sync_status",
+        EnumColumn(SyncStatus, name="sync_status_enum", create_type=True),
+        nullable=False, 
+        default=SyncStatus.PENDING
+    )
 
     # server_default delega ao PostgreSQL — equivalente ao DEFAULT CURRENT_DATE do SQL
     Log_Date    = Column("log_date", Date, nullable=False, server_default=func.current_date())

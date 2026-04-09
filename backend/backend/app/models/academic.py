@@ -13,7 +13,9 @@ from sqlalchemy import (
     Column, String, Text, DateTime, Integer,
     SmallInteger, ForeignKey, UniqueConstraint, ForeignKeyConstraint
 )
-from sqlalchemy.dialects.postgresql import UUID, JSONB, ENUM
+from sqlalchemy.dialects.postgresql import UUID, JSONB
+from app.models.utils import EnumColumn
+
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -110,8 +112,12 @@ class Teaching_Material(Base):
     )
     
     # Substituição de VARCHAR e CheckConstraint por ENUM nativo (obrigatório create_type=True para asyncpg)
-    Status         = Column("status", ENUM(MaterialStatus, name="material_status_enum", create_type=True),  nullable=False, default=MaterialStatus.PENDING)
-    
+    Status = Column(
+        "status",
+        EnumColumn(MaterialStatus, name="material_status_enum", create_type=True),
+        nullable=False,
+        default=MaterialStatus.PENDING
+    )
     Title          = Column("title", String(200), nullable=False)
 
     # server_default=func.now() delega ao PostgreSQL — equivalente ao DEFAULT NOW() do SQL
@@ -153,8 +159,16 @@ class Exercise(Base):
     )
     
     # Substituição de VARCHAR e CheckConstraint por ENUM nativo
-    Type         = Column("type", ENUM(ExerciseType, name="exercise_type_enum", create_type=True),  nullable=False)
-    Difficulty   = Column("difficulty", ENUM(DifficultyLevel, name="difficulty_level_enum", create_type=True),  nullable=False)
+    Type = Column(
+        "type",
+        EnumColumn(ExerciseType, name="exercise_type_enum", create_type=True),
+        nullable=False
+    )
+    Difficulty = Column(
+        "difficulty",
+        EnumColumn(DifficultyLevel, name="difficulty_level_enum", create_type=True),
+        nullable=False
+    )
 
     Question     = Column("question", Text,        nullable=False)
     Solution     = Column("solution", JSONB,       nullable=False)

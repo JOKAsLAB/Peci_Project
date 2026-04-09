@@ -13,7 +13,8 @@ from sqlalchemy import (
     Column, String, Text, DateTime,
     ForeignKey, Index, Integer
 )
-from sqlalchemy.dialects.postgresql import UUID, ENUM
+from sqlalchemy.dialects.postgresql import UUID
+from app.models.utils import EnumColumn
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -50,13 +51,22 @@ class Request(Base):
     )
 
     # ATENÇÃO: create_type=True (OBRIGATÓRIO PARA ASYNCPG)
-    Request_Type = Column("request_type", ENUM(RequestType, name="request_type_enum", create_type=True), nullable=False)
+    Request_Type = Column(
+        "request_type", 
+        EnumColumn(RequestType, name="request_type_enum", create_type=True), 
+        nullable=False
+    )
 
     Title        = Column("title", String(200), nullable=False)
     Description  = Column("description", Text,        nullable=False)
 
     # ATENÇÃO: create_type=True (OBRIGATÓRIO PARA ASYNCPG)
-    Status       = Column("status", ENUM(RequestStatus, name="request_status_enum", create_type=True), nullable=False, default=RequestStatus.PENDING)
+    Status = Column(
+        "status", 
+        EnumColumn(RequestStatus, name="request_status_enum", create_type=True), 
+        nullable=False, 
+        default=RequestStatus.PENDING
+    )
     
     AdminComment = Column("admin_comment", Text,        nullable=True)
 
