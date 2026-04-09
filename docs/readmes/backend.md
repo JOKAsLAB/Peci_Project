@@ -189,6 +189,8 @@ Suite agregada completa (inclui opcionalmente aluno):
 
 ## (For Devs) Para testar fazer um registo:
 Pôr o server a correr e noutro terminal (é um exemplo):
+Nota:Se fizeres com a execução manual (ver comandos acima) consegues ver mensagens do servidor.
+Depois podes fazer registo desde o terminal:
 ```
 Powershell:
 $body = @{
@@ -203,4 +205,21 @@ Invoke-RestMethod -Method POST `
   -Body $body `
   -ContentType "application/json"
 ```
-
+  Ou:
+```
+  $body = @{
+    name = "Admin"
+    email = "admin@test.com" 
+    password = "123456"
+    role = "Admin"
+  } | ConvertTo-Json
+ 
+ Invoke-RestMethod -Method POST `
+   -Uri "http://127.0.0.1:8000/api/v1/auth/register" `
+   -Body $body `
+   -ContentType "application/json"
+```
+Ou desde a propria interface docente/admin e correr (-InstallFrontendDeps se for a primeira vez):
+```powershell
+.\scripts\run\run_admin_docente.ps1 -InstallFrontendDeps
+```

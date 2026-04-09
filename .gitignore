@@ -34,3 +34,5 @@ Thumbs.db
 local_notes/
 
 .vscode/
+*.idea
+*.iml
