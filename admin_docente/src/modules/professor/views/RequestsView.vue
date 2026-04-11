@@ -23,7 +23,8 @@
       v-if="requestStore.error"
       class="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-card text-sm"
     >
-      <i class="pi pi-exclamation-triangle mr-2"></i> {{ requestStore.error }}
+      <i class="pi pi-exclamation-triangle mr-2"></i>
+      {{ requestStore.error }}
     </div>
 
     <!-- Métricas -->
@@ -71,8 +72,8 @@
                     : req.type === 'operations'
                       ? 'bg-cyan-500/10 text-cyan-300'
                       : req.type === 'other'
-                      ? 'bg-warning/10 text-warning'
-                      : 'bg-success/10 text-success'
+                        ? 'bg-warning/10 text-warning'
+                        : 'bg-success/10 text-success'
               "
             >
               {{ typeLabel(req.type) }}
@@ -245,8 +246,8 @@ const newRequest = reactive({
 async function submitRequest() {
   if (!newRequest.title || !newRequest.description) return;
 
-  const confirmed = window.confirm('Submeter este pedido ao administrador?')
-  if (!confirmed) return
+  const confirmed = window.confirm('Submeter este pedido ao administrador?');
+  if (!confirmed) return;
 
   try {
     await requestStore.addRequest({ ...newRequest });

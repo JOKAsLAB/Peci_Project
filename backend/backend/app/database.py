@@ -45,7 +45,8 @@ class Settings(BaseSettings):
         "http://localhost:5173,"
         "http://127.0.0.1:5173,"
         "http://localhost:5174,"
-        "http://127.0.0.1:5174"
+        "http://127.0.0.1:5174",
+        "http://192.168.1.140:5174"
     )
 
     model_config = SettingsConfigDict(

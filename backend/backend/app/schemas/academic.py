@@ -91,3 +91,31 @@ class MaterialResponse(BaseModel):
 class MaterialCreateRequest(BaseModel):
     id_uc: int
     title: str = Field(min_length=2, max_length=200)
+
+
+
+class GenerateQuestionsRequest(BaseModel):
+    id_uc: int
+    filename: str = Field(min_length=1, description="Nome do ficheiro indexado (ex: patterson_book.pdf)")
+    topic: str = Field(min_length=2, description="Tópico para gerar perguntas")
+    n_perguntas: int = Field(default=5, ge=1, le=20)
+    difficulty: str = Field(default="variada", description="easy, medium, hard, ou variada")
+    question_type: str = Field(default="Escolha Múltipla", description="Escolha Múltipla ou True/False")
+
+
+class GeneratedQuestionsResponse(BaseModel):
+    count: int
+    message: str
+    questions: list[ExerciseResponse] = Field(default_factory=list)
+
+
+class IndexMaterialRequest(BaseModel):
+    id_uc: int
+    title: str = Field(min_length=2, max_length=200)
+
+
+class IndexMaterialResponse(BaseModel):
+    status: str
+    id: str
+    file: str
+    message: str

@@ -1,0 +1,36 @@
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.875rem;
+  padding-bottom: 0.875rem;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  border: 1px solid transparent;
+  transition: all;
+  font-weight: 500;
+}
+
+.nav-link:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.nav-link.router-link-active {
+  background-color: rgba(0, 177, 64, 0.1);
+  color: #00b140;
+  border-color: rgba(0, 177, 64, 0.4);
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
