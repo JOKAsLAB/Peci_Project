@@ -144,6 +144,7 @@ CREATE TABLE Exercise (
     Solution     JSONB                 NOT NULL,
     Difficulty   difficulty_level_enum NOT NULL,
     Explanation  TEXT,
+    Published    BOOLEAN               NOT NULL DEFAULT false,
     FOREIGN KEY (ID_UC, Topic_Name) REFERENCES Topic(ID_UC, Name) ON DELETE RESTRICT
 );
 
@@ -218,6 +219,36 @@ CREATE TABLE Admin_Audit_Log (
     Target_ID    TEXT         NOT NULL,
     Target_Type  VARCHAR(50)  NOT NULL,
     Date         TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+
+-- =============================================================
+-- BLOCK 5: LEARNING PATHS (PROFESSOR PATH BUILDER)
+-- =============================================================
+
+-- A Learning Path is a structured sequence of exercises created by a professor.
+-- Professors use the Path Builder to define personalized learning sequences.
+-- Multiple paths can exist per UC; each path can be published or draft.
+CREATE TABLE Learning_Path (
+    ID_Path      UUID                 PRIMARY KEY DEFAULT gen_random_uuid(),
+    ID_UC        INT                  NOT NULL REFERENCES Course_Unit(ID_UC) ON DELETE CASCADE,
+    ID_Professor UUID                 NOT NULL REFERENCES Professor(ID_Professor) ON DELETE CASCADE,
+    Name         VARCHAR(200)         NOT NULL,
+    Description  TEXT,
+    Published    BOOLEAN              NOT NULL DEFAULT false,
+    Created_At   TIMESTAMP            NOT NULL DEFAULT NOW(),
+    Updated_At   TIMESTAMP            NOT NULL DEFAULT NOW()
+);
+
+-- Junction table: exercises in a learning path with specific order.
+-- ID_Path + Order is unique to prevent duplicate positions.
+-- Order defines the sequence within a path (1, 2, 3, ...).
+CREATE TABLE Learning_Path_Exercise (
+    ID              UUID         PRIMARY KEY DEFAULT gen_random_uuid(),
+    ID_Path         UUID         NOT NULL REFERENCES Learning_Path(ID_Path) ON DELETE CASCADE,
+    ID_Exercise     UUID         NOT NULL REFERENCES Exercise(ID_Exercise) ON DELETE CASCADE,
+    Order_Num       SMALLINT     NOT NULL,
+    UNIQUE (ID_Path, Order_Num)
 );
 
 /*

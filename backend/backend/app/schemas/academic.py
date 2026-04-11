@@ -57,6 +57,7 @@ class ExerciseResponse(BaseModel):
     solution: dict[str, Any]
     difficulty: DifficultyLevel
     explanation: str | None = None
+    published: bool = False
     
     # Otimização de Eager Loading para evitar N+1 queries no cliente (Vue.js)
     course_unit_info: CourseUnitBasicInfo | None = None

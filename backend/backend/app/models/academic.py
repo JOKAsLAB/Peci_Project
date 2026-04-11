@@ -11,7 +11,7 @@
 import uuid
 from sqlalchemy import (
     Column, String, Text, DateTime, Integer,
-    SmallInteger, ForeignKey, UniqueConstraint, ForeignKeyConstraint
+    SmallInteger, ForeignKey, UniqueConstraint, ForeignKeyConstraint, Boolean
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.models.utils import EnumColumn
@@ -173,6 +173,7 @@ class Exercise(Base):
     Question     = Column("question", Text,        nullable=False)
     Solution     = Column("solution", JSONB,       nullable=False)
     Explanation  = Column("explanation", Text,        nullable=True)
+    Published    = Column("published", Boolean,       nullable=False, default=False)
 
     __table_args__ = (
         # FK simples para Course_Unit

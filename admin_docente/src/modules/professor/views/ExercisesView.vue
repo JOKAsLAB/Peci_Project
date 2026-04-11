@@ -226,12 +226,12 @@
             </thead>
             <tbody class="divide-y divide-white/5">
               <tr
-                v-for="ex in paginatedExercises"
+                v-for="(ex, idx) in paginatedExercises"
                 :key="ex.id"
                 class="hover:bg-white/[0.02] transition-colors group"
               >
                 <td class="px-6 py-4 text-text-secondary text-xs">
-                  {{ ex.id }}
+                  {{ (currentPage - 1) * pageSize + idx + 1 }}
                 </td>
                 <td class="px-6 py-4 max-w-xs">
                   <p class="font-medium text-sm truncate" :title="ex.title">
@@ -456,9 +456,16 @@ onMounted(async () => {
   await exerciseStore.loadExercises();
 });
 
-const userDisciplineIds = computed(
-  () => authStore.user?.course_units?.map((uc) => uc.id) || [],
-);
+const userDisciplineIds = computed(() => {
+  try {
+    const ids = authStore.user?.course_units?.map((uc) => uc.id) || [];
+    console.log('📚 User discipline IDs:', ids);
+    return ids;
+  } catch (e) {
+    console.error('❌ Error getting user disciplines:', e);
+    return [];
+  }
+});
 
 const statusFilter = ref('Todos');
 const disciplineFilter = ref('');
@@ -470,13 +477,19 @@ const pageSize = 15;
 const detailExercise = ref(null);
 
 const availableModules = computed(() => {
-  if (
-    disciplineFilter.value &&
-    exerciseStore.modulesByDiscipline[disciplineFilter.value]
-  ) {
-    return exerciseStore.modulesByDiscipline[disciplineFilter.value];
+  try {
+    if (
+      disciplineFilter.value &&
+      exerciseStore.modulesByDiscipline &&
+      exerciseStore.modulesByDiscipline[disciplineFilter.value]
+    ) {
+      return exerciseStore.modulesByDiscipline[disciplineFilter.value] || [];
+    }
+    return exerciseStore.modules || [];
+  } catch (e) {
+    console.error('❌ Error getting modules:', e);
+    return [];
   }
-  return exerciseStore.modules;
 });
 
 watch(disciplineFilter, () => {
@@ -487,14 +500,19 @@ watch([statusFilter, moduleFilter, difficultyFilter, typeFilter], () => {
   currentPage.value = 1;
 });
 
-const hasActiveFilters = computed(
-  () =>
-    statusFilter.value !== 'Todos' ||
-    disciplineFilter.value ||
-    moduleFilter.value ||
-    difficultyFilter.value ||
-    typeFilter.value,
-);
+const hasActiveFilters = computed(() => {
+  try {
+    return (
+      statusFilter.value !== 'Todos' ||
+      !!disciplineFilter.value ||
+      !!moduleFilter.value ||
+      !!difficultyFilter.value ||
+      !!typeFilter.value
+    );
+  } catch (e) {
+    return false;
+  }
+});
 
 function clearFilters() {
   statusFilter.value = 'Todos';
@@ -505,27 +523,57 @@ function clearFilters() {
 }
 
 const filteredExercises = computed(() => {
-  let list = exerciseStore.exercises;
-  // Filtrar apenas exercícios das disciplinas atribuídas
-  list = list.filter((e) => userDisciplineIds.value.includes(e.id_uc));
-  if (statusFilter.value === 'Publicados')
-    list = list.filter((e) => e.published);
-  if (disciplineFilter.value)
-    list = list.filter((e) => e.id_uc === disciplineFilter.value);
-  if (moduleFilter.value)
-    list = list.filter((e) => e.module === moduleFilter.value);
-  if (difficultyFilter.value)
-    list = list.filter((e) => e.difficulty === difficultyFilter.value);
-  if (typeFilter.value) list = list.filter((e) => e.type === typeFilter.value);
-  return list;
+  try {
+    let list = Array.isArray(exerciseStore.exercises) ? [...exerciseStore.exercises] : [];
+    console.log('🔍 Filtering exercises, total:', list.length);
+    
+    // Filtrar apenas exercícios das disciplinas atribuídas
+    const userIds = userDisciplineIds.value || [];
+    if (userIds.length > 0) {
+      list = list.filter((e) => userIds.includes(e?.id_uc));
+    }
+    
+    if (statusFilter.value === 'Publicados') {
+      list = list.filter((e) => e?.published === true);
+    }
+    if (disciplineFilter.value) {
+      list = list.filter((e) => e?.id_uc === disciplineFilter.value);
+    }
+    if (moduleFilter.value) {
+      list = list.filter((e) => e?.module === moduleFilter.value);
+    }
+    if (difficultyFilter.value) {
+      list = list.filter((e) => e?.difficulty === difficultyFilter.value);
+    }
+    if (typeFilter.value) {
+      list = list.filter((e) => e?.type === typeFilter.value);
+    }
+    
+    console.log('✓ Filtered result:', list.length);
+    return list;
+  } catch (e) {
+    console.error('❌ Error filtering exercises:', e);
+    return [];
+  }
 });
 
-const totalPages = computed(() =>
-  Math.max(1, Math.ceil(filteredExercises.value.length / pageSize)),
-);
+const totalPages = computed(() => {
+  try {
+    return Math.max(1, Math.ceil(filteredExercises.value.length / pageSize));
+  } catch (e) {
+    console.error('❌ Error calculating total pages:', e);
+    return 1;
+  }
+});
+
 const paginatedExercises = computed(() => {
-  const start = (currentPage.value - 1) * pageSize;
-  return filteredExercises.value.slice(start, start + pageSize);
+  try {
+    const start = (currentPage.value - 1) * pageSize;
+    return filteredExercises.value.slice(start, start + pageSize);
+  } catch (e) {
+    console.error('❌ Error paginating exercises:', e);
+    return [];
+  }
 });
 
 function showDetail(ex) {

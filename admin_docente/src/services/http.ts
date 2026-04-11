@@ -9,14 +9,34 @@ export const http = axios.create({
   withCredentials: true,
 });
 
+// Referência global ao authStore (será definida em setupAuthInterceptor)
+let authStoreRef: any = null;
+
 // Interceptor para adicionar Content-Type quando necessário (mas permitir FormData)
 http.interceptors.request.use((config) => {
   // Se o data é FormData, deixa o navegador definir o Content-Type automaticamente
   if (!(config.data instanceof FormData)) {
     config.headers['Content-Type'] = 'application/json';
   }
+  
+  // Adiciona Authorization header se houver token
+  if (authStoreRef && authStoreRef.token) {
+    const token = authStoreRef.token;
+    if (token && token !== 'cookie-session') {
+      config.headers['Authorization'] = `Bearer ${token}`;
+      console.log('✓ Auth header added:', token.substring(0, 20) + '...');
+    }
+  }
+  
   return config;
 });
+
+// Setup de interceptor de autenticação
+// Deve ser chamado após a inicialização da app (quando authStore está disponível)
+export function setupAuthInterceptor(authStore: any) {
+  authStoreRef = authStore;
+  console.log('✓ Auth interceptor configured, initial token:', authStore.token?.substring(0, 20) + '...');
+}
 
 export function getApiErrorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError(error)) {

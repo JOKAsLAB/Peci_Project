@@ -116,6 +116,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import LoginView from './views/LoginView.vue';
 import { useAuthStore } from './stores/authStore';
+import { setupAuthInterceptor } from './services/http';
 
 interface NavItem {
   to: string;
@@ -164,6 +165,9 @@ const userInitials = computed(() => {
 
 onMounted(async () => {
   try {
+    // Setup do interceptor de autenticação (deve ser feito depois que a store está disponível)
+    setupAuthInterceptor(authStore);
+    
     await authStore.restoreSession();
     if (authStore.isAuthenticated && route.path === '/') {
       await router.replace(

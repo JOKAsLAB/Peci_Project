@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.database import engine, settings
-from app.routers import admin, ai_tutor, auth, professors, students
+from app.routers import admin, ai_tutor, auth, professors, students, learning_paths
 
 
 def parse_cors_origins(raw_value: str) -> list[str]:
@@ -72,6 +72,7 @@ app.include_router(admin.router)
 app.include_router(professors.router)
 app.include_router(students.router)
 app.include_router(ai_tutor.router)
+app.include_router(learning_paths.router)
 
 # -------------------------------------------------------------
 # Endpoints de Health Check

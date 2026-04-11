@@ -254,36 +254,44 @@ const pendingRequestsCount = computed(
 );
 
 const latestExercise = computed(() => {
-  if (!exerciseStore.exercises.length) return null;
-  return [...exerciseStore.exercises].sort((a, b) =>
-    b.createdAt.localeCompare(a.createdAt),
-  )[0];
+  try {
+    if (!exerciseStore.exercises || !exerciseStore.exercises.length) return null;
+    // Exercícios não têm createdAt, então apenas retorna o primeiro
+    return exerciseStore.exercises[0] || null;
+  } catch (e) {
+    console.error('Error getting latest exercise:', e);
+    return null;
+  }
 });
 
 const latestPath = computed(() => {
-  if (!pathStore.paths.length) return null;
-  return [...pathStore.paths].sort((a, b) =>
-    b.lastModified.localeCompare(a.lastModified),
-  )[0];
+  try {
+    if (!pathStore.paths || !pathStore.paths.length) return null;
+    // Paths podem não ter lastModified, então apenas retorna o primeiro
+    return pathStore.paths[0] || null;
+  } catch (e) {
+    console.error('Error getting latest path:', e);
+    return null;
+  }
 });
 
 const latestExerciseTitle = computed(
-  () => latestExercise.value?.title ?? 'Sem exercício recente',
+  () => latestExercise.value?.title ?? latestExercise.value?.topic_name ?? 'Sem exercício recente',
 );
 const latestExerciseDate = computed(
   () => latestExercise.value?.createdAt ?? '--',
 );
 const latestPathName = computed(
-  () => latestPath.value?.disciplineName ?? 'Sem percurso atualizado',
+  () => latestPath.value?.name ?? latestPath.value?.disciplineName ?? 'Sem percurso atualizado',
 );
-const latestPathDate = computed(() => latestPath.value?.lastModified ?? '--');
+const latestPathDate = computed(() => latestPath.value?.lastModified ?? latestPath.value?.updatedAt ?? '--');
 
 onMounted(async () => {
   await Promise.all([
     adminRequestStore.loadRequests(),
     exerciseStore.loadExercises(),
     pathStore.loadPaths(),
-    questionLabStore.loadDocuments(),
+    // questionLabStore.loadDocuments(), // Desabilitado temporariamente - causas erro 422
   ]);
 });
 </script>

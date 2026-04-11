@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
-from sqlalchemy import and_, select
+from sqlalchemy import and_, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from pathlib import Path
@@ -67,6 +67,7 @@ def to_exercise_response(item: Exercise) -> ExerciseResponse:
 		solution=item.Solution,
 		difficulty=item.Difficulty,
 		explanation=item.Explanation,
+		published=item.Published,
 	)
 
 
@@ -175,6 +176,87 @@ async def create_exercise(
 	db.add(item)
 	await db.flush()
 	return to_exercise_response(item)
+
+
+@router.patch("/exercises/{exercise_id}", response_model=ExerciseResponse)
+async def update_exercise(
+	exercise_id: str,
+	published: bool = Query(...),
+	db: AsyncSession = Depends(get_db),
+	current_professor: Base_User = Depends(require_roles("Professor")),
+):
+	"""
+	Atualizar estado de publicação de um exercício (PATCH).
+	
+	Parâmetro query:
+	- published: true/false para publicar/despublicar
+	"""
+	# Obter exercício
+	import uuid
+	try:
+		ex_uuid = uuid.UUID(exercise_id)
+	except:
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid UUID format")
+	
+	exercise = await db.scalar(
+		select(Exercise).where(Exercise.ID_Exercise == ex_uuid)
+	)
+	
+	if not exercise:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+	
+	# Verificar se professor tem acesso à UC do exercício
+	has_access = await db.scalar(
+		select(Professor_UC).where(
+			and_(
+				Professor_UC.ID_Professor == current_professor.ID_User,
+				Professor_UC.ID_UC == exercise.ID_UC,
+			)
+		)
+	)
+	if not has_access:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
+	
+	# Atualizar
+	exercise.Published = published
+	await db.flush()
+	return to_exercise_response(exercise)
+
+
+@router.delete("/exercises/{exercise_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_exercise(
+	exercise_id: str,
+	db: AsyncSession = Depends(get_db),
+	current_professor: Base_User = Depends(require_roles("Professor")),
+):
+	try:
+		ex_uuid = UUID(exercise_id)
+	except ValueError:
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid exercise ID format")
+	
+	exercise = await db.scalar(
+		select(Exercise).where(Exercise.ID_Exercise == ex_uuid)
+	)
+	
+	if not exercise:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+	
+	# Verificar se professor tem acesso à UC do exercício
+	has_access = await db.scalar(
+		select(Professor_UC).where(
+			and_(
+				Professor_UC.ID_Professor == current_professor.ID_User,
+				Professor_UC.ID_UC == exercise.ID_UC,
+			)
+		)
+	)
+	if not has_access:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
+	
+	# Delete using the statement
+	delete_stmt = delete(Exercise).where(Exercise.ID_Exercise == ex_uuid)
+	await db.execute(delete_stmt)
+	await db.commit()
 
 
 @router.get("/materials", response_model=list[MaterialResponse])

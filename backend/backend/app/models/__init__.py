@@ -25,6 +25,7 @@
 #   2. academic.py   — Course_Unit, Topic, Teaching_Material, Exercise
 #   3. gamification.py — Progress, Streak
 #   4. admin.py      — Request, Admin_Audit_Log
+#   5. learning_path.py — LearningPath, LearningPathExercise
 # =============================================================
 
 # --- Bloco 1: Utilizadores ---
@@ -57,6 +58,12 @@ from app.models.admin import (
     Admin_Audit_Log,
 )
 
+# --- Bloco 5: Learning Paths ---
+from app.models.learning_path import (
+    LearningPath,
+    LearningPathExercise,
+)
+
 # =============================================================
 # __all__ — define o que é exportado quando alguém faz:
 # from app.models import *
@@ -80,4 +87,7 @@ __all__ = [
     # Admin
     "Request",
     "Admin_Audit_Log",
+    # Learning Paths
+    "LearningPath",
+    "LearningPathExercise",
 ]
