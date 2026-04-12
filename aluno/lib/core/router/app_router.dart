@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../features/auth/providers/auth_provider.dart';
 
 import '../../presentation/shell/main_shell.dart';
 import '../../presentation/courses/courses_screen.dart';
@@ -22,21 +23,22 @@ final mockAuthProvider = StateProvider<bool>((ref) => false);
 
 /// Injeção do Router via Riverpod para garantir reatividade baseada em estado.
 final routerProvider = Provider<GoRouter>((ref) {
-  final isAuthenticated = ref.watch(mockAuthProvider);
+  final notifier = _RouterNotifier(ref);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/courses',
+    refreshListenable: notifier,
     // Navigation Guard Centralizado
     redirect: (context, state) {
+      final isAuthenticated = ref.read(authProvider).isAuthenticated;
       final isGoingToAuth = state.matchedLocation == '/login' || state.matchedLocation == '/register';
 
-      if (!isAuthenticated && !isGoingToAuth) {
-        return '/login'; // Bloqueia acesso a ecrãs protegidos
-      }
-      if (isAuthenticated && isGoingToAuth) {
-        return '/courses'; // Impede acesso ao login se já autenticado
-      }
+      // Bloqueia acesso a ecrãs protegidos
+      if (!isAuthenticated && !isGoingToAuth) return '/login';
+
+       // Impede acesso ao login se já autenticado
+      if (isAuthenticated && isGoingToAuth) return '/courses';
       return null;
     },
     routes: [
@@ -92,3 +94,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+class _RouterNotifier extends ChangeNotifier {
+  _RouterNotifier(Ref ref) {
+    ref.listen(authProvider, (_, __) => notifyListeners());
+  }
+}

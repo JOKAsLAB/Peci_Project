@@ -4,8 +4,14 @@ DROP TABLE IF EXISTS Streak;
 DROP TABLE IF EXISTS Progress;
 DROP TABLE IF EXISTS Request;
 
+-- Junction tables / folhas intermédias
+DROP TABLE IF EXISTS Learning_Path_Exercise;
+
 -- Exercise depende de Topic e Teaching_Material
 DROP TABLE IF EXISTS Exercise;
+
+-- Learning_Path depende de Course_Unit e Professor
+DROP TABLE IF EXISTS Learning_Path;
 
 -- Teaching_Material depende de Course_Unit e Professor
 DROP TABLE IF EXISTS Teaching_Material;
@@ -18,7 +24,6 @@ DROP TABLE IF EXISTS Professor_UC;
 
 -- Depende de Student e Course_Unit
 DROP TABLE IF EXISTS Student_UC;
-
 
 -- Course_Unit já não tem ninguém a depender dela
 DROP TABLE IF EXISTS Course_Unit;

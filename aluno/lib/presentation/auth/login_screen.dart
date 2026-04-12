@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../features/auth/providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -25,33 +25,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  void _login() {
+  void _login() async {
+  setState(() {
+    _errorMessage = null;
+    _loading = true;
+  });
+
+  await ref.read(authProvider.notifier).login(
+    _emailController.text.trim(),
+    _passwordController.text,
+  );
+
+  if (!mounted) return;
+
+  final authState = ref.read(authProvider);
+  if (authState.isAuthenticated) {
+    context.go('/courses');
+  } else {
     setState(() {
-      _errorMessage = null;
-      _loading = true;
-    });
-
-    // Mock login — será substituído por autenticação JWT em M3
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (!mounted) return;
-
-      final email = _emailController.text.trim();
-      final password = _passwordController.text;
-
-      if (email == 'tiago.martins@ua.pt' && password == 'Aluno@2024') {
-        ref.read(mockAuthProvider.notifier).state = true;
-        context.go('/courses');
-      } else if (email.endsWith('@ua.pt') && password.length >= 6) {
-        ref.read(mockAuthProvider.notifier).state = true;
-        context.go('/courses');
-      } else {
-        setState(() {
-          _errorMessage = 'Email ou password incorretos.';
-          _loading = false;
-        });
-      }
+      _errorMessage = authState.error ?? 'Erro de autenticação.';
+      _loading = false;
     });
   }
+}
 
   @override
   Widget build(BuildContext context) {
