@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
 from sqlalchemy import and_, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
 
 from pathlib import Path
 import uuid
@@ -31,6 +32,7 @@ from app.routers.deps import require_roles
 from app.schemas.academic import (
 	CourseUnitResponse,
 	ExerciseCreateRequest,
+	ExerciseUpdateRequest,
 	ExerciseResponse,
 	GenerateQuestionsRequest,
 	GeneratedQuestionsResponse,
@@ -181,21 +183,20 @@ async def create_exercise(
 @router.patch("/exercises/{exercise_id}", response_model=ExerciseResponse)
 async def update_exercise(
 	exercise_id: str,
-	published: bool = Query(...),
+	payload: ExerciseUpdateRequest,
 	db: AsyncSession = Depends(get_db),
 	current_professor: Base_User = Depends(require_roles("Professor")),
 ):
 	"""
 	Atualizar estado de publicação de um exercício (PATCH).
 	
-	Parâmetro query:
+	Body JSON:
 	- published: true/false para publicar/despublicar
 	"""
 	# Obter exercício
-	import uuid
 	try:
-		ex_uuid = uuid.UUID(exercise_id)
-	except:
+		ex_uuid = UUID(exercise_id)
+	except ValueError:
 		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid UUID format")
 	
 	exercise = await db.scalar(
@@ -217,8 +218,10 @@ async def update_exercise(
 	if not has_access:
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
 	
-	# Atualizar
-	exercise.Published = published
+	# Atualizar published se fornecido
+	if payload.published is not None:
+		exercise.Published = payload.published
+	
 	await db.flush()
 	return to_exercise_response(exercise)
 

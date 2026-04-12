@@ -77,6 +77,11 @@ class ExerciseCreateRequest(BaseModel):
     explanation: str | None = None
 
 
+class ExerciseUpdateRequest(BaseModel):
+    """Schema para PATCH /exercises/{exercise_id}"""
+    published: bool | None = None
+
+
 class MaterialResponse(BaseModel):
     id_material: UUID
     id_uc: int
