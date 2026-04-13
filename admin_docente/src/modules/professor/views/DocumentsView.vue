@@ -12,7 +12,6 @@
           conteúdo.
         </p>
       </div>
-
       <div class="bg-surface rounded-card border border-white/5 p-8">
         <div class="max-w-lg">
           <div class="flex items-center gap-4 mb-6">
@@ -29,7 +28,6 @@
               </p>
             </div>
           </div>
-
           <router-link
             to="/professor/requests"
             class="inline-flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-btn hover:bg-brand/80 transition-all font-semibold"
@@ -41,7 +39,7 @@
       </div>
     </div>
 
-    <!-- Conteúdo Original -->
+    <!-- Conteúdo Principal -->
     <template v-else>
       <div class="flex justify-between items-end">
         <div>
@@ -68,10 +66,11 @@
         v-if="questionLabStore.error"
         class="bg-error/10 border border-error/30 text-error px-4 py-3 rounded-card text-sm"
       >
-        <i class="pi pi-exclamation-triangle mr-2"></i>
-        {{ questionLabStore.error }}
+        <i class="pi pi-exclamation-triangle mr-2"></i
+        >{{ questionLabStore.error }}
       </div>
 
+      <!-- Estatísticas -->
       <div class="grid grid-cols-4 gap-6">
         <div class="bg-surface p-6 rounded-card border border-white/5">
           <p class="text-text-secondary text-sm">Total Documentos</p>
@@ -111,7 +110,8 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
+      <!-- Filtros por disciplina -->
+      <div class="flex items-center gap-3 flex-wrap">
         <button
           @click="disciplineFilter = ''"
           :class="
@@ -138,6 +138,7 @@
         </button>
       </div>
 
+      <!-- Lista de documentos -->
       <div class="space-y-3 relative">
         <div
           v-if="questionLabStore.isLoading"
@@ -154,6 +155,7 @@
             'opacity-50 pointer-events-none': questionLabStore.isLoading,
           }"
         >
+          <!-- Ícone -->
           <div
             class="w-14 h-14 rounded-btn flex items-center justify-center shrink-0"
             :class="
@@ -176,24 +178,33 @@
             ></i>
           </div>
 
+          <!-- Info -->
           <div class="flex-1 min-w-0">
             <p class="font-bold text-sm truncate">{{ doc.name }}</p>
             <div
-              class="flex items-center gap-3 mt-1 text-text-secondary text-xs"
+              class="flex items-center gap-3 mt-1 text-text-secondary text-xs flex-wrap"
             >
               <span
                 class="bg-brand/10 text-brand px-2 py-0.5 rounded-chip font-bold"
                 >{{ doc.discipline }}</span
               >
-              <span>{{ doc.chapter }}</span>
-              <span>·</span>
-              <span>{{ doc.size }}</span>
               <span>·</span>
               <span>{{ doc.uploadedAt }}</span>
+              <span>·</span>
+              <!-- Quem carregou -->
+              <span
+                :class="
+                  doc.is_mine ? 'text-brand font-bold' : 'text-text-secondary'
+                "
+              >
+                <i class="pi pi-user mr-1 text-[10px]"></i>
+                {{ doc.is_mine ? 'Por si' : `Por ${doc.uploaded_by_name}` }}
+              </span>
             </div>
           </div>
 
-          <div class="flex items-center gap-2">
+          <!-- Status -->
+          <div class="flex items-center gap-2 shrink-0">
             <div
               class="w-2 h-2 rounded-full"
               :class="
@@ -205,7 +216,7 @@
               "
             ></div>
             <span
-              class="text-xs"
+              class="text-xs whitespace-nowrap"
               :class="
                 doc.status === 'indexed'
                   ? 'text-success'
@@ -224,19 +235,21 @@
             </span>
           </div>
 
+          <!-- Ações — só o dono pode reindexar/remover -->
           <div
-            class="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity"
+            v-if="doc.is_mine"
+            class="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
           >
             <button
               @click="handleReindex(doc.id_material)"
-              class="text-text-secondary hover:text-brand"
+              class="text-text-secondary hover:text-brand transition-colors"
               title="Re-indexar"
             >
               <i class="pi pi-refresh"></i>
             </button>
             <button
               @click="handleRemove(doc.id_material)"
-              class="text-text-secondary hover:text-error"
+              class="text-text-secondary hover:text-error transition-colors"
               title="Remover"
             >
               <i class="pi pi-trash"></i>
@@ -255,6 +268,7 @@
         </div>
       </div>
 
+      <!-- Modal Upload -->
       <Teleport to="body">
         <div
           v-if="showUpload"
@@ -303,18 +317,6 @@
               <div>
                 <label
                   class="text-xs font-bold text-text-secondary uppercase tracking-widest"
-                  >Capítulo / Tópico</label
-                >
-                <input
-                  v-model="uploadForm.chapter"
-                  type="text"
-                  placeholder="Ex: Circuitos Sequenciais"
-                  class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm"
-                />
-              </div>
-              <div>
-                <label
-                  class="text-xs font-bold text-text-secondary uppercase tracking-widest"
                   >Ficheiro</label
                 >
                 <input
@@ -340,7 +342,7 @@
                     }}</span>
                   </p>
                   <p class="text-text-secondary text-xs mt-1">
-                    PDF, PPTX, DOCX (máx. 50MB)
+                    PDF, PPTX, DOCX
                   </p>
                 </div>
               </div>
@@ -396,12 +398,10 @@ const fileInput = ref(null);
 
 const uploadForm = reactive({
   discipline: null,
-  chapter: '',
   fileName: '',
   file: null,
 });
 
-// Inicializar discipline com a primeira disciplina
 const initDiscipline = () => {
   if (
     uploadForm.discipline === null &&
@@ -448,52 +448,32 @@ async function handleUpload() {
     return;
 
   const id_uc = uploadForm.discipline;
-
   questionLabStore.isLoading = true;
   questionLabStore.error = null;
 
   try {
-    console.log('Fazendo upload e indexando ficheiro:', uploadForm.fileName);
-
     const formData = new FormData();
     formData.append('file', uploadForm.file);
 
-    const { data: indexResponse } = await http.post(
+    await http.post(
       `/api/v1/professors/index-material?id_uc=${id_uc}`,
       formData,
     );
 
-    console.log('Ficheiro indexado com sucesso:', indexResponse);
-
-    questionLabStore.hasLoaded = false;
-    await questionLabStore.loadDocuments();
+    await questionLabStore.loadDocuments(true);
 
     uploadForm.fileName = '';
-    uploadForm.chapter = '';
     uploadForm.file = null;
     showUpload.value = false;
   } catch (error) {
-    console.error('Erro durante o upload/indexação:', error);
-    console.error('Erro detalhado:', {
-      message: error.message,
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      url: error.config?.url,
-      data: error.response?.data,
-    });
-
-    let errorMsg = `Erro ao carregar e indexar documento: ${error.message}`;
-    if (error.response?.status === 404) {
-      errorMsg =
-        'Rota não encontrada (404). Verifica se o backend está a correr.';
-    } else if (error.response?.status === 403) {
-      errorMsg = 'Não tens acesso a esta disciplina (403).';
-    } else if (error.response?.status === 400) {
-      errorMsg = `Erro de validação (400): ${error.response?.data?.detail || 'tipo de ficheiro inválido?'}`;
-    } else if (error.response?.data?.detail) {
+    let errorMsg = `Erro ao carregar documento: ${error.message}`;
+    if (error.response?.status === 404) errorMsg = 'Rota não encontrada (404).';
+    else if (error.response?.status === 403)
+      errorMsg = 'Não tens acesso a esta disciplina.';
+    else if (error.response?.status === 400)
+      errorMsg = `Erro de validação: ${error.response?.data?.detail || 'tipo de ficheiro inválido?'}`;
+    else if (error.response?.data?.detail)
       errorMsg = `Erro: ${error.response.data.detail}`;
-    }
-
     questionLabStore.error = errorMsg;
   } finally {
     questionLabStore.isLoading = false;
@@ -507,12 +487,7 @@ async function handleReindex(docId) {
 
 async function handleRemove(docId) {
   if (questionLabStore.isLoading) return;
-  if (
-    !confirm(
-      'Tem a certeza que deseja remover este documento e o seu índice associado?',
-    )
-  )
-    return;
+  if (!confirm('Tem a certeza que deseja remover este documento?')) return;
   await questionLabStore.removeDocument(docId);
 }
 </script>

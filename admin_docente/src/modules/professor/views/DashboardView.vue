@@ -1,6 +1,5 @@
 <template>
   <div class="space-y-8">
-    <!-- Sem Disciplinas Atribuídas -->
     <div v-if="!authStore.hasCourseUnits" class="space-y-8">
       <div>
         <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">
@@ -12,7 +11,6 @@
           conteúdo.
         </p>
       </div>
-
       <div class="bg-surface rounded-card border border-white/5 p-8">
         <div class="max-w-lg">
           <div class="flex items-center gap-4 mb-6">
@@ -29,7 +27,6 @@
               </p>
             </div>
           </div>
-
           <router-link
             to="/professor/requests"
             class="inline-flex items-center gap-2 px-6 py-3 bg-brand text-white rounded-btn hover:bg-brand/80 transition-all font-semibold"
@@ -41,7 +38,6 @@
       </div>
     </div>
 
-    <!-- Dashboard Completo (Com Turmas) -->
     <template v-else>
       <div>
         <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">
@@ -53,7 +49,6 @@
         </p>
       </div>
 
-      <!-- Métricas principais do novo escopo -->
       <div class="grid grid-cols-4 gap-6">
         <div class="bg-surface p-6 rounded-card border border-white/5">
           <div class="flex items-center gap-3 mb-3">
@@ -90,10 +85,10 @@
             >
               <i class="pi pi-map text-brand"></i>
             </div>
-            <p class="text-text-secondary text-sm">Percursos Publicados</p>
+            <p class="text-text-secondary text-sm">Percursos</p>
           </div>
           <p class="text-3xl font-bold text-brand">
-            {{ pathStore.publishedPaths.length }}
+            {{ pathStore.paths.length }}
           </p>
         </div>
 
@@ -112,7 +107,6 @@
         </div>
       </div>
 
-      <!-- Blocos operacionais -->
       <div class="grid grid-cols-2 gap-6">
         <div class="bg-surface rounded-card border border-white/5 p-6">
           <h4 class="text-lg font-bold mb-4 flex items-center gap-2">
@@ -128,22 +122,18 @@
                   {{ latestExerciseTitle }}
                 </p>
               </div>
-              <div class="text-right">
-                <p class="text-brand font-bold">{{ latestExerciseDate }}</p>
-                <p class="text-text-secondary text-xs">Data de criação</p>
-              </div>
             </div>
 
             <div
               class="flex items-center justify-between bg-background p-4 rounded-btn border border-white/5"
             >
               <div>
-                <p class="font-bold">Última atualização de percurso</p>
+                <p class="font-bold">Percursos disponíveis</p>
                 <p class="text-text-secondary text-xs">{{ latestPathName }}</p>
               </div>
               <div class="text-right">
-                <p class="text-brand font-bold">{{ latestPathDate }}</p>
-                <p class="text-text-secondary text-xs">Data de revisão</p>
+                <p class="text-brand font-bold">{{ pathStore.paths.length }}</p>
+                <p class="text-text-secondary text-xs">Total</p>
               </div>
             </div>
 
@@ -161,65 +151,6 @@
                 <p class="text-text-secondary text-xs">Em aberto</p>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div class="bg-surface rounded-card border border-white/5 p-6">
-          <h4 class="text-lg font-bold mb-4 flex items-center gap-2">
-            <i class="pi pi-compass text-warning"></i> Atalhos de Trabalho
-          </h4>
-          <div class="grid grid-cols-2 gap-3">
-            <router-link
-              to="/path-builder"
-              class="bg-background p-4 rounded-btn border border-white/5 hover:border-brand/40 transition-all"
-            >
-              <p class="font-bold text-sm">Percurso Base</p>
-              <p class="text-text-secondary text-xs mt-1">
-                Organizar módulos por disciplina
-              </p>
-            </router-link>
-
-            <router-link
-              to="/exercises"
-              class="bg-background p-4 rounded-btn border border-white/5 hover:border-brand/40 transition-all"
-            >
-              <p class="font-bold text-sm">Exercícios</p>
-              <p class="text-text-secondary text-xs mt-1">
-                Criar, editar e publicar conteúdo
-              </p>
-            </router-link>
-
-            <router-link
-              to="/documents"
-              class="bg-background p-4 rounded-btn border border-white/5 hover:border-brand/40 transition-all"
-            >
-              <p class="font-bold text-sm">Documentos da UC</p>
-              <p class="text-text-secondary text-xs mt-1">
-                Gerir base de conhecimento
-              </p>
-            </router-link>
-
-            <router-link
-              to="/question"
-              class="bg-background p-4 rounded-btn border border-white/5 hover:border-brand/40 transition-all"
-            >
-              <p class="font-bold text-sm">Perguntas com LLM</p>
-              <p class="text-text-secondary text-xs mt-1">
-                Gerar rascunhos com apoio IA
-              </p>
-            </router-link>
-          </div>
-
-          <div
-            class="mt-4 p-4 bg-background rounded-btn border border-white/5 flex items-center justify-between"
-          >
-            <div>
-              <p class="font-bold text-sm">Rascunhos IA Gerados</p>
-              <p class="text-text-secondary text-xs">Question Lab</p>
-            </div>
-            <p class="text-brand text-2xl font-bold">
-              {{ questionLabStore.generatedDrafts.length }}
-            </p>
           </div>
         </div>
       </div>
@@ -254,44 +185,27 @@ const pendingRequestsCount = computed(
 );
 
 const latestExercise = computed(() => {
-  try {
-    if (!exerciseStore.exercises || !exerciseStore.exercises.length) return null;
-    // Exercícios não têm createdAt, então apenas retorna o primeiro
-    return exerciseStore.exercises[0] || null;
-  } catch (e) {
-    console.error('Error getting latest exercise:', e);
-    return null;
-  }
-});
-
-const latestPath = computed(() => {
-  try {
-    if (!pathStore.paths || !pathStore.paths.length) return null;
-    // Paths podem não ter lastModified, então apenas retorna o primeiro
-    return pathStore.paths[0] || null;
-  } catch (e) {
-    console.error('Error getting latest path:', e);
-    return null;
-  }
+  if (!exerciseStore.exercises?.length) return null;
+  return exerciseStore.exercises[0] ?? null;
 });
 
 const latestExerciseTitle = computed(
-  () => latestExercise.value?.title ?? latestExercise.value?.topic_name ?? 'Sem exercício recente',
+  () =>
+    latestExercise.value?.title ??
+    latestExercise.value?.topic_name ??
+    'Sem exercício recente',
 );
-const latestExerciseDate = computed(
-  () => latestExercise.value?.createdAt ?? '--',
-);
+
 const latestPathName = computed(
-  () => latestPath.value?.name ?? latestPath.value?.disciplineName ?? 'Sem percurso atualizado',
+  () => pathStore.paths[0]?.name ?? 'Sem percurso',
 );
-const latestPathDate = computed(() => latestPath.value?.lastModified ?? latestPath.value?.updatedAt ?? '--');
 
 onMounted(async () => {
   await Promise.all([
     adminRequestStore.loadRequests(),
     exerciseStore.loadExercises(),
     pathStore.loadPaths(),
-    // questionLabStore.loadDocuments(), // Desabilitado temporariamente - causas erro 422
+    questionLabStore.loadDocuments(),
   ]);
 });
 </script>

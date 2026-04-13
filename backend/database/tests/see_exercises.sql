@@ -1,0 +1,1 @@
+SELECT id_exercise, id_uc, topic_name, Solution, type, difficulty, question, published FROM exercise; 

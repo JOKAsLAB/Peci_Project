@@ -136,7 +136,7 @@ class PDFIndexer:
             nome_salvo, file_path = self.salvar_ficheiro(file_content, original_filename,ficheiro_id)
             
 
-            resultado = self.indexar_total(str(file_path), uc_id, ficheiro_id)
+            resultado = self.indexar_total(str(file_path), uc_id, ficheiro_id, original_filename)
             
      
             resultado["file_path"] = str(file_path)

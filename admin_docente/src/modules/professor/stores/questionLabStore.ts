@@ -10,10 +10,8 @@ export const useQuestionLabStore = defineStore('questionLab', () => {
   const error = ref(null);
   const hasLoaded = ref(false);
 
-  // ─── LÓGICA DE CARREGAMENTO DE DOCUMENTOS ──────────────────────────────────
-
-  async function loadDocuments() {
-    if (hasLoaded.value) return;
+  async function loadDocuments(force = false) {
+    if (hasLoaded.value && !force) return;
 
     isLoading.value = true;
     error.value = null;
@@ -24,35 +22,31 @@ export const useQuestionLabStore = defineStore('questionLab', () => {
             id_material: doc.id_material,
             id_uc: doc.id_uc,
             name: doc.title,
-            discipline: doc.id_uc, // ou busca o nome da UC se tiveres
+            discipline: doc.id_uc,
             status: doc.status?.toLowerCase() ?? 'pending',
             fileType: doc.title?.split('.').pop()?.toLowerCase() ?? 'pdf',
             uploadedAt: doc.upload_date
               ? new Date(doc.upload_date).toLocaleDateString('pt-PT')
               : '—',
-            size: '—',
-            chapter: '—',
+            uploaded_by_name: doc.uploaded_by_name ?? '',
+            is_mine: doc.is_mine ?? true,
           }))
         : [];
       hasLoaded.value = true;
     } catch (e) {
       availableDocuments.value = [];
       hasLoaded.value = true;
-      console.warn('Erro ao carregar documentos:', e);
+      error.value = getApiErrorMessage(e, 'Erro ao carregar documentos.');
     } finally {
       isLoading.value = false;
     }
   }
 
-  // ─── LÓGICA DE INFERÊNCIA RAG (QUESTION LAB) ────────────────────────────────
-
   async function generateQuestions(draftPayload) {
     isLoading.value = true;
     error.value = null;
     try {
-      // Simulação realista do tempo de inferência do pipeline RAG + LLM
       await new Promise((resolve) => setTimeout(resolve, 2500));
-
       generatedDrafts.value.unshift({
         id: Date.now(),
         createdAt: new Date().toISOString().split('T')[0],
@@ -96,8 +90,6 @@ export const useQuestionLabStore = defineStore('questionLab', () => {
     }
   }
 
-  // ─── LÓGICA DE GESTÃO DE DOCUMENTOS (DOCUMENTS VIEW) ──────────────────────
-
   async function uploadDocument(docPayload) {
     isLoading.value = true;
     error.value = null;
@@ -106,7 +98,6 @@ export const useQuestionLabStore = defineStore('questionLab', () => {
         '/api/v1/professors/materials/upload',
         docPayload,
       );
-
       availableDocuments.value.push(newDoc);
     } catch (e) {
       error.value = getApiErrorMessage(
@@ -124,7 +115,7 @@ export const useQuestionLabStore = defineStore('questionLab', () => {
     try {
       await http.delete(`/api/v1/professors/materials/${docId}`);
       availableDocuments.value = availableDocuments.value.filter(
-        (d) => d.id_material !== docId, // ← era d.id
+        (d) => d.id_material !== docId,
       );
     } catch (e) {
       error.value = getApiErrorMessage(
@@ -141,10 +132,8 @@ export const useQuestionLabStore = defineStore('questionLab', () => {
     error.value = null;
     try {
       await http.post(`/api/v1/professors/materials/${docId}/reindex`);
-      const doc = availableDocuments.value.find((d) => d.id_material === docId); // ← era d.id
-      if (doc) {
-        doc.status = 'processing';
-      }
+      const doc = availableDocuments.value.find((d) => d.id_material === docId);
+      if (doc) doc.status = 'processing';
     } catch (e) {
       error.value = getApiErrorMessage(
         e,
@@ -156,19 +145,15 @@ export const useQuestionLabStore = defineStore('questionLab', () => {
   }
 
   return {
-    // Estado
     availableDocuments,
     generatedDrafts,
     isLoading,
     error,
     hasLoaded,
-    // Ações: Carregamento
     loadDocuments,
-    // Ações: RAG / IA
     generateQuestions,
     removeDraft,
     markDraftReady,
-    // Ações: Documentos
     uploadDocument,
     removeDocument,
     reindexDocument,

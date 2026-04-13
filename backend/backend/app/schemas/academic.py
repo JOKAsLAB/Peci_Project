@@ -58,8 +58,6 @@ class ExerciseResponse(BaseModel):
     difficulty: DifficultyLevel
     explanation: str | None = None
     published: bool = False
-    
-    # Otimização de Eager Loading para evitar N+1 queries no cliente (Vue.js)
     course_unit_info: CourseUnitBasicInfo | None = None
 
     class Config:
@@ -78,10 +76,16 @@ class ExerciseCreateRequest(BaseModel):
 
 
 class ExerciseUpdateRequest(BaseModel):
-    """Schema para PATCH /exercises/{exercise_id}"""
     published: bool | None = None
+    question: str | None = Field(default=None, min_length=5)
+    topic_name: str | None = Field(default=None, min_length=2, max_length=100)
+    type: ExerciseType | None = None
+    difficulty: DifficultyLevel | None = None
+    solution: dict[str, Any] | None = None
+    explanation: str | None = None
 
 
+# ← ATUALIZADO
 class MaterialResponse(BaseModel):
     id_material: UUID
     id_uc: int
@@ -89,6 +93,8 @@ class MaterialResponse(BaseModel):
     status: MaterialStatus
     title: str
     upload_date: datetime | None = None
+    uploaded_by_name: str = ""
+    is_mine: bool = True
 
     class Config:
         from_attributes = True
@@ -99,14 +105,13 @@ class MaterialCreateRequest(BaseModel):
     title: str = Field(min_length=2, max_length=200)
 
 
-
 class GenerateQuestionsRequest(BaseModel):
     id_uc: int
-    filename: str = Field(min_length=1, description="Nome do ficheiro indexado (ex: patterson_book.pdf)")
-    topic: str = Field(min_length=2, description="Tópico para gerar perguntas")
+    filename: str = Field(min_length=1)
+    topic: str = Field(min_length=2)
     n_perguntas: int = Field(default=5, ge=1, le=20)
-    difficulty: str = Field(default="variada", description="easy, medium, hard, ou variada")
-    question_type: str = Field(default="Escolha Múltipla", description="Escolha Múltipla ou True/False")
+    difficulty: str = Field(default="variada")
+    question_type: str = Field(default="Escolha Múltipla")
 
 
 class GeneratedQuestionsResponse(BaseModel):

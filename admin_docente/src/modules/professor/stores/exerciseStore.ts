@@ -2,40 +2,42 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { getApiErrorMessage, http } from '../../../services/http';
+import { useAuthStore } from '../../../stores/authStore';
 
-// Função para normalizar dados da API para o formato esperado pelo componente
-function normalizeExercise(apiExercise: any) {
+function normalizeExercise(apiExercise) {
   if (!apiExercise) {
-    console.error('❌ Exercise data is null or undefined');
+    console.error('Exercise data is null or undefined');
     return null;
   }
-  
+
+  const authStore = useAuthStore();
+  const uc = authStore.user?.course_units?.find(
+    (u) => u.id_uc === apiExercise.id_uc || u.id === apiExercise.id_uc,
+  );
+
   const normalized = {
-    // Mapeamento de campos OBRIGATÓRIOS da API
-    id: apiExercise.id_exercise || '',  // UUID
+    id: apiExercise.id_exercise || '',
     id_exercise: apiExercise.id_exercise || '',
     id_uc: apiExercise.id_uc || 0,
-    title: apiExercise.topic_name || 'Sem Título',
+    title: apiExercise.question || 'Sem Título',
     type: apiExercise.type || 'Multiple Choice',
     question: apiExercise.question || '',
     solution: apiExercise.solution || {},
     difficulty: apiExercise.difficulty || 'Easy',
     explanation: apiExercise.explanation || '',
-    published: apiExercise.published === true,  // Força boolean
+    published: apiExercise.published === true,
     topic_name: apiExercise.topic_name || 'Sem Tópico',
     material_ref: apiExercise.material_ref || null,
-    course_unit_info: apiExercise.course_unit_info || { id_uc: apiExercise.id_uc, name: `Disciplina ${apiExercise.id_uc}` },
-    
-    // Propriedades derivadas para compatibilidade com componente
-    discipline: apiExercise.course_unit_info?.name || `Disciplina ${apiExercise.id_uc}`,
+    discipline: uc?.name || `Disciplina ${apiExercise.id_uc}`,
     module: apiExercise.topic_name || 'Sem Módulo',
+    options: apiExercise.solution?.options || [],
+    correct: apiExercise.solution?.correct ?? '',
   };
-  
-  // Validação: se algum campo crítico está vazio, lançar aviso
+
   if (!normalized.id) {
-    console.warn('⚠️ Exercise missing id_exercise:', apiExercise);
+    console.warn('Exercise missing id_exercise:', apiExercise);
   }
-  
+
   return normalized;
 }
 
@@ -45,41 +47,25 @@ export const useExerciseStore = defineStore('exercises', () => {
   const error = ref(null);
   const hasLoaded = ref(false);
 
-  // ─── CARREGAMENTO DE EXERCÍCIOS ──────────────────────────────────────────
-
-  async function loadExercises() {
-    if (hasLoaded.value) return;
+  async function loadExercises(force = false) {
+    if (hasLoaded.value && !force) return;
 
     isLoading.value = true;
     error.value = null;
     try {
       const { data } = await http.get('/api/v1/professors/exercises');
-      console.log('📥 API Response received, count:', Array.isArray(data) ? data.length : 'not array');
-      
-      exercises.value = Array.isArray(data) 
-        ? data
-            .map(ex => {
-              const normalized = normalizeExercise(ex);
-              return normalized;
-            })
-            .filter((ex) => ex !== null) // Remove null entries
+      exercises.value = Array.isArray(data)
+        ? data.map((ex) => normalizeExercise(ex)).filter((ex) => ex !== null)
         : [];
-      
-      console.log('✅ Loaded and normalized exercises:', exercises.value.length);
-      if (exercises.value.length > 0) {
-        console.log('   Sample:', exercises.value[0]);
-      }
       hasLoaded.value = true;
     } catch (e) {
       exercises.value = [];
       hasLoaded.value = true;
-      console.error('❌ Erro ao carregar exercícios:', e);
+      error.value = getApiErrorMessage(e, 'Erro ao carregar exercícios.');
     } finally {
       isLoading.value = false;
     }
   }
-
-  // ─── COMPUTED PROPERTIES ────────────────────────────────────────────────
 
   const publishedExercises = computed(() =>
     exercises.value.filter((e) => e.published),
@@ -87,7 +73,6 @@ export const useExerciseStore = defineStore('exercises', () => {
   const draftExercises = computed(() =>
     exercises.value.filter((e) => !e.published),
   );
-
   const disciplines = computed(() => [
     ...new Set(exercises.value.map((e) => e.discipline)),
   ]);
@@ -102,7 +87,6 @@ export const useExerciseStore = defineStore('exercises', () => {
     }
     return Object.fromEntries(Object.entries(map).map(([k, v]) => [k, [...v]]));
   });
-
   const byDiscipline = computed(() => {
     const map = {};
     for (const ex of exercises.value) {
@@ -111,8 +95,6 @@ export const useExerciseStore = defineStore('exercises', () => {
     }
     return map;
   });
-
-  // ─── AÇÕES DE GESTÃO DE EXERCÍCIOS ──────────────────────────────────────
 
   async function addExercise(exerciseData) {
     isLoading.value = true;
@@ -124,10 +106,8 @@ export const useExerciseStore = defineStore('exercises', () => {
       );
       exercises.value.push(normalizeExercise(newExercise));
     } catch (e) {
-      error.value = getApiErrorMessage(
-        e,
-        'Falha ao gravar exercício no servidor.',
-      );
+      error.value = getApiErrorMessage(e, 'Falha ao gravar exercício.');
+      throw e;
     } finally {
       isLoading.value = false;
     }
@@ -137,10 +117,10 @@ export const useExerciseStore = defineStore('exercises', () => {
     isLoading.value = true;
     error.value = null;
     try {
-      // id pode ser tanto id_exercise quanto id (são iguais), mas para a API usamos o id_exercise
-      const ex = exercises.value.find((e) => e.id === id || e.id_exercise === id);
+      const ex = exercises.value.find(
+        (e) => e.id === id || e.id_exercise === id,
+      );
       if (!ex) throw new Error('Exercício não encontrado');
-      
       await http.delete(`/api/v1/professors/exercises/${ex.id_exercise}`);
       exercises.value = exercises.value.filter((e) => e.id !== id);
     } catch (e) {
@@ -154,26 +134,27 @@ export const useExerciseStore = defineStore('exercises', () => {
     isLoading.value = true;
     error.value = null;
     try {
-      const ex = exercises.value.find((e) => e.id === id || e.id_exercise === id);
-      if (!ex) throw new Error('Exercício não encontrado');
-
-      const newPublished = !ex.published;
-      const { data: updated } = await http.patch(
-        `/api/v1/professors/exercises/${ex.id_exercise}`,
-        {
-          published: newPublished,
-        },
+      const ex = exercises.value.find(
+        (e) => e.id === id || e.id_exercise === id,
       );
 
-      const idx = exercises.value.findIndex((e) => e.id === id);
+      // Se não está no store (página do percurso), faz patch direto
+      const exerciseId = ex?.id_exercise ?? id;
+      const newPublished = ex ? !ex.published : false;
+
+      const { data: updated } = await http.patch(
+        `/api/v1/professors/exercises/${exerciseId}`,
+        { published: newPublished },
+      );
+
+      const idx = exercises.value.findIndex(
+        (e) => e.id === id || e.id_exercise === id,
+      );
       if (idx !== -1) {
         exercises.value[idx] = normalizeExercise(updated);
       }
     } catch (e) {
-      error.value = getApiErrorMessage(
-        e,
-        'Erro ao alterar estado de publicação.',
-      );
+      error.value = getApiErrorMessage(e, 'Erro ao alterar publicação.');
     } finally {
       isLoading.value = false;
     }
@@ -183,43 +164,44 @@ export const useExerciseStore = defineStore('exercises', () => {
     isLoading.value = true;
     error.value = null;
     try {
-      const ex = exercises.value.find((e) => e.id === id || e.id_exercise === id);
-      if (!ex) throw new Error('Exercício não encontrado');
-      
+      const ex = exercises.value.find(
+        (e) => e.id === id || e.id_exercise === id,
+      );
+
+      // Se não está no store (página do percurso), usa o id diretamente
+      const exerciseId = ex?.id_exercise ?? id;
+
       const { data: updated } = await http.patch(
-        `/api/v1/professors/exercises/${ex.id_exercise}`,
+        `/api/v1/professors/exercises/${exerciseId}`,
         data,
       );
-      const idx = exercises.value.findIndex((e) => e.id === id);
+
+      const idx = exercises.value.findIndex(
+        (e) => e.id === id || e.id_exercise === id,
+      );
       if (idx !== -1) {
         exercises.value[idx] = normalizeExercise(updated);
       }
     } catch (e) {
-      error.value = getApiErrorMessage(
-        e,
-        'Falha ao atualizar dados do exercício.',
-      );
+      error.value = getApiErrorMessage(e, 'Falha ao atualizar exercício.');
+      throw e;
     } finally {
       isLoading.value = false;
     }
   }
 
   return {
-    // Estado
     exercises,
     isLoading,
     error,
     hasLoaded,
-    // Computed
     publishedExercises,
     draftExercises,
     disciplines,
     modules,
     modulesByDiscipline,
     byDiscipline,
-    // Ações: Carregamento
     loadExercises,
-    // Ações: CRUD
     addExercise,
     removeExercise,
     togglePublished,
