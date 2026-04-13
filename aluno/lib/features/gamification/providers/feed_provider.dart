@@ -1,25 +1,26 @@
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../data/mock_data.dart';
+import '../../../data/remote/student_repository.dart';
 
 // Classe que encapsula o estado dos filtros
 class FeedFilters {
-  final String? courseId;
-  final String? chapterId;
-  final ExerciseDifficulty? difficulty;
-  final ExerciseType? type;
+  final int? courseId;
+  final String? topicName;
+  final String? difficulty;
+  final String? type;
 
-  const FeedFilters({this.courseId, this.chapterId, this.difficulty, this.type});
+  const FeedFilters({this.courseId, this.topicName, this.difficulty, this.type});
 }
 
 // Classe que encapsula o estado completo do ecrã
 class FeedState {
   final FeedFilters filters;
-  final List<MockExercise> currentDeck;
+  final List<Map<String, dynamic>> currentDeck;
   final int currentIndex;
   final int cycleSize;
   final int cycleNumber;
-  final List<Chapter> availableChapters;
+  final List<Map<String, dynamic>> availableTopics;
+  final bool isLoading;
 
   const FeedState({
     this.filters = const FeedFilters(),
@@ -27,16 +28,18 @@ class FeedState {
     this.currentIndex = 0,
     this.cycleSize = 0,
     this.cycleNumber = 1,
-    this.availableChapters = const [],
+    this.availableTopics = const [],
+    this.isLoading = false,
   });
 
   FeedState copyWith({
     FeedFilters? filters,
-    List<MockExercise>? currentDeck,
+    List<Map<String, dynamic>>? currentDeck,
     int? currentIndex,
     int? cycleSize,
     int? cycleNumber,
-    List<Chapter>? availableChapters,
+    List<Map<String, dynamic>>? availableTopics,
+    bool? isLoading,
   }) {
     return FeedState(
       filters: filters ?? this.filters,
@@ -44,55 +47,66 @@ class FeedState {
       currentIndex: currentIndex ?? this.currentIndex,
       cycleSize: cycleSize ?? this.cycleSize,
       cycleNumber: cycleNumber ?? this.cycleNumber,
-      availableChapters: availableChapters ?? this.availableChapters,
+      availableTopics: availableTopics ?? this.availableTopics,
+      isLoading: isLoading ?? this.isLoading,
     );
   }
 }
 
 // O controlador da lógica de negócio
 class FeedNotifier extends StateNotifier<FeedState> {
-  FeedNotifier() : super(const FeedState()) {
-    _applyFilters(); // Inicializa o baralho no arranque
+  final StudentRepository _repo;
+
+  FeedNotifier(this._repo) : super(const FeedState()) {
+    loadExercises();
   }
 
   final _random = Random();
 
-  void updateCourseFilter(String? courseId) {
-    state = state.copyWith(
-      filters: FeedFilters(
-        courseId: courseId,
-        chapterId: null, // Reset ao capítulo se mudar de curso
+  Future<void> loadExercises() async {
+    state = state.copyWith(isLoading: true);
+    try {
+      final exercises = await _repo.getExercises(
+        idUc: state.filters.courseId,
+        topicName: state.filters.topicName,
         difficulty: state.filters.difficulty,
-        type: state.filters.type,
-      ),
+      );
+      state = state.copyWith(
+        currentDeck: _shuffleRound(exercises.cast<Map<String, dynamic>>()),
+        cycleSize: exercises.length,
+        currentIndex: 0,
+        isLoading: false,
+      );
+    } catch (e) {
+      print('🔴 Erro ao carregar exercícios: $e');
+      state = state.copyWith(isLoading: false);
+    }
+  }
+
+  void updateCourseFilter(int? courseId) {
+    state = state.copyWith(
+      filters: FeedFilters(courseId: courseId, difficulty: state.filters.difficulty, type: state.filters.type),
     );
-    _applyFilters();
+    loadExercises();
   }
 
-  void updateChapterFilter(String? chapterId) {
-    state = state.copyWith(filters: FeedFilters(
-      courseId: state.filters.courseId, chapterId: chapterId, difficulty: state.filters.difficulty, type: state.filters.type,
-    ));
-    _applyFilters();
+  void updateDifficultyFilter(String? diff) {
+    state = state.copyWith(
+      filters: FeedFilters(courseId: state.filters.courseId, topicName: state.filters.topicName, difficulty: diff, type: state.filters.type),
+    );
+    loadExercises();
   }
 
-  void updateDifficultyFilter(ExerciseDifficulty? diff) {
-    state = state.copyWith(filters: FeedFilters(
-      courseId: state.filters.courseId, chapterId: state.filters.chapterId, difficulty: diff, type: state.filters.type,
-    ));
-    _applyFilters();
-  }
-
-  void updateTypeFilter(ExerciseType? type) {
-    state = state.copyWith(filters: FeedFilters(
-      courseId: state.filters.courseId, chapterId: state.filters.chapterId, difficulty: state.filters.difficulty, type: type,
-    ));
-    _applyFilters();
+  void updateTypeFilter(String? type) {
+    state = state.copyWith(
+      filters: FeedFilters(courseId: state.filters.courseId, topicName: state.filters.topicName, difficulty: state.filters.difficulty, type: type),
+    );
+    loadExercises();
   }
 
   void clearFilters() {
     state = state.copyWith(filters: const FeedFilters());
-    _applyFilters();
+    loadExercises();
   }
 
   void updateIndex(int index) {
@@ -100,20 +114,11 @@ class FeedNotifier extends StateNotifier<FeedState> {
     _ensureDeckAhead();
   }
 
-  List<MockExercise> _getFilteredSource() {
-    var exercises = mockExercises;
-    if (state.filters.courseId != null) exercises = exercises.where((e) => e.courseId == state.filters.courseId).toList();
-    if (state.filters.chapterId != null) exercises = exercises.where((e) => e.chapterId == state.filters.chapterId).toList();
-    if (state.filters.difficulty != null) exercises = exercises.where((e) => e.difficulty == state.filters.difficulty).toList();
-    if (state.filters.type != null) exercises = exercises.where((e) => e.type == state.filters.type).toList();
-    return exercises;
-  }
-
-  List<MockExercise> _shuffleRound(List<MockExercise> source, {String? avoidFirstId}) {
+  List<Map<String, dynamic>> _shuffleRound(List<Map<String, dynamic>> source, {String? avoidFirstId}) {
     if (source.isEmpty) return const [];
-    final round = List<MockExercise>.from(source)..shuffle(_random);
-    if (round.length > 1 && avoidFirstId != null && round.first.id == avoidFirstId) {
-      final swapIndex = round.indexWhere((e) => e.id != avoidFirstId);
+    final round = List<Map<String, dynamic>>.from(source)..shuffle(_random);
+    if (round.length > 1 && avoidFirstId != null && round.first['id_exercise'] == avoidFirstId) {
+      final swapIndex = round.indexWhere((e) => e['id_exercise'] != avoidFirstId);
       if (swapIndex > 0) {
         final first = round.first;
         round[0] = round[swapIndex];
@@ -123,32 +128,13 @@ class FeedNotifier extends StateNotifier<FeedState> {
     return round;
   }
 
-  void _applyFilters() {
-    final source = _getFilteredSource();
-    
-    // Calcula os capítulos disponíveis com base no curso selecionado
-    List<Chapter> chapters = [];
-    if (state.filters.courseId != null) {
-      chapters = mockCourses.firstWhere((c) => c.id == state.filters.courseId).chapters;
-    }
-
-    state = state.copyWith(
-      currentDeck: _shuffleRound(source),
-      currentIndex: 0,
-      cycleSize: source.length,
-      availableChapters: chapters,
-    );
-  }
-
   void _ensureDeckAhead() {
-    final source = _getFilteredSource();
-    if (source.isEmpty) return;
-
+    if (state.currentDeck.isEmpty) return;
     final threshold = state.currentDeck.length - 3;
     if (state.currentIndex >= threshold) {
-      final avoidFirstId = state.currentDeck.isNotEmpty ? state.currentDeck.last.id : null;
+      final avoidFirstId = state.currentDeck.last['id_exercise'] as String?;
+      final source = state.currentDeck.sublist(0, state.cycleSize);
       final nextRound = _shuffleRound(source, avoidFirstId: avoidFirstId);
-      
       state = state.copyWith(
         currentDeck: [...state.currentDeck, ...nextRound],
         cycleNumber: (state.currentIndex ~/ state.cycleSize) + 1,
@@ -157,4 +143,6 @@ class FeedNotifier extends StateNotifier<FeedState> {
   }
 }
 
-final feedProvider = StateNotifierProvider<FeedNotifier, FeedState>((ref) => FeedNotifier());
+final feedProvider = StateNotifierProvider<FeedNotifier, FeedState>((ref) {
+  return FeedNotifier(ref.watch(studentRepositoryProvider));
+});
