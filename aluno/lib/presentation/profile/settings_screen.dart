@@ -35,7 +35,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         padding: const EdgeInsets.all(24),
         children: [
           // Secção Conta
-          _SectionHeader(title: 'Conta'),
+          const _SectionHeader(title: 'Conta'),
           const SizedBox(height: 12),
           _SettingsTile(
             icon: Icons.person_outline,
@@ -59,7 +59,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 32),
 
           // Secção Notificações
-          _SectionHeader(title: 'Notificações'),
+          const _SectionHeader(title: 'Notificações'),
           const SizedBox(height: 12),
           _SettingsSwitch(
             icon: Icons.notifications_outlined,
@@ -79,7 +79,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 32),
 
           // Secção Preferências
-          _SectionHeader(title: 'Preferências'),
+          const _SectionHeader(title: 'Preferências'),
           const SizedBox(height: 12),
           _SettingsSwitch(
             icon: Icons.volume_up_outlined,
@@ -109,7 +109,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 32),
 
           // Secção Sobre
-          _SectionHeader(title: 'Sobre'),
+          const _SectionHeader(title: 'Sobre'),
           const SizedBox(height: 12),
           _SettingsTile(
             icon: Icons.info_outline,
@@ -236,7 +236,7 @@ class _SettingsSwitch extends StatelessWidget {
         subtitle: Text(subtitle, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
         value: value,
         onChanged: onChanged,
-        activeColor: AppTheme.brandAccent,
+        activeThumbColor: AppTheme.brandAccent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );

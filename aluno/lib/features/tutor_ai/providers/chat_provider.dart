@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/mock_data.dart';
+import '../../../data/models/exercise.dart';
 
 enum MessageRole { user, assistant }
 
@@ -32,7 +33,7 @@ final chatProvider = StateNotifierProvider.family<ChatNotifier, List<ChatMessage
 });
 
 class ChatNotifier extends StateNotifier<List<ChatMessage>> {
-  final MockExercise exercise;
+  final Exercise exercise;
   bool _isGenerating = false;
 
   ChatNotifier(this.exercise) : super([]) {

@@ -1,74 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
-import '../../data/mock_data.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../data/mock_data.dart';
+import '../../features/profile/providers/profile_provider.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Mock data — será substituído por Riverpod provider
-    const String studentName = 'Tiago Martins';
-    const String studentMec = '123456';
-    const String studentEmail = 'tiago.martins@ua.pt';
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileAsync = ref.watch(profileStateProvider);
 
-    // Estatísticas calculadas a partir dos cursos inscritos
-    final enrolled = mockCourses.where((c) => c.enrolled).toList();
-    final completedChapters = enrolled
-        .expand((c) => c.chapters)
-        .where((ch) => ch.status == ChapterStatus.completed)
-        .toList();
-    final chapterXp = completedChapters.fold<int>(0, (sum, ch) => sum + ch.xpReward);
-    final totalCompleted = completedChapters.length;
-    final totalExercises = enrolled
-        .expand((c) => c.chapters)
-        .fold<int>(0, (sum, ch) => sum + ch.completedExercises);
+    return profileAsync.when(
+      loading: () => const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => const Scaffold(
+        body: Center(child: Text('Erro ao carregar perfil')),
+      ),
+      data: (p) => _buildProfile(context, p),
+    );
+  }
 
-    // XP sources: chapters + exercises (25 XP each) + streak bonus
-    const int xpPerExercise = 25;
-    const int streakDays = 12;
-    const int streakMilestoneStep = 7;
-    final int streakBonus = streakDays * 10; // 10 XP per streak day
-    final int nextStreakMilestone = ((streakDays ~/ streakMilestoneStep) + 1) * streakMilestoneStep;
-    final double streakProgress = (streakDays / nextStreakMilestone).clamp(0.0, 1.0);
-    final int exerciseXp = totalExercises * xpPerExercise;
-    final int totalXp = chapterXp + exerciseXp + streakBonus;
-
-    // Level system: progressive thresholds
-    // N1: 0-99, N2: 100-299, N3: 300-599, N4: 600-999, N5: 1000-1499, N6: 1500+
-    final levels = [
-      (threshold: 0, label: 'N1'),
-      (threshold: 100, label: 'N2'),
-      (threshold: 300, label: 'N3'),
-      (threshold: 600, label: 'N4'),
-      (threshold: 1000, label: 'N5'),
-      (threshold: 1500, label: 'N6'),
-    ];
-    String currentLevel = 'N1';
-    int currentThreshold = 0;
-    int nextThreshold = 100;
-    for (int i = levels.length - 1; i >= 0; i--) {
-      if (totalXp >= levels[i].threshold) {
-        currentLevel = levels[i].label;
-        currentThreshold = levels[i].threshold;
-        nextThreshold = i < levels.length - 1 ? levels[i + 1].threshold : levels[i].threshold + 500;
-        break;
-      }
-    }
-    final levelProgress = nextThreshold > currentThreshold
-        ? ((totalXp - currentThreshold) / (nextThreshold - currentThreshold)).clamp(0.0, 1.0)
-        : 1.0;
-
+  Widget _buildProfile(BuildContext context, ProfileState p) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundPrimary,
       appBar: AppBar(
-        title: const Text('Perfil', style: TextStyle(fontWeight: FontWeight.w600)),
+        title:
+            const Text('Perfil', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: AppTheme.surfaceSecondary,
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppTheme.textSecondary),
+            icon: const Icon(Icons.settings_outlined,
+                color: AppTheme.textSecondary),
             onPressed: () => context.push('/settings'),
             tooltip: 'Definições',
           ),
@@ -90,13 +56,17 @@ class ProfileScreen extends StatelessWidget {
               child: const CircleAvatar(
                 radius: 52,
                 backgroundColor: AppTheme.surfaceSecondary,
-                child: Icon(Icons.person, size: 52, color: AppTheme.textSecondary),
+                child:
+                    Icon(Icons.person, size: 52, color: AppTheme.textSecondary),
               ),
             ),
             const SizedBox(height: 16),
             Text(
-              studentName,
-              style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 24),
+              p.studentName,
+              style: Theme.of(context)
+                  .textTheme
+                  .displayLarge
+                  ?.copyWith(fontSize: 24),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 6),
@@ -109,21 +79,26 @@ class ProfileScreen extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.badge_outlined, size: 16, color: AppTheme.brandAccent),
+                  const Icon(Icons.badge_outlined,
+                      size: 16, color: AppTheme.brandAccent),
                   const SizedBox(width: 6),
                   Text(
-                    'NMec $studentMec',
+                    'NMec ${p.studentMec}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: AppTheme.textPrimary,
-                    ),
+                          fontWeight: FontWeight.w500,
+                          color: AppTheme.textPrimary,
+                        ),
                   ),
                   const SizedBox(width: 12),
-                  const Icon(Icons.email_outlined, size: 16, color: AppTheme.textSecondary),
+                  const Icon(Icons.email_outlined,
+                      size: 16, color: AppTheme.textSecondary),
                   const SizedBox(width: 4),
                   Text(
-                    studentEmail,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 12),
+                    p.studentEmail,
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(fontSize: 12),
                   ),
                 ],
               ),
@@ -132,9 +107,9 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 32),
 
             _StreakHighlightCard(
-              streakDays: streakDays,
-              nextMilestone: nextStreakMilestone,
-              progress: streakProgress,
+              streakDays: p.streakDays,
+              nextMilestone: p.nextStreakMilestone,
+              progress: p.streakProgress,
             ),
 
             const SizedBox(height: 12),
@@ -142,23 +117,26 @@ class ProfileScreen extends StatelessWidget {
             // Estatísticas gerais
             Row(
               children: [
-                Expanded(child: _StatCard(
+                Expanded(
+                    child: _StatCard(
                   icon: Icons.star_rounded,
-                  value: '$totalXp',
+                  value: '${p.totalXp} XP',
                   label: 'XP Total',
                   color: AppTheme.successState,
                 )),
                 const SizedBox(width: 12),
-                Expanded(child: _StatCard(
+                Expanded(
+                    child: _StatCard(
                   icon: Icons.check_circle_rounded,
-                  value: '$totalCompleted',
+                  value: '${p.totalCompletedChapters}',
                   label: 'Capítulos',
                   color: AppTheme.brandAccent,
                 )),
                 const SizedBox(width: 12),
-                Expanded(child: _StatCard(
+                Expanded(
+                    child: _StatCard(
                   icon: Icons.task_alt_rounded,
-                  value: '$totalExercises',
+                  value: '${p.totalExercises}',
                   label: 'Exercícios',
                   color: const Color(0xFF64B5F6),
                 )),
@@ -167,23 +145,26 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _StatCard(
+                Expanded(
+                    child: _StatCard(
                   icon: Icons.local_fire_department_rounded,
-                  value: '$streakDays',
+                  value: '${p.streakDays} dias',
                   label: 'Streak',
-                  color: const Color(0xFFFF7043),
+                  color:const Color(0xFFFF7043),
                 )),
                 const SizedBox(width: 12),
-                Expanded(child: _StatCard(
+                Expanded(
+                    child: _StatCard(
                   icon: Icons.school_rounded,
-                  value: '${enrolled.length}',
+                  value: '${p.enrolledCourses.length}',
                   label: 'Cursos',
                   color: const Color(0xFFAB47BC),
                 )),
                 const SizedBox(width: 12),
-                Expanded(child: _StatCard(
+                Expanded(
+                    child: _StatCard(
                   icon: Icons.emoji_events_rounded,
-                  value: currentLevel,
+                  value: p.currentLevel,
                   label: 'Nível',
                   color: const Color(0xFFFFD54F),
                 )),
@@ -204,13 +185,17 @@ class ProfileScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
+                      const Text(
                         'Progresso para o próximo nível',
-                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                        style: TextStyle(
+                            color: AppTheme.textSecondary, fontSize: 12),
                       ),
                       Text(
-                        '${totalXp - currentThreshold} / ${nextThreshold - currentThreshold} XP',
-                        style: const TextStyle(color: AppTheme.brandAccent, fontSize: 12, fontWeight: FontWeight.w600),
+                        '${p.totalXp - p.currentThreshold} / ${p.nextThreshold - p.currentThreshold} XP',
+                        style: const TextStyle(
+                            color: AppTheme.brandAccent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -218,9 +203,10 @@ class ProfileScreen extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(4),
                     child: LinearProgressIndicator(
-                      value: levelProgress,
+                      value: p.levelProgress,
                       backgroundColor: Colors.grey.shade800,
-                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFFD54F)),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFFFFD54F)),
                       minHeight: 8,
                     ),
                   ),
@@ -228,10 +214,22 @@ class ProfileScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(currentLevel, style: const TextStyle(color: Color(0xFFFFD54F), fontSize: 11, fontWeight: FontWeight.bold)),
+                      Text(p.currentLevel,
+                          style: const TextStyle(
+                              color: Color(0xFFFFD54F),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold)),
                       Text(
-                        currentLevel != 'N6' ? levels[levels.indexWhere((l) => l.label == currentLevel) + 1].label : 'MAX',
-                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+                        p.currentLevel != 'N6'
+                            ? p.levels[p.levels.indexWhere(
+                                        (l) => l.label == p.currentLevel) +
+                                    1]
+                                .label
+                            : 'MAX',
+                        style: const TextStyle(
+                            color: AppTheme.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -250,19 +248,44 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Fontes de XP', style: TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+                  const Text('Fontes de XP',
+                      style: TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
-                  _XpSourceRow(icon: Icons.menu_book_rounded, label: 'Capítulos completados', xp: chapterXp, color: AppTheme.brandAccent),
+                  _XpSourceRow(
+                      icon: Icons.menu_book_rounded,
+                      label: 'Capítulos completados',
+                      xp: p.chapterXp,
+                      color: AppTheme.brandAccent),
                   const SizedBox(height: 8),
-                  _XpSourceRow(icon: Icons.task_alt_rounded, label: 'Exercícios resolvidos ($totalExercises × ${xpPerExercise}XP)', xp: exerciseXp, color: const Color(0xFF64B5F6)),
+                  _XpSourceRow(
+                      icon: Icons.task_alt_rounded,
+                      label:
+                          'Exercícios resolvidos ($p.totalExercises × ${p.xpPerExercise}XP)',
+                      xp: p.exerciseXp,
+                      color: const Color(0xFF64B5F6)),
                   const SizedBox(height: 8),
-                  _XpSourceRow(icon: Icons.local_fire_department_rounded, label: 'Bónus de streak ($streakDays dias × 10XP)', xp: streakBonus, color: const Color(0xFFFF7043)),
+                  _XpSourceRow(
+                      icon: Icons.local_fire_department_rounded,
+                      label: 'Bónus de streak ($p.streakDays dias × 10XP)',
+                      xp: p.streakBonus,
+                      color:  const Color(0xFFFF7043)),
                   const Divider(color: Colors.grey, height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Total', style: TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
-                      Text('$totalXp XP', style: const TextStyle(color: AppTheme.successState, fontSize: 14, fontWeight: FontWeight.bold)),
+                      const Text('Total',
+                          style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold)),
+                      Text('$p.totalXp XP',
+                          style: const TextStyle(
+                              color: AppTheme.successState,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ],
@@ -391,18 +414,27 @@ class _StreakHighlightCard extends StatelessWidget {
                   children: [
                     const Text(
                       'Streak diária',
-                      style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700),
                     ),
                     Text(
                       '$streakDays dias seguidos',
-                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800),
                     ),
                   ],
                 ),
               ),
               const Text(
                 'Nao pares',
-                style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700),
               ),
             ],
           ),
@@ -424,7 +456,8 @@ class _StreakHighlightCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Faltam $remainingDays dias para o marco de $nextMilestone dias.',
-            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+            style: const TextStyle(
+                color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -487,7 +520,8 @@ class _CourseProgressTile extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: course.progress,
                     backgroundColor: Colors.grey.shade800,
-                    valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.brandAccent),
+                    valueColor: const AlwaysStoppedAnimation<Color>(
+                        AppTheme.brandAccent),
                     minHeight: 6,
                   ),
                 ),
@@ -515,7 +549,11 @@ class _XpSourceRow extends StatelessWidget {
   final int xp;
   final Color color;
 
-  const _XpSourceRow({required this.icon, required this.label, required this.xp, required this.color});
+  const _XpSourceRow(
+      {required this.icon,
+      required this.label,
+      required this.xp,
+      required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -523,8 +561,13 @@ class _XpSourceRow extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: color),
         const SizedBox(width: 10),
-        Expanded(child: Text(label, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12))),
-        Text('+$xp XP', style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600)),
+        Expanded(
+            child: Text(label,
+                style: const TextStyle(
+                    color: AppTheme.textSecondary, fontSize: 12))),
+        Text('+$xp XP',
+            style: TextStyle(
+                color: color, fontSize: 12, fontWeight: FontWeight.w600)),
       ],
     );
   }

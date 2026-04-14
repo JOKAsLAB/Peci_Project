@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:peci_project/data/models/topic.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/mock_data.dart';
 import '../shared/tutor_chat_dialog.dart';
 import '../../features/gamification/providers/feed_provider.dart';
+import '../../data/models/exercise.dart';
 
 class ExerciseFeedScreen extends ConsumerStatefulWidget {
   const ExerciseFeedScreen({super.key});
@@ -69,13 +71,13 @@ class _ExerciseFeedScreenState extends ConsumerState<ExerciseFeedScreen> {
           SafeArea(
             bottom: false,
             child: _FilterBar(
-              selectedCourseId: feedState.filters.courseId,
-              selectedChapterId: feedState.filters.chapterId,
+              selectedCourseId:feedState.filters.courseId?.toString(),
+              selectedChapterId: feedState.filters.topicName,
               selectedDifficulty: feedState.filters.difficulty,
               selectedType: feedState.filters.type,
-              availableChapters: feedState.availableChapters,
+              availableChapters: feedState.availableTopics,
               onCourseChanged: feedNotifier.updateCourseFilter,
-              onChapterChanged: feedNotifier.updateChapterFilter,
+              onChapterChanged: feedNotifier.updateTopicFilter,
               onDifficultyChanged: feedNotifier.updateDifficultyFilter,
               onTypeChanged: feedNotifier.updateTypeFilter,
               onClearFilters: feedNotifier.clearFilters,
@@ -121,7 +123,7 @@ class _ExerciseFeedScreenState extends ConsumerState<ExerciseFeedScreen> {
     );
   }
 
-  void _showExercisePicker(BuildContext context, List<MockExercise> cycleExercises) {
+  void _showExercisePicker(BuildContext context, List<Exercise> cycleExercises) {
     if (cycleExercises.isEmpty) return;
 
     showModalBottomSheet(
@@ -191,7 +193,7 @@ class _FilterBar extends StatelessWidget {
   final String? selectedChapterId;
   final ExerciseDifficulty? selectedDifficulty;
   final ExerciseType? selectedType;
-  final List<Chapter> availableChapters;
+  final List<Topic> availableChapters;
   final ValueChanged<String?> onCourseChanged;
   final ValueChanged<String?> onChapterChanged;
   final ValueChanged<ExerciseDifficulty?> onDifficultyChanged;
@@ -325,9 +327,9 @@ class _FilterBar extends StatelessWidget {
                     small: true,
                   ),
                   ...availableChapters.map((chapter) => _FilterChip(
-                        label: chapter.title,
-                        isSelected: selectedChapterId == chapter.id,
-                        onTap: () => onChapterChanged(selectedChapterId == chapter.id ? null : chapter.id),
+                        label: chapter.name,
+                        isSelected: selectedChapterId == chapter.name,
+                        onTap: () => onChapterChanged(selectedChapterId == chapter.name ? null : chapter.name),
                         small: true,
                       )),
                 ],
@@ -347,21 +349,21 @@ class _FilterBar extends StatelessWidget {
               children: [
                 _MiniFilterChip(
                   label: 'Fácil',
-                  isSelected: selectedDifficulty == ExerciseDifficulty.facil,
+                  isSelected: selectedDifficulty == ExerciseDifficulty.easy,
                   color: AppTheme.successState,
-                  onTap: () => onDifficultyChanged(selectedDifficulty == ExerciseDifficulty.facil ? null : ExerciseDifficulty.facil),
+                  onTap: () => onDifficultyChanged(selectedDifficulty == ExerciseDifficulty.easy ? null : ExerciseDifficulty.easy),
                 ),
                 _MiniFilterChip(
                   label: 'Médio',
-                  isSelected: selectedDifficulty == ExerciseDifficulty.medio,
+                  isSelected: selectedDifficulty == ExerciseDifficulty.medium,
                   color: const Color(0xFFFFB300),
-                  onTap: () => onDifficultyChanged(selectedDifficulty == ExerciseDifficulty.medio ? null : ExerciseDifficulty.medio),
+                  onTap: () => onDifficultyChanged(selectedDifficulty == ExerciseDifficulty.medium ? null : ExerciseDifficulty.medium),
                 ),
                 _MiniFilterChip(
                   label: 'Difícil',
-                  isSelected: selectedDifficulty == ExerciseDifficulty.dificil,
+                  isSelected: selectedDifficulty == ExerciseDifficulty.hard,
                   color: AppTheme.errorState,
-                  onTap: () => onDifficultyChanged(selectedDifficulty == ExerciseDifficulty.dificil ? null : ExerciseDifficulty.dificil),
+                  onTap: () => onDifficultyChanged(selectedDifficulty == ExerciseDifficulty.hard ? null : ExerciseDifficulty.hard),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -488,7 +490,7 @@ class _MiniFilterChip extends StatelessWidget {
 // ─── Card de Exercício Reativo ───────────────────────────────────────────────
 
 class _ExerciseFeedCard extends StatefulWidget {
-  final MockExercise exercise;
+  final Exercise exercise;
   const _ExerciseFeedCard({super.key, required this.exercise});
 
   @override
@@ -509,9 +511,9 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
   
   Color get _difficultyColor {
     switch (widget.exercise.difficulty) {
-      case ExerciseDifficulty.facil: return AppTheme.successState;
-      case ExerciseDifficulty.medio: return const Color(0xFFFFB300);
-      case ExerciseDifficulty.dificil: return AppTheme.errorState;
+      case ExerciseDifficulty.easy: return AppTheme.successState;
+      case ExerciseDifficulty.medium: return const Color(0xFFFFB300);
+      case ExerciseDifficulty.hard: return AppTheme.errorState;
     }
   }
 
@@ -623,7 +625,7 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
     );
   }
 
-  Widget _buildAnsweredFeedback(MockExercise exercise) {
+  Widget _buildAnsweredFeedback(Exercise exercise) {
     return Column(
       key: const ValueKey('feedback-answered'),
       mainAxisSize: MainAxisSize.min,
@@ -692,7 +694,7 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
     );
   }
 
-  List<Widget> _buildOptionsUI(MockExercise exercise, double horizontalPadding) {
+  List<Widget> _buildOptionsUI(Exercise exercise, double horizontalPadding) {
     return List.generate(exercise.options.length, (optionIndex) {
       final isSelected = _selectedOption == optionIndex;
       final isCorrect = optionIndex == exercise.correctIndex;

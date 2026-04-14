@@ -3,9 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/mock_data.dart';
 import '../../features/tutor_ai/providers/chat_provider.dart';
+import '../../data/models/exercise.dart';
 
 class TutorChatDialog extends ConsumerStatefulWidget {
-  final MockExercise exercise;
+  final Exercise exercise;
   final bool wasCorrect;
 
   const TutorChatDialog({
@@ -14,7 +15,7 @@ class TutorChatDialog extends ConsumerStatefulWidget {
     required this.wasCorrect,
   });
 
-  static void show(BuildContext context, {required MockExercise exercise, required bool wasCorrect}) {
+  static void show(BuildContext context, {required Exercise exercise, required bool wasCorrect}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

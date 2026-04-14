@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/mock_data.dart';
+import '../../data/models/exercise.dart';
 
 /// Ecrã de Exploração — chatbot IA que gera exercícios e explica matéria.
 /// O aluno interage por mensagens: pode pedir novos exercícios, esclarecer
@@ -22,7 +23,7 @@ class _ChatMessage {
   final _MessageRole role;
   final String? text;
   final _AssistantContentType contentType;
-  final MockExercise? exercise;
+  final Exercise? exercise;
   _ChatMessage({
     required this.role,
     this.text,
@@ -194,7 +195,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           '\u2022 Architecture — Define comportamento\n'
           '\u2022 Process — Bloco sequencial\n'
           '\u2022 Signal — Comunicação entre componentes\n\n'
-          'Dica: usa \"rising_edge(clk)\" para detetar flancos de subida.',
+          'Dica: usa "rising_edge(clk)" para detetar flancos de subida.',
       'interrupt': 'Uma interrupção é um sinal que suspende temporariamente o programa '
           'em execução para atender um evento prioritário.\n\n'
           'Tipos:\n'
@@ -536,9 +537,9 @@ class _AssistantBubble extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 12, right: 60),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppTheme.surfaceSecondary,
-          borderRadius: const BorderRadius.only(
+          borderRadius: BorderRadius.only(
             topLeft: Radius.circular(18),
             topRight: Radius.circular(18),
             bottomLeft: Radius.circular(4),
@@ -569,7 +570,7 @@ class _AssistantBubble extends StatelessWidget {
 // ─── Bolha de exercício interativo ──────────────────────────────────────────
 
 class _ExerciseBubble extends StatefulWidget {
-  final MockExercise exercise;
+  final Exercise exercise;
   const _ExerciseBubble({required this.exercise});
 
   @override
@@ -765,7 +766,7 @@ class _ExerciseBubbleState extends State<_ExerciseBubble> {
     );
   }
 
-  List<Widget> _buildOptions(MockExercise exercise) {
+  List<Widget> _buildOptions(Exercise exercise) {
     return List.generate(exercise.options.length, (i) {
       final isSelected = _selectedOption == i;
       final isCorrect = i == exercise.correctIndex;

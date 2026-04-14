@@ -46,15 +46,13 @@ INSERT INTO Topic (ID_UC, Name, N_Order) VALUES
     (41953, 'Mapas de Karnaugh', 2);
 
 -- Teaching_Material: PDF uploaded pelo Carlos para a UC 41953.
-INSERT INTO Teaching_Material (ID_Material, ID_UC, ID_Professor, Status, Title, File_Path, Extracted_Text) VALUES
+INSERT INTO Teaching_Material (ID_Material, ID_UC, ID_Professor, Status, Title) VALUES
     (
         '00000000-0000-0000-0000-000000000010',
         41953,
         '00000000-0000-0000-0000-000000000002',
         'Indexed',
-        'Aula 1 — Portas Lógicas',
-        '/materials/aula1_portas_logicas.pdf',
-        'Texto extraído do PDF sobre portas lógicas AND, OR, NOT...'
+        'Aula 1 — Portas Lógicas'
     );
 
 -- Exercise: ligado à UC 41953, tópico "Portas Lógicas", referencia o material acima.

@@ -5,7 +5,7 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Base_User, Course_Unit, Exercise, Progress, Streak, Student, Student_UC
+from app.models import Base_User, Course_Unit, Exercise, Progress, Streak, Student, Student_UC, Topic
 from app.routers.deps import require_roles
 from app.schemas.academic import CourseUnitResponse, ExerciseResponse
 from app.schemas.gamification import (
@@ -188,3 +188,25 @@ async def get_streak(
 	)
 	items = (await db.scalars(stmt)).all()
 	return [to_streak_response(item) for item in items]
+
+@router.get("/topics", response_model=list[dict])
+async def list_topics(
+    id_uc: int,
+    db: AsyncSession = Depends(get_db),
+    current_student: Base_User = Depends(require_roles("Student")),
+):
+    stmt = (
+        select(Topic)
+        .where(Topic.ID_UC == id_uc)
+        .order_by(Topic.N_Order.asc())
+    )
+
+    topics = (await db.scalars(stmt)).all()
+
+    return [
+        {
+            "name": t.Name,
+            "order": t.N_Order,
+        }
+        for t in topics
+    ]

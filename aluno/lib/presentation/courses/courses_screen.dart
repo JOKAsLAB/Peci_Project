@@ -1,26 +1,25 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
-import '../../data/mock_data.dart';
 import '../shared/tutor_chat_dialog.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../data/mock_data.dart';
+import '../../../data/remote/student_repository.dart';
+import '../../data/models/exercise.dart';
 
 /// Lista de cursos/disciplinas disponíveis.
 /// O aluno pode inscrever-se numa disciplina e depois ver o caminho Duolingo de capítulos.
-class CoursesScreen extends StatefulWidget {
+class CoursesScreen extends ConsumerStatefulWidget {
   const CoursesScreen({super.key});
-
   @override
-  State<CoursesScreen> createState() => _CoursesScreenState();
+  ConsumerState<CoursesScreen> createState() => _CoursesScreenState();
 }
 
-class _CoursesScreenState extends State<CoursesScreen> {
-  // Mock enrollment state (will be replaced by provider)
-  final Set<String> _enrolledIds = {
-    for (final c in mockCourses)
-      if (c.enrolled) c.id
-  };
-
+class _CoursesScreenState extends ConsumerState<CoursesScreen> {
   @override
   Widget build(BuildContext context) {
+    final coursesAsync = ref.watch(courseListProvider);
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundPrimary,
       appBar: AppBar(
@@ -28,53 +27,35 @@ class _CoursesScreenState extends State<CoursesScreen> {
         backgroundColor: AppTheme.surfaceSecondary,
         elevation: 0,
       ),
-      body: ListView.builder(
-        physics: const ClampingScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        itemCount: mockCourses.length,
-        itemBuilder: (context, index) {
-          final course = mockCourses[index];
-          final isEnrolled = _enrolledIds.contains(course.id);
-          return _CourseCard(
-            course: course,
-            isEnrolled: isEnrolled,
-            onTap: () {
-              if (isEnrolled) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => CoursePathScreen(course: course),
-                  ),
-                );
-              }
-            },
-            onEnroll: () {
-              setState(() {
-                if (isEnrolled) {
-                  _enrolledIds.remove(course.id);
-                } else {
-                  _enrolledIds.add(course.id);
-                }
-              });
-            },
-          );
-        },
+      body: coursesAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (e, _) => const Center(
+          child: Text('Erro ao carregar cursos', style: TextStyle(color: AppTheme.textSecondary)),
+        ),
+        data: (courses) => ListView.builder(
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          itemCount: courses.length,
+          itemBuilder: (context, index) {
+            final course = courses[index];
+            return _CourseCard(
+              name: course['name'] as String,
+              shortName: (course['name'] as String).split(' ').map((w) => w[0]).take(3).join(),
+              onTap: () {},
+            );
+          },
+        ),
       ),
     );
   }
 }
 
 class _CourseCard extends StatelessWidget {
-  final Course course;
-  final bool isEnrolled;
+  final String name;
+  final String shortName;
   final VoidCallback onTap;
-  final VoidCallback onEnroll;
 
-  const _CourseCard({
-    required this.course,
-    required this.isEnrolled,
-    required this.onTap,
-    required this.onEnroll,
-  });
+  const _CourseCard({required this.name, required this.shortName, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -90,87 +71,25 @@ class _CourseCard extends StatelessWidget {
             padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                // Sigla do curso
                 Container(
-                  width: 56,
-                  height: 56,
+                  width: 56, height: 56,
                   decoration: BoxDecoration(
                     color: AppTheme.brandAccent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Center(
-                    child: Text(
-                      course.shortName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.brandAccent,
-                      ),
-                    ),
+                    child: Text(shortName, style: const TextStyle(
+                      fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.brandAccent,
+                    )),
                   ),
                 ),
                 const SizedBox(width: 16),
-                // Info do curso
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        course.name,
-                        style: const TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      if (isEnrolled) ...[
-                        Text(
-                          '${course.completedChapters}/${course.totalChapters} capítulos',
-                          style: const TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: course.progress,
-                            backgroundColor: Colors.grey.shade800,
-                            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.brandAccent),
-                            minHeight: 6,
-                          ),
-                        ),
-                      ] else
-                        const Text(
-                          'Não inscrito',
-                          style: TextStyle(
-                            color: AppTheme.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                    ],
-                  ),
+                  child: Text(name, style: const TextStyle(
+                    color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w600,
+                  )),
                 ),
-                const SizedBox(width: 12),
-                if (isEnrolled)
-                  const Icon(Icons.chevron_right, color: AppTheme.textSecondary)
-                else
-                  GestureDetector(
-                    onTap: onEnroll,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.brandAccent,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Inscrever',
-                        style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
+                const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
               ],
             ),
           ),
@@ -479,7 +398,7 @@ class ChapterExercisesScreen extends StatefulWidget {
 }
 
 class _ChapterExercisesScreenState extends State<ChapterExercisesScreen> {
-  late final List<MockExercise> _exercises;
+  late final List<Exercise> _exercises;
   int _currentIndex = 0;
   int? _selectedOption;
   bool _answered = false;

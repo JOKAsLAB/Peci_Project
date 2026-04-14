@@ -1,12 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../data/remote/student_repository.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../../../data/mock_data.dart';
+
 
 /// State holder que concentra os dados processados do perfil
 class ProfileState {
   final String studentName;
   final String studentMec;
   final String studentEmail;
+  final int xpPerExercise = 25; // XP sources: chapters + exercises (25 XP each) + streak bonus
   final int totalXp;
   final int chapterXp;
   final int exerciseXp;
@@ -21,6 +24,14 @@ class ProfileState {
   final int nextThreshold;
   final double levelProgress;
   final List<Course> enrolledCourses;
+  final levels = [
+      (threshold: 0, label: 'N1'),
+      (threshold: 100, label: 'N2'),
+      (threshold: 300, label: 'N3'),
+      (threshold: 600, label: 'N4'),
+      (threshold: 1000, label: 'N5'),
+      (threshold: 1500, label: 'N6'),
+    ];
 
   ProfileState({
     required this.studentName,
@@ -54,7 +65,7 @@ final profileStateProvider = FutureProvider<ProfileState>((ref) async {
 
   final studentName = authUser?['name'] as String? ?? '';
   final studentEmail = authUser?['email'] as String? ?? '';
-  final studentMec = '';
+  const studentMec = '';
 
   final totalXp = profile['total_xp'] as int? ?? 0;
   final streakDays = profile['streak_days'] as int? ?? 0;
