@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 enum ExerciseType { multipleChoice, trueFalse }
 
 enum ExerciseDifficulty { easy, medium, hard }
@@ -32,41 +34,94 @@ class Exercise {
   });
 
   factory Exercise.fromJson(Map<String, dynamic> json) {
+    // ── Tipo ──────────────────────────────────────────────────────────────────
+    final rawType = (json['type'] as String? ?? '').toLowerCase();
+    final type = rawType.contains('true') || rawType.contains('false') || rawType == 'truefalse'
+        ? ExerciseType.trueFalse
+        : ExerciseType.multipleChoice;
+
+    // ── Dificuldade ───────────────────────────────────────────────────────────
+    final rawDiff = (json['difficulty'] as String? ?? '').toLowerCase();
+    final difficulty = switch (rawDiff) {
+      'easy'   => ExerciseDifficulty.easy,
+      'hard'   => ExerciseDifficulty.hard,
+      _        => ExerciseDifficulty.medium,
+    };
+
+    // ── Solution (dict com opções e resposta correta) ─────────────────────────
+    // A API devolve: "solution": {"correct_index": 0, "options": ["A", "B", ...]}
+    // Ou pode vir como string JSON que precisa de parsing
+    List<String> options = const [];
+    int correctIndex = 0;
+
+    var sol = json['solution'];
+    
+    // 🔧 Se é string, tenta fazer parse como JSON
+    if (sol is String && sol.isNotEmpty) {
+      try {
+        sol = jsonDecode(sol);
+      } catch (_) {
+        // Falha no parse - deixa como está
+      }
+    }
+    
+    // Agora extrai as opções do Map
+    if (sol is Map<String, dynamic>) {
+      // Opções (tenta variações)
+      final rawOptions = sol['options'] ?? sol['opcoes'] ?? sol['choices'] ?? [];
+      if (rawOptions is List) {
+        options = rawOptions.map((o) => o.toString()).toList();
+      }
+      // Índice correto (tenta variações)
+      final rawCorrect = sol['correct_index'] ?? sol['correctIndex'] ?? sol['resposta_correta'] ?? sol['correct'] ?? 0;
+      if (rawCorrect is int) {
+        correctIndex = rawCorrect;
+      } else if (rawCorrect is num) {
+        correctIndex = rawCorrect.toInt();
+      } else if (rawCorrect is bool) {
+        // true  → Verdadeiro (index 0)
+        // false → Falso      (index 1)
+        correctIndex = rawCorrect ? 0 : 1;
+      } else if (rawCorrect is String) {
+        final lower = rawCorrect.toLowerCase();
+        if (lower == 'true') {
+          correctIndex = 0; // Verdadeiro
+        } else if (lower == 'false') {
+          correctIndex = 1; // Falso
+        } else {
+          correctIndex = int.tryParse(rawCorrect) ?? 0;
+        }
+      }
+    }
+
+    // Fallback para True/False sem opções guardadas
+    if (type == ExerciseType.trueFalse && options.isEmpty) {
+      options = ['Verdadeiro', 'Falso'];
+    }
+
+    // ── Nomes de curso e tópico ───────────────────────────────────────────────
+    final rawCourseInfo = json['course_unit_info'];
+    final String courseName;
+    if (rawCourseInfo is Map<String, dynamic>) {
+      courseName = (rawCourseInfo['name'] ?? '').toString();
+    } else {
+      courseName = (json['course_name'] ?? json['nome_uc'] ?? '').toString();
+    }
+    final chapterName = (json['topic_name'] ?? json['nome_capitulo'] ?? '').toString();
+
     return Exercise(
-      id: json['Id'],
-      courseId: json['Id_Uc'],
-      chapterId: json['Id_Capitulo'],
-      courseName: json['Nome_Uc'],
-      chapterName: json['Nome_Capitulo'],
-      question: json['Pergunta'],
-      type: ExerciseType.values[json['Tipo']],
-      difficulty: ExerciseDifficulty.values[json['Dificuldade']],
-      options: List<String>.from(json['Opcoes']),
-      correctIndex: json['Resposta_Correta'],
-      solution: json['Solucao'],
-      explanation: json['Explicacao'],
+      id:           (json['id_exercise'] ?? json['Id'] ?? '').toString(),
+      courseId:     (json['id_uc']       ?? json['Id_Uc'] ?? '').toString(),
+      chapterId:    chapterName,
+      courseName:   courseName,
+      chapterName:  chapterName,
+      question:     (json['question']    ?? json['Pergunta'] ?? '').toString(),
+      type:         type,
+      difficulty:   difficulty,
+      options:      options,
+      correctIndex: correctIndex,
+      solution:     sol is Map ? (sol['correct_index'] ?? 0).toString() : sol?.toString() ?? '',
+      explanation:  (json['explanation'] ?? json['Explicacao'] ?? '').toString(),
     );
   }
-
 }
-
-// Exercicios alinhados com pathStore -- mesmas perguntas e opcoes do percurso base
-final List<Exercise> mockExercises = [
-  // -- Sistemas Digitais ------------------------------------------------------
-  // M1 -- Sistemas de Numeracao e Codigos
-  const Exercise(
-    id: 'sd-m1-e1',
-    courseId: 'sd',
-    chapterId: 'sd_m1',
-    courseName: 'Sistemas Digitais',
-    chapterName: 'Sistemas de Numeracao e Codigos',
-    question: 'Converte 1101 (base 2) para decimal.',
-    type: ExerciseType.multipleChoice,
-    difficulty: ExerciseDifficulty.easy,
-    options: ['11', '13', '15', '12'],
-    correctIndex: 1,
-    solution: '13',
-    explanation:
-        '1101 em base 2 = 1x2^3 + 1x2^2 + 0x2^1 + 1x2^0 = 8 + 4 + 0 + 1 = 13.',
-  )
-];

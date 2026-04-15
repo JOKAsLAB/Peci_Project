@@ -169,9 +169,6 @@ const disciplineStore = useDisciplineStore();
 const userStore = useUserStore();
 
 onMounted(async () => {
-  await Promise.all([
-    disciplineStore.loadDisciplines(),
-    userStore.loadUsers(),
-  ]);
+  await Promise.all([disciplineStore.loadDisciplines(), userStore.loadUsers()]);
 });
 </script>

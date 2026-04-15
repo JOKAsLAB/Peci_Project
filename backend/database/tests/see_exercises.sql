@@ -1,1 +1,2 @@
-SELECT id_exercise, id_uc, topic_name, Solution, type, difficulty, question, published FROM exercise; 
+DROP TABLE IF EXISTS Learning_Path_Exercise CASCADE;
+DROP TABLE IF EXISTS Learning_Path CASCADE;

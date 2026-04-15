@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../data/mock_data.dart';
 import '../../../data/models/exercise.dart';
 
 enum MessageRole { user, assistant }
@@ -27,8 +26,7 @@ class ChatMessage {
 }
 
 /// O uso de Family permite manter uma sessão de chat independente por cada exercício.
-final chatProvider = StateNotifierProvider.family<ChatNotifier, List<ChatMessage>, String>((ref, exerciseId) {
-  final exercise = mockExercises.firstWhere((e) => e.id == exerciseId);
+final chatProvider = StateNotifierProvider.family<ChatNotifier, List<ChatMessage>, Exercise>((ref, exercise) {
   return ChatNotifier(exercise);
 });
 

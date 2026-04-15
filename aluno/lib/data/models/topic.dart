@@ -9,8 +9,8 @@ class Topic {
 
   factory Topic.fromJson(Map<String, dynamic> json) {
     return Topic(
-      name: json['Name'],
-      order: json['N_Order'],
+      name: json['name'] ?? '',
+      order: json['order'] ?? 0,
     );
   }
 }

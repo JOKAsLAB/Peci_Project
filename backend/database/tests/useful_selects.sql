@@ -1,3 +1,5 @@
+SELECT id_uc, name FROM course_unit;
+SELECT * FROM topic;
 -- =============================================================
 -- VERIFICAÇÃO DE REGISTOS POR TABELA
 -- =============================================================
@@ -29,9 +31,5 @@ UNION ALL
 SELECT 'Request',          COUNT(*) FROM Request
 UNION ALL
 SELECT 'Admin_Audit_Log',  COUNT(*) FROM Admin_Audit_Log
-UNION ALL
-SELECT 'Learning_Path',  COUNT(*) FROM Learning_Path
-UNION ALL
-SELECT 'Learning_Path_Exercise',  COUNT(*) FROM Learning_Path_Exercise;
-
 -- =============================================================
+

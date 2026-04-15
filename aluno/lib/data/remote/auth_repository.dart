@@ -19,6 +19,21 @@ class AuthRepository {
         options: Options(headers: {'Authorization': 'Bearer $token'}));
     return response.data as Map<String, dynamic>;
   }
+
+  Future<Map<String, dynamic>> register({
+    required String name,
+    required String email,
+    required String password,
+    required String role,
+  }) async {
+    final response = await _dio.post('/auth/register', data: {
+      'name': name,
+      'email': email,
+      'password': password,
+      'role': role,
+    });
+    return response.data as Map<String, dynamic>;
+  }
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

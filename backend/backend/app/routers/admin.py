@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Admin_Audit_Log, Base_User, Course_Unit, Professor_UC, Request
+from app.models import Admin_Audit_Log, Base_User, Course_Unit, Exercise, Professor_UC, Request, Student_UC, Teaching_Material, Topic
 from app.models.enums import RequestStatus, RequestType, UserRole, UserStatus
 from app.routers.deps import require_roles
 from app.schemas.academic import (
@@ -313,8 +313,20 @@ async def delete_course_unit(
             Target_Type="Course_Unit",
         )
     )
+
+    # Apagar pela ordem correta para respeitar as FK constraints:
+    # 1. Exercícios (referenciam Topic e Teaching_Material)
+    await db.execute(delete(Exercise).where(Exercise.ID_UC == id_uc))
+    # 2. Tópicos (PK composta com ID_UC — não pode ficar a NULL)
+    await db.execute(delete(Topic).where(Topic.ID_UC == id_uc))
+    # 3. Materiais de ensino
+    await db.execute(delete(Teaching_Material).where(Teaching_Material.ID_UC == id_uc))
+    # 4. Associações professor-UC e aluno-UC
     await db.execute(delete(Professor_UC).where(Professor_UC.ID_UC == id_uc))
+    await db.execute(delete(Student_UC).where(Student_UC.ID_UC == id_uc))
+    # 5. Finalmente a UC
     await db.delete(item)
+
     return MessageResponse(message="Course unit deleted")
 
 
@@ -324,7 +336,6 @@ async def list_requests(
     db: AsyncSession = Depends(get_db),
     current_admin: Base_User = Depends(require_roles(UserRole.ADMIN)),
 ):
-    # Otimização: Eager loading das relações professor e admin para preencher o DTO sem queries iterativas
     stmt = (
         select(Request)
         .options(
@@ -333,12 +344,12 @@ async def list_requests(
         )
         .order_by(Request.Creation_Date.desc())
     )
-    
+
     if status_filter:
         stmt = stmt.where(Request.Status == status_filter)
-        
+
     items = (await db.scalars(stmt)).all()
-    
+
     return [to_admin_request_response(item) for item in items]
 
 
@@ -355,7 +366,7 @@ async def decide_request(
         .where(Request.ID_Request == request_id)
     )
     item = await db.scalar(stmt)
-    
+
     if not item:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
 
@@ -382,7 +393,6 @@ async def decide_request(
         )
     )
     await db.flush()
-    # Refresca a entidade para carregar os dados do admin que acabou de decidir o pedido
     await db.refresh(item, attribute_names=['admin'])
-    
+
     return to_admin_request_response(item)

@@ -1,9 +1,16 @@
--- Script para adicionar coluna Published à tabela Exercise
--- Execute isto na PostgreSQL shell com o utilizador proprietário da tabela
-
-ALTER TABLE exercise
-ADD COLUMN published BOOLEAN NOT NULL DEFAULT false;
-
--- Verificar
-SELECT column_name, data_type FROM information_schema.columns 
-WHERE table_name='exercise' AND column_name='published';
+SELECT 
+    ID_Exercise,
+    ID_UC,
+    Topic_Name,
+    Question,
+    Type,
+    Difficulty,
+    jsonb_pretty(Solution) AS solution_json,
+    jsonb_array_length(Solution->'options') AS num_options,
+    Published
+FROM Exercise
+WHERE 
+    Solution IS NULL 
+    OR (Solution->'options' IS NULL)
+    OR jsonb_array_length(Solution->'options') = 0
+ORDER BY ID_UC, Topic_Name;

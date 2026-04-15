@@ -96,7 +96,7 @@
           ></i>
           <input
             v-model="search"
-            placeholder="Pesquisar por nome, NMec ou email..."
+            placeholder="Pesquisar por nome ou email..."
             class="bg-surface border border-white/10 pl-10 pr-4 py-2 rounded-btn text-sm outline-none focus:border-brand w-80"
           />
         </div>
@@ -124,7 +124,6 @@
         >
           <tr>
             <th class="px-6 py-4 font-semibold">Utilizador</th>
-            <th class="px-6 py-4 font-semibold text-center">NMec</th>
             <th class="px-6 py-4 font-semibold">Email</th>
             <th class="px-6 py-4 font-semibold text-center">Papel</th>
             <th class="px-6 py-4 font-semibold text-center">UCs</th>
@@ -161,12 +160,7 @@
                 <span class="font-medium text-sm">{{ u.name }}</span>
               </div>
             </td>
-            <!-- NMec -->
-            <td
-              class="px-6 py-4 text-center font-mono text-text-secondary text-sm"
-            >
-              {{ u.nmec }}
-            </td>
+
             <!-- Email -->
             <td class="px-6 py-4 text-text-secondary text-sm">{{ u.email }}</td>
             <!-- Role -->
@@ -299,18 +293,6 @@
               <div>
                 <label
                   class="text-xs font-bold text-text-secondary uppercase tracking-widest"
-                  >NMec</label
-                >
-                <input
-                  v-model="form.nmec"
-                  type="text"
-                  placeholder="123456"
-                  class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm"
-                />
-              </div>
-              <div>
-                <label
-                  class="text-xs font-bold text-text-secondary uppercase tracking-widest"
                   >Papel</label
                 >
                 <select
@@ -331,18 +313,6 @@
                 v-model="form.email"
                 type="email"
                 placeholder="email@ua.pt"
-                class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm"
-              />
-            </div>
-            <div>
-              <label
-                class="text-xs font-bold text-text-secondary uppercase tracking-widest"
-                >Password</label
-              >
-              <input
-                v-model="form.password"
-                type="text"
-                placeholder="Password inicial"
                 class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm"
               />
             </div>
@@ -383,9 +353,7 @@ const showModal = ref(false);
 const editingId = ref(null);
 const form = reactive({
   name: '',
-  nmec: '',
   email: '',
-  password: '',
   role: 'aluno',
 });
 
@@ -403,9 +371,7 @@ const filteredUsers = computed(() => {
     const q = search.value.toLowerCase();
     list = list.filter(
       (u) =>
-        u.name.toLowerCase().includes(q) ||
-        String(u.nmec).includes(q) ||
-        u.email.toLowerCase().includes(q),
+        u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
     );
   }
   return list;
@@ -413,9 +379,8 @@ const filteredUsers = computed(() => {
 
 function resetForm() {
   form.name = '';
-  form.nmec = '';
   form.email = '';
-  form.password = '';
+
   form.role = 'aluno';
 }
 
@@ -428,9 +393,8 @@ function openCreate() {
 function openEdit(u) {
   editingId.value = u.id;
   form.name = u.name;
-  form.nmec = u.nmec;
+
   form.email = u.email;
-  form.password = '';
   form.role = u.role;
   showModal.value = true;
 }
@@ -438,7 +402,6 @@ function openEdit(u) {
 async function save() {
   const data = {
     name: form.name,
-    nmec: form.nmec,
     email: form.email,
     password: form.password,
     role: form.role,
@@ -458,25 +421,26 @@ async function save() {
 }
 
 async function onRemoveUser(userId) {
-  const confirmed = window.confirm('Tem a certeza que pretende remover este utilizador?')
-  if (!confirmed) return
+  const confirmed = window.confirm(
+    'Tem a certeza que pretende remover este utilizador?',
+  );
+  if (!confirmed) return;
 
   await userStore.removeUser(userId);
 }
 
 async function onToggleStatus(userId) {
-  const target = userStore.users.find((u) => u.id === userId)
-  const nextStatus = target?.active ? 'inativo' : 'ativo'
-  const confirmed = window.confirm(`Alterar o estado deste utilizador para ${nextStatus}?`)
-  if (!confirmed) return
+  const target = userStore.users.find((u) => u.id === userId);
+  const nextStatus = target?.active ? 'inativo' : 'ativo';
+  const confirmed = window.confirm(
+    `Alterar o estado deste utilizador para ${nextStatus}?`,
+  );
+  if (!confirmed) return;
 
   await userStore.toggleStatus(userId);
 }
 
 onMounted(async () => {
-  await Promise.all([
-    userStore.loadUsers(),
-    disciplineStore.loadDisciplines(),
-  ]);
+  await Promise.all([userStore.loadUsers(), disciplineStore.loadDisciplines()]);
 });
 </script>

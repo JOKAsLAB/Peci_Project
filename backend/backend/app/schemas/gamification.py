@@ -23,6 +23,11 @@ class ProgressResponse(BaseModel):
     xp_earned: int
     sync_status: SyncStatus
     recorded_at: datetime | None = None
+    # Gamification extras (computed at write time)
+    new_total_xp: int = 0
+    new_level: int = 1
+    level_up: bool = False
+    streak_days: int = 0
 
     class Config:
         from_attributes = True
@@ -40,10 +45,14 @@ class StreakResponse(BaseModel):
 
 class StudentProfileResponse(BaseModel):
     id_student: UUID
+    name: str = ""
     current_level: int
     total_xp: int
     streak_days: int
     last_access: datetime | None = None
+    # XP needed for next level (100 XP per level)
+    xp_for_next_level: int = 100
+    xp_in_current_level: int = 0
 
     class Config:
         from_attributes = True

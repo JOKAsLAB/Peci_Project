@@ -1,62 +1,183 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logging/logging.dart';
+import 'package:peci_project/data/models/exercise.dart';
+import 'package:peci_project/data/models/topic.dart';
+
+import '../models/learning_path.dart';
+import '../models/student_profile.dart';
 import 'api_client.dart';
-import 'auth_storage.dart';
-import '../models/topic.dart';
-import '../models/exercise.dart';
+
+final studentRepositoryProvider = Provider((ref) {
+  final dio = ref.watch(dioProvider);
+  return StudentRepository(dio);
+});
 
 class StudentRepository {
   final Dio _dio;
-  final String? _token;
+  final _log = Logger('StudentRepository');
 
-  StudentRepository(this._dio, this._token);
+  StudentRepository(this._dio);
 
-  Options get _auth => Options(headers: {'Authorization': 'Bearer $_token'});
-
-  Future<Map<String, dynamic>> getProfile() async {
-    final r = await _dio.get('/students/me', options: _auth);
-    return r.data;
+  Future<StudentProfile> getProfile() async {
+    final r = await _dio.get('/students/me');
+    return StudentProfile.fromJson(r.data as Map<String, dynamic>);
   }
 
-  Future<List<dynamic>> getCourseUnits() async {
-    final r = await _dio.get('/students/course-units', options: _auth);
-    return r.data;
+  /// Regista uma resposta. Devolve XP ganho, nível atual e se houve level-up.
+  Future<ProgressResult> postProgress({
+    required String exerciseId,
+    required bool isCorrect,
+    required String difficulty, // 'Easy' | 'Medium' | 'Hard'
+  }) async {
+    final xp = isCorrect ? _xpForDifficulty(difficulty) : 0;
+    final body = {
+      'id_exercise': exerciseId,
+      'status': isCorrect ? 'Correct' : 'Incorrect',
+      'xp_earned': xp,
+      'attempts': 1,
+    };
+    try {
+      final r = await _dio.post('/students/progress', data: body);
+      debugPrint('[postProgress] ✅ status=${r.statusCode} data=${r.data}');
+      return ProgressResult.fromJson(r.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      debugPrint('[postProgress] ❌ tipo=${e.type} status=${e.response?.statusCode} '
+          'body=${e.response?.data} msg=${e.message}');
+      _log.severe('Falha ao registar progresso', e.response?.data);
+      // Falha silenciosa — não bloqueia a UX do exercício
+      return ProgressResult(xpEarned: xp, newTotalXp: 0, newLevel: 1, levelUp: false, streakDays: 0);
+    } catch (e) {
+      debugPrint('[postProgress] ❌ erro inesperado: $e');
+      return ProgressResult(xpEarned: xp, newTotalXp: 0, newLevel: 1, levelUp: false, streakDays: 0);
+    }
   }
 
-  Future<List<Exercise>> getExercises(
-      {int? idUc, String? topicName, String? difficulty}) async {
-    final r =
-        await _dio.get('/students/exercises', options: _auth, queryParameters: {
-      if (idUc != null) 'id_uc': idUc,
-      if (topicName != null) 'topic_name': topicName,
-      if (difficulty != null) 'difficulty': difficulty,
-    });
-    return (r.data as List).map((e) => Exercise.fromJson(e)).toList();
+  static int _xpForDifficulty(String difficulty) => switch (difficulty.toLowerCase()) {
+    'easy'   => 10,
+    'hard'   => 35,
+    _        => 20, // medium
+  };
+
+  Future<List<LearningPath>> getLearningPaths() async {
+    final r = await _dio.get('/students/learning-paths');
+    return (r.data as List<dynamic>)
+        .map((e) => LearningPath.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  // Adiciona um novo método para ir buscar as UCs (course units)
+  Future<List<Map<String, dynamic>>> getCourseUnits() async {
+    try {
+      final response = await _dio.get('/students/course-units');
+      if (response.statusCode == 200 && response.data is List) {
+        // A API retorna uma lista de objetos, cada um com 'id_uc' e 'name'
+        return List<Map<String, dynamic>>.from(response.data);
+      }
+      return [];
+    } on DioException catch (e) {
+      _log.severe('Falha ao obter UCs', e.response?.data);
+      return [];
+    }
   }
 
   Future<List<Topic>> getTopics(int courseId) async {
-    final response = await _dio.get(
-      '/students/topics',
-      options: _auth,
-      queryParameters: {'id_uc': courseId},
-    );
-
-    return (response.data as List).map((e) => Topic.fromJson(e)).toList();
+    try {
+      final response = await _dio.get('/students/topics', queryParameters: {'id_uc': courseId});
+      if (response.statusCode == 200 && response.data is List) {
+        return (response.data as List)
+            .map((json) => Topic.fromJson(json))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      _log.severe('Falha ao obter tópicos para UC $courseId', e.response?.data);
+      return [];
+    }
   }
 
-  Future<List<dynamic>> getStreak() async {
-    final r = await _dio.get('/students/streak', options: _auth);
-    return r.data;
+  Future<List<Exercise>> getExercises({
+    int? courseId,
+    String? topicName,
+    ExerciseDifficulty? difficulty,
+    ExerciseType? type,
+  }) async {
+    final params = <String, dynamic>{};
+    if (courseId != null) params['id_uc'] = courseId;
+    if (topicName != null) params['topic_name'] = topicName;
+
+    // Com filtros activos, pede mais resultados (sem limite diário)
+    final hasFilters = courseId != null || topicName != null || difficulty != null || type != null;
+    if (hasFilters) params['limit'] = 50;
+
+    // Mapeia a dificuldade para o formato da API
+    if (difficulty != null) {
+      final diffMap = {
+        ExerciseDifficulty.easy: 'Easy',
+        ExerciseDifficulty.medium: 'Medium',
+        ExerciseDifficulty.hard: 'Hard',
+      };
+      params['difficulty'] = diffMap[difficulty];
+    }
+
+    // Mapeia o tipo para o formato da API
+    if (type != null) {
+      final typeMap = {
+        ExerciseType.multipleChoice: 'Multiple Choice',
+        ExerciseType.trueFalse: 'True/False',
+      };
+      params['type'] = typeMap[type];
+    }
+
+    try {
+      final r = await _dio.get('/students/exercises', queryParameters: params);
+      if (r.statusCode == 200 && r.data is List) {
+        return (r.data as List)
+            .map((e) => Exercise.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException catch (e) {
+      _log.severe('Falha ao obter exercícios', e.response?.data);
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getStreak() async {
+    final r = await _dio.get('/students/streak');
+    return (r.data as List<dynamic>)
+        .map((e) => e as Map<String, dynamic>)
+        .toList();
+  }
+
+  Future<Map<String, dynamic>> chatQuery(
+    String question, {
+    int? courseUnitId,
+    String? exerciseId,
+  }) async {
+    final body = <String, dynamic>{'question': question};
+    if (courseUnitId != null) body['course_unit_id'] = courseUnitId;
+    if (exerciseId != null) body['exercise_id'] = exerciseId;
+
+    debugPrint('[chatQuery] → POST /ai-tutor/query body=$body');
+    try {
+      // O LLM pode demorar mais de 10 s — timeout alargado para 90 s
+      final r = await _dio.post(
+        '/ai-tutor/query',
+        data: body,
+        options: Options(receiveTimeout: const Duration(seconds: 90)),
+      );
+      debugPrint('[chatQuery] ✅ status=${r.statusCode} keys=${(r.data as Map?)?.keys.toList()}');
+      return r.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      debugPrint('[chatQuery] ❌ tipo=${e.type} status=${e.response?.statusCode} '
+          'body=${e.response?.data} msg=${e.message}');
+      _log.severe('Falha no chat IA', e.response?.data);
+      rethrow;
+    } catch (e) {
+      debugPrint('[chatQuery] ❌ erro inesperado: $e');
+      rethrow;
+    }
   }
 }
-
-final studentRepositoryProvider = Provider<StudentRepository>((ref) {
-  return StudentRepository(
-      ref.watch(dioProvider), ref.watch(authTokenProvider));
-});
-
-final courseListProvider =
-    FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final units = await ref.watch(studentRepositoryProvider).getCourseUnits();
-  return units.cast<Map<String, dynamic>>();
-});

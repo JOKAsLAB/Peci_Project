@@ -1,24 +1,21 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_theme.dart';
-import '../shared/tutor_chat_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/theme/app_theme.dart';
+import '../../data/models/learning_path.dart';
+import '../../data/remote/student_repository.dart';
+import '../../features/gamification/providers/feed_provider.dart';
+import '../../features/profile/providers/profile_provider.dart';
+import '../shared/tutor_chat_dialog.dart';
+import '../shared/xp_gain_overlay.dart';
 
-import '../../../data/mock_data.dart';
-import '../../../data/remote/student_repository.dart';
-import '../../data/models/exercise.dart';
+// ─── Ecrã principal: lista de UCs ────────────────────────────────────────────
 
-/// Lista de cursos/disciplinas disponíveis.
-/// O aluno pode inscrever-se numa disciplina e depois ver o caminho Duolingo de capítulos.
-class CoursesScreen extends ConsumerStatefulWidget {
+class CoursesScreen extends ConsumerWidget {
   const CoursesScreen({super.key});
-  @override
-  ConsumerState<CoursesScreen> createState() => _CoursesScreenState();
-}
 
-class _CoursesScreenState extends ConsumerState<CoursesScreen> {
   @override
-  Widget build(BuildContext context) {
-    final coursesAsync = ref.watch(courseListProvider);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pathsAsync = ref.watch(learningPathsProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundPrimary,
@@ -27,24 +24,44 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
         backgroundColor: AppTheme.surfaceSecondary,
         elevation: 0,
       ),
-      body: coursesAsync.when(
+      body: pathsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => const Center(
-          child: Text('Erro ao carregar cursos', style: TextStyle(color: AppTheme.textSecondary)),
+        error: (e, _) => Center(
+          child: Text('Erro ao carregar cursos: $e',
+              style: const TextStyle(color: AppTheme.textSecondary)),
         ),
-        data: (courses) => ListView.builder(
-          physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          itemCount: courses.length,
-          itemBuilder: (context, index) {
-            final course = courses[index];
-            return _CourseCard(
-              name: course['name'] as String,
-              shortName: (course['name'] as String).split(' ').map((w) => w[0]).take(3).join(),
-              onTap: () {},
-            );
-          },
-        ),
+        data: (paths) => paths.isEmpty
+            ? const Center(
+                child: Text('Sem cursos disponíveis.',
+                    style: TextStyle(color: AppTheme.textSecondary)),
+              )
+            : ListView.builder(
+                physics: const ClampingScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                itemCount: paths.length,
+                itemBuilder: (context, index) {
+                  final path = paths[index];
+                  final shortName = path.name
+                      .split(' ')
+                      .where((w) => w.isNotEmpty)
+                      .map((w) => w[0])
+                      .take(3)
+                      .join()
+                      .toUpperCase();
+
+                  return _CourseCard(
+                    name: path.name,
+                    shortName: shortName,
+                    totalTopics: path.totalTopics,
+                    totalExercises: path.totalExercises,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => CoursePathScreen(path: path),
+                      ),
+                    ),
+                  );
+                },
+              ),
       ),
     );
   }
@@ -53,9 +70,17 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
 class _CourseCard extends StatelessWidget {
   final String name;
   final String shortName;
+  final int totalTopics;
+  final int totalExercises;
   final VoidCallback onTap;
 
-  const _CourseCard({required this.name, required this.shortName, required this.onTap});
+  const _CourseCard({
+    required this.name,
+    required this.shortName,
+    required this.totalTopics,
+    required this.totalExercises,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -72,22 +97,46 @@ class _CourseCard extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 56, height: 56,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
                     color: AppTheme.brandAccent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Center(
-                    child: Text(shortName, style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.brandAccent,
-                    )),
+                    child: Text(
+                      shortName,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.brandAccent,
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: Text(name, style: const TextStyle(
-                    color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w600,
-                  )),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$totalTopics tópicos · $totalExercises exercícios',
+                        style: const TextStyle(
+                          color: AppTheme.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const Icon(Icons.chevron_right, color: AppTheme.textSecondary),
               ],
@@ -99,77 +148,73 @@ class _CourseCard extends StatelessWidget {
   }
 }
 
-/// Ecrã Duolingo-style path para um curso específico.
-/// Mostra os capítulos como nós num caminho vertical com zig-zag.
-class CoursePathScreen extends StatelessWidget {
-  final Course course;
+// ─── Ecrã path (zigzag) ───────────────────────────────────────────────────────
 
-  const CoursePathScreen({super.key, required this.course});
+class CoursePathScreen extends StatelessWidget {
+  final LearningPath path;
+
+  const CoursePathScreen({super.key, required this.path});
 
   @override
   Widget build(BuildContext context) {
+    final checkpoints = path.checkpoints;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundPrimary,
       appBar: AppBar(
-        title: Text(course.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(path.name, style: const TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: AppTheme.surfaceSecondary,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        physics: const ClampingScrollPhysics(),
-        padding: const EdgeInsets.symmetric(vertical: 32),
-        child: Column(
-          children: List.generate(course.chapters.length, (index) {
-            final chapter = course.chapters[index];
-            // Zig-zag: alterna entre esquerda e direita
-            final alignment = index % 2 == 0
-                ? Alignment.centerLeft
-                : Alignment.centerRight;
-
-            return Column(
-              children: [
-                if (index > 0) _PathConnector(chapter: chapter),
-                Align(
-                  alignment: alignment,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      left: index % 2 == 0 ? 48 : 0,
-                      right: index % 2 != 0 ? 48 : 0,
-                    ),
-                    child: _ChapterNode(chapter: chapter, index: index),
-                  ),
-                ),
-              ],
-            );
-          }),
-        ),
-      ),
+      body: checkpoints.isEmpty
+          ? const Center(child: Text('Sem tópicos disponíveis.', style: TextStyle(color: AppTheme.textSecondary)))
+          : SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.symmetric(vertical: 28),
+              child: Column(
+                children: List.generate(checkpoints.length, (index) {
+                  final checkpoint = checkpoints[index];
+                  // Alternado: par = esquerda, ímpar = direita
+                  final alignment = index % 2 == 0 ? Alignment.centerLeft : Alignment.centerRight;
+                  return Column(
+                    children: [
+                      if (index > 0) _PathConnector(),
+                      Align(
+                        alignment: alignment,
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            left: index % 2 == 0 ? 56 : 0,
+                            right: index % 2 != 0 ? 56 : 0,
+                          ),
+                          child: _CheckpointNode(
+                            checkpoint: checkpoint,
+                            index: index,
+                            courseUnitId: path.idUc,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
     );
   }
 }
 
+// ─── Linha de ligação entre nós ───────────────────────────────────────────────
+
 class _PathConnector extends StatelessWidget {
-  final Chapter chapter;
-
-  const _PathConnector({required this.chapter});
-
   @override
   Widget build(BuildContext context) {
-    final color = switch (chapter.status) {
-      ChapterStatus.completed => AppTheme.brandAccent,
-      ChapterStatus.inProgress => AppTheme.brandAccent.withValues(alpha: 0.5),
-      ChapterStatus.available => Colors.grey.shade600,
-      ChapterStatus.locked => Colors.grey.shade800,
-    };
-
     return SizedBox(
-      height: 40,
+      height: 36,
       child: Center(
         child: Container(
           width: 3,
-          height: 40,
+          height: 36,
           decoration: BoxDecoration(
-            color: color,
+            color: AppTheme.brandAccent.withValues(alpha: 0.35),
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -178,540 +223,446 @@ class _PathConnector extends StatelessWidget {
   }
 }
 
-class _ChapterNode extends StatelessWidget {
-  final Chapter chapter;
-  final int index;
+// ─── Nó circular do checkpoint ────────────────────────────────────────────────
 
-  const _ChapterNode({required this.chapter, required this.index});
+class _CheckpointNode extends StatelessWidget {
+  final Checkpoint checkpoint;
+  final int index;
+  final int courseUnitId;
+
+  const _CheckpointNode({
+    required this.checkpoint,
+    required this.index,
+    required this.courseUnitId,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final isLocked = chapter.status == ChapterStatus.locked;
-    final isCompleted = chapter.status == ChapterStatus.completed;
-    final isInProgress = chapter.status == ChapterStatus.inProgress;
-
-    final nodeColor = switch (chapter.status) {
-      ChapterStatus.completed => AppTheme.brandAccent,
-      ChapterStatus.inProgress => AppTheme.brandAccent,
-      ChapterStatus.available => AppTheme.surfaceSecondary,
-      ChapterStatus.locked => Colors.grey.shade900,
-    };
-
-    final borderColor = switch (chapter.status) {
-      ChapterStatus.completed => AppTheme.successState,
-      ChapterStatus.inProgress => AppTheme.brandAccent,
-      ChapterStatus.available => Colors.grey.shade600,
-      ChapterStatus.locked => Colors.grey.shade800,
-    };
-
-    final icon = switch (chapter.status) {
-      ChapterStatus.completed => Icons.check_rounded,
-      ChapterStatus.inProgress => Icons.play_arrow_rounded,
-      ChapterStatus.available => Icons.circle_outlined,
-      ChapterStatus.locked => Icons.lock_rounded,
-    };
+    final hasExercises = checkpoint.exercises.isNotEmpty;
 
     return GestureDetector(
-      onTap: isLocked ? null : () => _showChapterDetail(context),
+      onTap: hasExercises
+          ? () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => ExerciseScreen(checkpoint: checkpoint, courseUnitId: courseUnitId),
+              ))
+          : null,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Nó circular (estilo Duolingo)
+          // Círculo principal
           Container(
-            width: 72,
-            height: 72,
+            width: 76,
+            height: 76,
             decoration: BoxDecoration(
-              color: nodeColor,
               shape: BoxShape.circle,
-              border: Border.all(color: borderColor, width: 3),
-              boxShadow: isInProgress
+              color: hasExercises
+                  ? AppTheme.brandAccent
+                  : Colors.grey.shade900,
+              border: Border.all(
+                color: hasExercises ? AppTheme.brandAccent : Colors.grey.shade700,
+                width: 3,
+              ),
+              boxShadow: hasExercises
                   ? [
                       BoxShadow(
-                        color: AppTheme.brandAccent.withValues(alpha: 0.4),
-                        blurRadius: 16,
-                        spreadRadius: 2,
+                        color: AppTheme.brandAccent.withValues(alpha: 0.35),
+                        blurRadius: 14,
+                        spreadRadius: 1,
                       ),
                     ]
                   : null,
             ),
             child: Icon(
-              icon,
-              color: isLocked ? Colors.grey.shade700 : AppTheme.textPrimary,
-              size: 32,
+              hasExercises ? Icons.play_arrow_rounded : Icons.lock_rounded,
+              color: hasExercises ? Colors.white : Colors.grey.shade700,
+              size: 34,
             ),
           ),
           const SizedBox(height: 8),
-          // Título do capítulo
+          // Nome do tópico
           SizedBox(
             width: 160,
             child: Text(
-              chapter.title,
+              checkpoint.topicName,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: isLocked ? Colors.grey.shade700 : AppTheme.textPrimary,
+                color: hasExercises ? AppTheme.textPrimary : AppTheme.textSecondary.withValues(alpha: 0.5),
                 fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          if (isInProgress) ...[
-            const SizedBox(height: 4),
-            Text(
-              '${chapter.completedExercises}/${chapter.totalExercises}',
-              style: const TextStyle(color: AppTheme.brandAccent, fontSize: 11),
-            ),
-          ],
-          if (isCompleted) ...[
-            const SizedBox(height: 4),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.star_rounded, size: 14, color: AppTheme.successState),
-                const SizedBox(width: 2),
-                Text(
-                  '${chapter.xpReward} XP',
-                  style: const TextStyle(color: AppTheme.successState, fontSize: 11),
-                ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  void _showChapterDetail(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTheme.surfaceSecondary,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade700,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                chapter.title,
-                style: const TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                chapter.description,
-                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  _InfoChip(
-                    icon: Icons.bolt_outlined,
-                    label: '${chapter.totalExercises} exercícios',
-                  ),
-                  const SizedBox(width: 12),
-                  _InfoChip(
-                    icon: Icons.star_outline_rounded,
-                    label: '${chapter.xpReward} XP',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => ChapterExercisesScreen(chapter: chapter),
-                      ),
-                    );
-                  },
-                  child: Text(
-                    chapter.status == ChapterStatus.completed
-                        ? 'Rever Capítulo'
-                        : chapter.status == ChapterStatus.inProgress
-                            ? 'Continuar'
-                            : 'Começar',
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _InfoChip({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundPrimary,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: AppTheme.brandAccent),
-          const SizedBox(width: 6),
-          Text(label, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12)),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Ecrã de exercícios do capítulo ──────────────────────────────────────────
-
-class ChapterExercisesScreen extends StatefulWidget {
-  final Chapter chapter;
-  const ChapterExercisesScreen({super.key, required this.chapter});
-
-  @override
-  State<ChapterExercisesScreen> createState() => _ChapterExercisesScreenState();
-}
-
-class _ChapterExercisesScreenState extends State<ChapterExercisesScreen> {
-  late final List<Exercise> _exercises;
-  int _currentIndex = 0;
-  int? _selectedOption;
-  bool _answered = false;
-  int _correctCount = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _exercises = mockExercises
-        .where((e) => e.chapterId == widget.chapter.id)
-        .toList();
-  }
-
-  bool get _isCorrect =>
-      _selectedOption != null &&
-      _selectedOption == _exercises[_currentIndex].correctIndex;
-
-  void _confirm() {
-    if (_selectedOption == null) return;
-    setState(() {
-      _answered = true;
-      if (_isCorrect) _correctCount++;
-    });
-  }
-
-  void _next() {
-    if (_currentIndex < _exercises.length - 1) {
-      setState(() {
-        _currentIndex++;
-        _selectedOption = null;
-        _answered = false;
-      });
-    } else {
-      _showSummary();
-    }
-  }
-
-  void _showSummary() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        final pct = (_correctCount / _exercises.length * 100).round();
-        final exerciseXp = _correctCount * 25;
-        final totalXp = widget.chapter.xpReward + exerciseXp;
-        return AlertDialog(
-          backgroundColor: AppTheme.surfaceSecondary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Capítulo Concluído!',
-              style: TextStyle(color: AppTheme.textPrimary)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                pct >= 70 ? Icons.emoji_events_rounded : Icons.refresh_rounded,
-                size: 56,
-                color: pct >= 70 ? AppTheme.brandAccent : const Color(0xFFFFB300),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '$_correctCount / ${_exercises.length} corretas ($pct%)',
-                style: const TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.brandAccent.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Capítulo', style: TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-                        Text('+${widget.chapter.xpReward} XP', style: const TextStyle(color: AppTheme.brandAccent, fontSize: 12, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Exercícios ($_correctCount × 25)', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-                        Text('+$exerciseXp XP', style: const TextStyle(color: Color(0xFF64B5F6), fontSize: 12, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                    const Divider(color: Colors.grey, height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Total', style: TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
-                        Text('+$totalXp XP', style: const TextStyle(color: AppTheme.successState, fontSize: 14, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                Navigator.of(context).pop();
-              },
-              child: const Text('Voltar ao Curso'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_exercises.isEmpty) {
-      return Scaffold(
-        backgroundColor: AppTheme.backgroundPrimary,
-        appBar: AppBar(
-          title: Text(widget.chapter.title),
-          backgroundColor: AppTheme.surfaceSecondary,
-        ),
-        body: const Center(
-          child: Text('Sem exercícios disponíveis.',
-              style: TextStyle(color: AppTheme.textSecondary)),
-        ),
-      );
-    }
-
-    final exercise = _exercises[_currentIndex];
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundPrimary,
-      appBar: AppBar(
-        title: Text(widget.chapter.title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: AppTheme.surfaceSecondary,
-        elevation: 0,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
-          child: LinearProgressIndicator(
-            value: (_currentIndex + 1) / _exercises.length,
-            backgroundColor: Colors.grey.shade800,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppTheme.brandAccent),
-            minHeight: 4,
-          ),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Progress counter
-            Text(
-              'Pergunta ${_currentIndex + 1} de ${_exercises.length}',
-              style: const TextStyle(color: AppTheme.textSecondary, fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            // Question
-            Text(
-              exercise.question,
-              style: const TextStyle(
-                color: AppTheme.textPrimary,
-                fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 24),
-            // Options
-            Expanded(
-              child: ListView.builder(
-                physics: const ClampingScrollPhysics(),
-                itemCount: exercise.options.length,
-                itemBuilder: (context, i) {
-                  final isSelected = _selectedOption == i;
-                  final isCorrectOption = i == exercise.correctIndex;
+          ),
+          const SizedBox(height: 4),
+          // Contagem de exercícios
+          Text(
+            hasExercises ? '${checkpoint.exercises.length} exercícios' : 'Sem exercícios',
+            style: TextStyle(
+              color: hasExercises
+                  ? AppTheme.brandAccent.withValues(alpha: 0.8)
+                  : AppTheme.textSecondary.withValues(alpha: 0.35),
+              fontSize: 11,
+            ),
+          ),
+          const SizedBox(height: 4),
+        ],
+      ),
+    );
+  }
+}
 
-                  Color bgColor = AppTheme.surfaceSecondary;
-                  Color borderColor = Colors.transparent;
-                  if (_answered) {
-                    if (isCorrectOption) {
-                      bgColor = AppTheme.successState.withValues(alpha: 0.15);
-                      borderColor = AppTheme.successState;
-                    } else if (isSelected && !isCorrectOption) {
-                      bgColor = AppTheme.errorState.withValues(alpha: 0.15);
-                      borderColor = AppTheme.errorState;
+// ─── Ecrã de exercícios ───────────────────────────────────────────────────────
+
+class ExerciseScreen extends ConsumerStatefulWidget {
+  final Checkpoint checkpoint;
+  final int courseUnitId;
+
+  const ExerciseScreen({super.key, required this.checkpoint, required this.courseUnitId});
+
+  @override
+  ConsumerState<ExerciseScreen> createState() => _ExerciseScreenState();
+}
+
+class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
+  int _current = 0;
+  int? _selectedIndex;   // índice da opção selecionada
+  bool _answered = false;
+
+  LearningExercise get _ex => widget.checkpoint.exercises[_current];
+  int get _total => widget.checkpoint.exercises.length;
+
+  bool get _isCorrect {
+    if (_selectedIndex == null) return false;
+    final selected = _ex.options[_selectedIndex!];
+    final letter = selected.length >= 2 && selected[1] == ')' ? selected[0] : selected;
+    return letter == _ex.correct || selected == _ex.correct;
+  }
+
+  void _confirm() {
+    if (_selectedIndex == null || _answered) return;
+    setState(() => _answered = true);
+    _recordProgress();
+  }
+
+  Future<void> _recordProgress() async {
+    final repo = ref.read(studentRepositoryProvider);
+    final result = await repo.postProgress(
+      exerciseId: _ex.id,
+      isCorrect: _isCorrect,
+      difficulty: _ex.difficulty,
+    );
+    if (!mounted) return;
+    // Invalida o perfil para que apareça actualizado quando o aluno for ao separador
+    ref.invalidate(profileStateProvider);
+    if (result.xpEarned > 0) {
+      XpGainOverlay.show(context, xp: result.xpEarned, levelUp: result.levelUp, newLevel: result.newLevel);
+    }
+  }
+
+  void _next() {
+    if (_current < _total - 1) {
+      setState(() {
+        _current++;
+        _selectedIndex = null;
+        _answered = false;
+      });
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  // Extrai label (A, B, …) e texto da opção
+  (String label, String text) _parseOption(String option, int index) {
+    if (option.length >= 2 && option[1] == ')') {
+      return (option[0], option.substring(2).trim());
+    }
+    // True/False sem prefixo
+    if (_ex.isTrueFalse) {
+      return (index == 0 ? 'V' : 'F', option);
+    }
+    return (String.fromCharCode(65 + index), option);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundPrimary,
+      appBar: AppBar(
+        title: Text(widget.checkpoint.topicName, style: const TextStyle(fontWeight: FontWeight.w600)),
+        backgroundColor: AppTheme.surfaceSecondary,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(3),
+          child: LinearProgressIndicator(
+            value: (_current + 1) / _total,
+            backgroundColor: Colors.grey.shade800,
+            color: AppTheme.brandAccent,
+            minHeight: 3,
+          ),
+        ),
+      ),
+      body: Column(
+        children: [
+          // ── Zona da pergunta ───────────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Contador + dificuldade
+                  Row(
+                    children: [
+                      Text(
+                        'Pergunta ${_current + 1} de $_total',
+                        style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+                      ),
+                      const Spacer(),
+                      _DiffBadge(_ex.difficulty),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Pergunta
+                  Text(
+                    _ex.question,
+                    style: const TextStyle(color: AppTheme.textPrimary, fontSize: 17, fontWeight: FontWeight.w600, height: 1.45),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Painel de opções + ações ───────────────────────────────────
+          Container(
+            decoration: const BoxDecoration(
+              color: AppTheme.surfaceSecondary,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 14),
+                // Opções — altura fixa para todas
+                if (_ex.options.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('Sem opções disponíveis.', style: TextStyle(color: AppTheme.textSecondary)),
+                  )
+                else
+                  ...List.generate(_ex.options.length, (i) {
+                    final (label, text) = _parseOption(_ex.options[i], i);
+                    final isSelected = _selectedIndex == i;
+                    final isCorrectOption = _answered && _ex.options[i] == _ex.correct ||
+                        (_answered &&
+                            _ex.options[i].length >= 2 &&
+                            _ex.options[i][1] == ')' &&
+                            _ex.options[i][0] == _ex.correct);
+
+                    Color borderColor;
+                    Color labelBg;
+                    Color labelColor;
+
+                    if (_answered) {
+                      if (isCorrectOption) {
+                        borderColor = AppTheme.successState;
+                        labelBg = AppTheme.successState.withValues(alpha: 0.2);
+                        labelColor = AppTheme.successState;
+                      } else if (isSelected) {
+                        borderColor = AppTheme.errorState;
+                        labelBg = AppTheme.errorState.withValues(alpha: 0.2);
+                        labelColor = AppTheme.errorState;
+                      } else {
+                        borderColor = Colors.grey.shade800;
+                        labelBg = Colors.grey.shade800;
+                        labelColor = AppTheme.textSecondary;
+                      }
+                    } else {
+                      borderColor = isSelected ? AppTheme.brandAccent : Colors.grey.shade700;
+                      labelBg = isSelected ? AppTheme.brandAccent.withValues(alpha: 0.2) : Colors.grey.shade800;
+                      labelColor = isSelected ? AppTheme.brandAccent : AppTheme.textSecondary;
                     }
-                  } else if (isSelected) {
-                    bgColor = AppTheme.brandAccent.withValues(alpha: 0.15);
-                    borderColor = AppTheme.brandAccent;
-                  }
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Material(
-                      color: bgColor,
-                      borderRadius: BorderRadius.circular(14),
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       child: InkWell(
-                        onTap: _answered ? null : () => setState(() => _selectedOption = i),
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        onTap: _answered ? null : () => setState(() => _selectedIndex = i),
+                        borderRadius: BorderRadius.circular(12),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          constraints: const BoxConstraints(minHeight: 52),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: borderColor, width: 1.5),
+                            color: _answered && isCorrectOption
+                                ? AppTheme.successState.withValues(alpha: 0.07)
+                                : _answered && isSelected
+                                    ? AppTheme.errorState.withValues(alpha: 0.07)
+                                    : null,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: borderColor, width: isSelected || (_answered && isCorrectOption) ? 1.8 : 1),
                           ),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
+                              // Label A / B / V / F
                               Container(
                                 width: 28,
                                 height: 28,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: isSelected
-                                      ? AppTheme.brandAccent.withValues(alpha: 0.2)
-                                      : Colors.grey.shade800,
-                                ),
+                                decoration: BoxDecoration(color: labelBg, borderRadius: BorderRadius.circular(7)),
                                 child: Center(
-                                  child: Text(
-                                    String.fromCharCode(65 + i),
-                                    style: TextStyle(
-                                      color: isSelected ? AppTheme.brandAccent : AppTheme.textSecondary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                    ),
-                                  ),
+                                  child: Text(label, style: TextStyle(color: labelColor, fontWeight: FontWeight.w700, fontSize: 13)),
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
-                                child: Text(
-                                  exercise.options[i],
-                                  style: const TextStyle(color: AppTheme.textPrimary, fontSize: 15),
-                                ),
+                                child: Text(text, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, height: 1.35)),
                               ),
                               if (_answered && isCorrectOption)
-                                const Icon(Icons.check_circle, color: AppTheme.successState, size: 22),
+                                const Icon(Icons.check_circle_rounded, color: AppTheme.successState, size: 18),
                               if (_answered && isSelected && !isCorrectOption)
-                                const Icon(Icons.cancel, color: AppTheme.errorState, size: 22),
+                                const Icon(Icons.cancel_rounded, color: AppTheme.errorState, size: 18),
                             ],
                           ),
                         ),
                       ),
-                    ),
-                  );
-                },
-              ),
+                    );
+                  }),
+
+                // ── Feedback / Botões ────────────────────────────────────
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  alignment: Alignment.topCenter,
+                  child: _answered
+                      ? _buildFeedback()
+                      : Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: _selectedIndex == null ? null : _confirm,
+                              child: const Text('Confirmar', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                            ),
+                          ),
+                        ),
+                ),
+                SafeArea(top: false, child: const SizedBox(height: 8)),
+              ],
             ),
-            // Explanation (shown after answering)
-            if (_answered && exercise.explanation.isNotEmpty)
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppTheme.brandAccent.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.brandAccent.withValues(alpha: 0.3)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedback() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Resultado
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: _isCorrect ? AppTheme.successState.withValues(alpha: 0.1) : AppTheme.errorState.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: _isCorrect ? AppTheme.successState.withValues(alpha: 0.35) : AppTheme.errorState.withValues(alpha: 0.35)),
+            ),
+            child: Row(
+              children: [
+                Icon(_isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                    color: _isCorrect ? AppTheme.successState : AppTheme.errorState, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  _isCorrect ? 'Correto!' : 'Incorreto',
+                  style: TextStyle(color: _isCorrect ? AppTheme.successState : AppTheme.errorState, fontWeight: FontWeight.w700, fontSize: 14),
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.lightbulb_outline, size: 18, color: AppTheme.brandAccent),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        exercise.explanation,
-                        style: const TextStyle(color: AppTheme.textPrimary, fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
+              ],
+            ),
+          ),
+          // Explicação
+          if (_ex.explanation.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              constraints: const BoxConstraints(maxHeight: 90),
+              decoration: BoxDecoration(
+                color: AppTheme.brandAccent.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppTheme.brandAccent.withValues(alpha: 0.2)),
               ),
-            // Tutor IA button (after answering)
-            if (_answered)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: TextButton.icon(
-                    onPressed: () {
-                      TutorChatDialog.show(context, exercise: exercise, wasCorrect: _isCorrect);
-                    },
-                    icon: const Icon(Icons.smart_toy_rounded, size: 18),
-                    label: const Text('Pedir explicação ao Tutor IA'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppTheme.brandAccent,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.auto_awesome, color: AppTheme.brandAccent, size: 13),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      physics: const ClampingScrollPhysics(),
+                      child: Text(_ex.explanation, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12, height: 1.4)),
                     ),
                   ),
-                ),
-              ),
-            // Action button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _answered
-                    ? _next
-                    : (_selectedOption != null ? _confirm : null),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                child: Text(
-                  _answered
-                      ? (_currentIndex < _exercises.length - 1 ? 'Próxima' : 'Ver Resultado')
-                      : 'Confirmar',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+                ],
               ),
             ),
           ],
-        ),
+          const SizedBox(height: 8),
+          // Tutor IA
+          SizedBox(
+            width: double.infinity,
+            height: 42,
+            child: TextButton.icon(
+              onPressed: () => TutorChatDialog.showForLearning(context, exercise: _ex, wasCorrect: _isCorrect, courseUnitId: widget.courseUnitId),
+              icon: const Icon(Icons.smart_toy_rounded, size: 16),
+              label: const Text('Pedir explicação ao Tutor IA', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.brandAccent,
+                backgroundColor: AppTheme.brandAccent.withValues(alpha: 0.07),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Próxima / Terminar
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: _next,
+              child: Text(_current < _total - 1 ? 'Próxima' : 'Terminar', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+}
+
+// Badge de dificuldade
+class _DiffBadge extends StatelessWidget {
+  final String difficulty;
+  const _DiffBadge(this.difficulty);
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (difficulty.toLowerCase()) {
+      'easy'   => AppTheme.successState,
+      'hard'   => AppTheme.errorState,
+      _        => AppTheme.warningState,
+    };
+    final label = switch (difficulty.toLowerCase()) {
+      'easy'   => 'Fácil',
+      'hard'   => 'Difícil',
+      _        => 'Médio',
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
+      child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600)),
     );
   }
 }

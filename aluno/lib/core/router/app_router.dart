@@ -11,34 +11,39 @@ import '../../presentation/profile/settings_screen.dart';
 import '../../presentation/auth/login_screen.dart';
 import '../../presentation/auth/register_screen.dart';
 
-// Chaves de navegação expostas de forma privada e robusta
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorCoursesKey = GlobalKey<NavigatorState>(debugLabel: 'shell_courses');
 final _shellNavigatorFeedKey = GlobalKey<NavigatorState>(debugLabel: 'shell_feed');
 final _shellNavigatorProfileKey = GlobalKey<NavigatorState>(debugLabel: 'shell_profile');
 
-/// Mock de estado de autenticação para a fase atual.
-/// A ser substituído pelo AuthController real futuramente.
-final mockAuthProvider = StateProvider<bool>((ref) => false);
-
-/// Injeção do Router via Riverpod para garantir reatividade baseada em estado.
 final routerProvider = Provider<GoRouter>((ref) {
-  final notifier = _RouterNotifier(ref);
+  // A magia está aqui: o router "ouve" o authProvider
+  final authState = ref.watch(authProvider);
+  print('[ROUTER] Auth state changed: isAuthenticated=${authState.isAuthenticated}, error=${authState.error}');
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/courses',
-    refreshListenable: notifier,
-    // Navigation Guard Centralizado
+    // O redirect corre sempre que o authState mudar
     redirect: (context, state) {
-      final isAuthenticated = ref.read(authProvider).isAuthenticated;
+      final isAuthenticated = authState.isAuthenticated;
       final isGoingToAuth = state.matchedLocation == '/login' || state.matchedLocation == '/register';
+      
+      print('[ROUTER REDIRECT] location=${state.matchedLocation}, authenticated=$isAuthenticated, goingToAuth=$isGoingToAuth');
 
-      // Bloqueia acesso a ecrãs protegidos
-      if (!isAuthenticated && !isGoingToAuth) return '/login';
+      // Se não está logado e tenta aceder a algo que não seja login/register -> vai para login
+      if (!isAuthenticated && !isGoingToAuth) {
+        print('[ROUTER REDIRECT] -> Redirecting to /login (not authenticated)');
+        return '/login';
+      }
 
-       // Impede acesso ao login se já autenticado
-      if (isAuthenticated && isGoingToAuth) return '/courses';
+      // Se já está logado e tenta ir ao login -> vai para a home (courses)
+      if (isAuthenticated && isGoingToAuth) {
+        print('[ROUTER REDIRECT] -> Redirecting to /courses (already authenticated)');
+        return '/courses';
+      }
+
+      print('[ROUTER REDIRECT] -> No redirect needed');
       return null;
     },
     routes: [
@@ -94,9 +99,3 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
-
-class _RouterNotifier extends ChangeNotifier {
-  _RouterNotifier(Ref ref) {
-    ref.listen(authProvider, (_, __) => notifyListeners());
-  }
-}

@@ -20,7 +20,7 @@ class PDFIndexer:
     CHUNK_SIZE = 800
     CHUNK_OVERLAP = 150
 
-    def __init__(self, device="cuda", db_path: str = DEFAULT_DB_PATH, upload_dir: str = DEFAULT_UPLOAD_DIR):
+    def __init__(self, device="cuda", embeddings= None, db_path: str = DEFAULT_DB_PATH, upload_dir: str = DEFAULT_UPLOAD_DIR):
         _dir = os.path.dirname(os.path.abspath(__file__))
         load_dotenv(os.path.join(_dir, "keys.env"))
 
@@ -34,23 +34,21 @@ class PDFIndexer:
 
         os.environ["HF_TOKEN"] = gemma_token
         os.environ["GROQ_API_KEY"] = groq_key
+        if embeddings is not None:
+            self.embeddings = embeddings
+        else:
+            model_kwargs = {"device": device, "trust_remote_code": True, "model_kwargs": {"torch_dtype": torch.float32}}
+            self.embeddings = HuggingFaceEmbeddings(
+                model_name='google/embeddinggemma-300m',
+                model_kwargs=model_kwargs,
+                encode_kwargs={'normalize_embeddings': True}
+            )
 
         self.db_path = db_path
         self.upload_dir = Path(upload_dir)
         self.upload_dir.mkdir(parents=True, exist_ok=True)
         self.collection_name = self.DEFAULT_COLLECTION_NAME
 
-        model_kwargs = {
-            "device": device,
-            "trust_remote_code": True,
-            "model_kwargs": {"torch_dtype": torch.float32}
-        }
-
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name="google/embeddinggemma-300m",
-            model_kwargs=model_kwargs,
-            encode_kwargs={'normalize_embeddings': True}
-        )
 
         self._splitter = RecursiveCharacterTextSplitter(
             chunk_size=self.CHUNK_SIZE,

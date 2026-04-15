@@ -131,7 +131,7 @@ class Admin(Base_User):
     Contact         = Column("contact", String(150),  nullable=True)
 
     __table_args__ = (
-        # IMPORTANTE: A string do CheckConstraint deve coincidir EXACTAMENTE 
+        # IMPORTANTE: A string do CheckConstraint deve coincidir EXACTAMENTE
         # com o nome da variável da coluna definida acima.
         CheckConstraint('"Privilege_Level" BETWEEN 1 AND 3', name="check_privilege_level"),
     )
@@ -171,7 +171,7 @@ class Professor_UC(Base):
     professor   = relationship("Professor",
                             back_populates="professor_ucs")
     course_unit = relationship(
-                            "Course_Unit", 
+                            "Course_Unit",
                             back_populates="professor_ucs")
 
 
@@ -184,11 +184,13 @@ class Student_UC(Base):
     __tablename__ = "student_uc"
 
     ID_Student = Column(
+        "id_student",           # FIX: nome explícito em minúsculas
         UUID(as_uuid=True),
         ForeignKey("student.id_student", ondelete="CASCADE"),
         primary_key=True
     )
     ID_UC = Column(
+        "id_uc",                # FIX: nome explícito em minúsculas
         Integer,
         ForeignKey("course_unit.id_uc", ondelete="CASCADE"),
         primary_key=True

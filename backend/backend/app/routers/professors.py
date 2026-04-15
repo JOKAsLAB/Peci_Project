@@ -1,27 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status, UploadFile, File
 from sqlalchemy import and_, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 import glob
-from pathlib import Path
 import uuid
-import sys
 import os
-from dotenv import load_dotenv
-
-_ai_engine_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '..', '..', '..', '..', 'ai_engine')
-)
-if _ai_engine_path not in sys.path:
-    sys.path.insert(0, _ai_engine_path)
-
+from typing import Optional
 from app.database import get_db
 from app.models import (
     Base_User,
     Course_Unit,
     Exercise,
     Professor_UC,
-    Request,
+    Request as RequestModel,
     Teaching_Material,
     Topic,
 )
@@ -82,7 +73,7 @@ def to_material_response(item: Teaching_Material, professor: Base_User, current_
     )
 
 
-def to_request_response(item: Request) -> AdminRequestResponse:
+def to_request_response(item: RequestModel) -> AdminRequestResponse:
     return AdminRequestResponse(
         id_request=item.ID_Request,
         id_professor=item.ID_Professor,
@@ -118,7 +109,7 @@ async def list_my_exercises(
     topic_name: str | None = Query(default=None),
     difficulty: str | None = Query(default=None),
     type_filter: str | None = Query(default=None, alias="type"),
-    limit: int = Query(default=100, ge=1, le=500),
+    limit: Optional[int] = Query(default=None, ge=1),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_db),
     current_professor: Base_User = Depends(require_roles("Professor")),
@@ -210,7 +201,6 @@ async def update_exercise(
     if payload.question is not None:
         exercise.Question = payload.question
     if payload.topic_name is not None:
-        # Verificar se o tópico existe
         topic_exists = await db.scalar(
             select(Topic).where(and_(Topic.ID_UC == exercise.ID_UC, Topic.Name == payload.topic_name))
         )
@@ -229,6 +219,7 @@ async def update_exercise(
     await db.flush()
     await db.commit()
     return to_exercise_response(exercise)
+
 
 @router.delete("/exercises/{exercise_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_exercise(
@@ -283,6 +274,7 @@ async def list_my_materials(
         for material, professor in rows
     ]
 
+
 @router.post("/materials", response_model=MaterialResponse, status_code=status.HTTP_201_CREATED)
 async def create_material(
     payload: MaterialCreateRequest,
@@ -314,6 +306,7 @@ async def create_material(
 @router.delete("/materials/{material_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_material(
     material_id: uuid.UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_professor: Base_User = Depends(require_roles("Professor")),
 ):
@@ -328,12 +321,12 @@ async def delete_material(
     if not material:
         raise HTTPException(status_code=404, detail="Material não encontrado")
 
-    try:
-        from ImportFiles import PDFIndexer  # type: ignore
-        indexer = PDFIndexer(device="cpu")
-        indexer.remover_ficheiro(str(material_id))
-    except Exception as e:
-        print(f"⚠️ Erro ao remover do ChromaDB: {e}")
+    indexer = request.app.state.pdf_indexer
+    if indexer is not None:
+        try:
+            indexer.remover_ficheiro(str(material_id))
+        except Exception as e:
+            print(f"⚠️ Erro ao remover do ChromaDB: {e}")
 
     await db.execute(delete(Teaching_Material).where(Teaching_Material.ID_Material == material_id))
     await db.commit()
@@ -342,6 +335,7 @@ async def delete_material(
 @router.post("/materials/{material_id}/reindex", response_model=IndexMaterialResponse)
 async def reindex_material(
     material_id: uuid.UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_professor: Base_User = Depends(require_roles("Professor")),
 ):
@@ -356,28 +350,27 @@ async def reindex_material(
     if not material:
         raise HTTPException(status_code=404, detail="Material não encontrado")
 
+    indexer = request.app.state.pdf_indexer
+    if indexer is None:
+        raise HTTPException(status_code=503, detail="AI Engine não disponível")
+
+    ficheiro_id = str(material_id)
+    uploads_dir = os.path.join(request.app.state.ai_engine_path, "uploads")
+
+    matches = glob.glob(os.path.join(uploads_dir, f"{ficheiro_id}.*"))
+    if not matches:
+        raise HTTPException(status_code=404, detail="Ficheiro físico não encontrado")
+
+    file_path = matches[0]
+
     try:
-        from ImportFiles import PDFIndexer  # type: ignore
-        print("✅ PDFIndexer importado com sucesso")
-
-        indexer = PDFIndexer(device="cpu")
-        ficheiro_id = str(material_id)  # ← sempre o mesmo ID do material
-        uploads_dir = os.path.join(_ai_engine_path, "uploads")  # ← caminho absoluto
-
-        matches = glob.glob(os.path.join(uploads_dir, f"{ficheiro_id}.*"))
-        if not matches:
-            raise HTTPException(status_code=404, detail="Ficheiro físico não encontrado")
-
-        file_path = matches[0]
-
-        # Remove chunks antigos antes de re-indexar
         indexer.remover_ficheiro(ficheiro_id)
 
         resultado = indexer.indexar_total(
             pdf_path=file_path,
             uc_id=material.ID_UC,
-            ficheiro_id=ficheiro_id,          # ← mesmo UUID da BD
-            original_filename=material.Title,  # ← nome original guardado na BD
+            ficheiro_id=ficheiro_id,
+            original_filename=material.Title,
         )
 
         material.Status = "Indexed"
@@ -390,7 +383,6 @@ async def reindex_material(
             file=material.Title,
             message="Material re-indexado com sucesso",
         )
-
     except HTTPException:
         raise
     except Exception as e:
@@ -403,9 +395,9 @@ async def list_my_admin_requests(
     current_professor: Base_User = Depends(require_roles("Professor")),
 ):
     stmt = (
-        select(Request)
-        .where(Request.ID_Professor == current_professor.ID_User)
-        .order_by(Request.Creation_Date.desc())
+        select(RequestModel)
+        .where(RequestModel.ID_Professor == current_professor.ID_User)
+        .order_by(RequestModel.Creation_Date.desc())
     )
     items = (await db.scalars(stmt)).all()
     return [to_request_response(item) for item in items]
@@ -417,7 +409,7 @@ async def create_admin_request(
     db: AsyncSession = Depends(get_db),
     current_professor: Base_User = Depends(require_roles("Professor")),
 ):
-    item = Request(
+    item = RequestModel(
         ID_Professor=current_professor.ID_User,
         Request_Type=payload.request_type,
         Title=payload.title,
@@ -432,6 +424,7 @@ async def create_admin_request(
 @router.post("/generate-questions", response_model=GeneratedQuestionsResponse, status_code=status.HTTP_201_CREATED)
 async def generate_questions(
     payload: GenerateQuestionsRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_professor: Base_User = Depends(require_roles("Professor")),
 ):
@@ -446,11 +439,11 @@ async def generate_questions(
     if not has_access:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
 
-    try:
-        from QuestionGeneratorTeacher import QuestionGeneratorTeacher  # type: ignore
-        print("✅ QuestionGeneratorTeacher importado com sucesso")
+    gerador = request.app.state.question_generator
+    if gerador is None:
+        raise HTTPException(status_code=503, detail="AI Engine não disponível")
 
-        gerador = QuestionGeneratorTeacher(device="cpu", db_path=os.path.join(_ai_engine_path, "chroma_db"))
+    try:
         print(f"📊 A chamar gerador com:\n  - filename: {payload.filename}\n  - topic: {payload.topic}\n  - n_perguntas: {payload.n_perguntas}\n  - difficulty: {payload.difficulty}\n  - question_type: {payload.question_type}")
 
         perguntas = gerador.generate_questions_by_topic(
@@ -466,19 +459,19 @@ async def generate_questions(
         if not perguntas:
             raise HTTPException(status_code=400, detail="Não foram geradas perguntas para o tópico indicado")
 
+        type_map = {
+            "Escolha Múltipla": "Multiple Choice",
+            "True/False": "True/False",
+        }
+        difficulty_map = {
+            "easy": "Easy",
+            "medium": "Medium",
+            "hard": "Hard",
+            "variada": "Medium",
+        }
+
         exercicios_criados = []
         for p in perguntas:
-            type_map = {
-				"Escolha Múltipla": "Multiple Choice",
-				"True/False": "True/False",
-			}
-            difficulty_map = {
-				"easy": "Easy",
-				"medium": "Medium",
-				"hard": "Hard",
-				"variada": "Medium",
-			}
-
             item = Exercise(
                 ID_UC=payload.id_uc,
                 Topic_Name=p.get("topic", "Sem tópico"),
@@ -506,9 +499,6 @@ async def generate_questions(
 
     except HTTPException:
         raise
-    except ModuleNotFoundError as e:
-        print(f"❌ Erro ao importar módulo: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Dependências não instaladas: {str(e)}. Verifica ai_engine/requirements.txt")
     except Exception as e:
         print(f"❌ Erro na rota generate-questions: {str(e)}")
         import traceback
@@ -518,12 +508,12 @@ async def generate_questions(
 
 @router.post("/index-material", response_model=IndexMaterialResponse, status_code=status.HTTP_201_CREATED)
 async def index_material(
+    request: Request,
     id_uc: int = Query(..., description="ID da Unidade Curricular"),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
     current_professor: Base_User = Depends(require_roles("Professor")),
 ):
-    """Faz upload e indexa um ficheiro PDF no ChromaDB"""
     has_access = await db.scalar(
         select(Professor_UC).where(
             and_(
@@ -543,27 +533,26 @@ async def index_material(
     if file.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Apenas PDFs, PPTXs e DOCXs são permitidos")
 
-    try:
-        from ImportFiles import PDFIndexer  # type: ignore
-        print("✅ PDFIndexer importado com sucesso")
+    indexer = request.app.state.pdf_indexer
+    if indexer is None:
+        raise HTTPException(status_code=503, detail="AI Engine não disponível")
 
+    try:
         file_content = await file.read()
         print(f"📥 Ficheiro recebido: {file.filename} ({len(file_content)} bytes)")
 
-        ficheiro_id = uuid.uuid4()  # ← gera o UUID único
+        ficheiro_id = uuid.uuid4()
 
-        indexer = PDFIndexer(device="cpu", upload_dir=os.path.join(_ai_engine_path, "uploads"))  # ← caminho absoluto
         print("🔄 A indexar ficheiro...")
-
         resultado = indexer.indexar_com_upload(
             file_content=file_content,
             original_filename=file.filename,
             uc_id=id_uc,
-            ficheiro_id=str(ficheiro_id),  # ← mesmo UUID para ChromaDB
+            ficheiro_id=str(ficheiro_id),
         )
 
         material = Teaching_Material(
-            ID_Material=ficheiro_id,  # ← mesmo UUID para BD
+            ID_Material=ficheiro_id,
             ID_UC=id_uc,
             ID_Professor=current_professor.ID_User,
             Status="Indexed",
@@ -582,8 +571,6 @@ async def index_material(
 
     except HTTPException:
         raise
-    except ModuleNotFoundError as e:
-        raise HTTPException(status_code=500, detail=f"Dependências não instaladas: {str(e)}. Verifica ai_engine/requirements.txt")
     except Exception as e:
         import traceback
         traceback.print_exc()

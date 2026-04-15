@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../features/auth/providers/auth_provider.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _nameController = TextEditingController();
-  final _nmecController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -19,12 +20,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirm = true;
   bool _loading = false;
   String? _errorMessage;
-  String _selectedRole = 'aluno';
+  String _selectedRole = 'Student';
 
   @override
   void dispose() {
     _nameController.dispose();
-    _nmecController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -33,12 +33,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _register() {
     final name = _nameController.text.trim();
-    final nmec = _nmecController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final confirm = _confirmPasswordController.text;
 
-    if (name.isEmpty || nmec.isEmpty || email.isEmpty || password.isEmpty) {
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
       setState(() => _errorMessage = 'Preenche todos os campos.');
       return;
     }
@@ -60,26 +59,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _loading = true;
     });
 
-    // Mock register — será substituído por POST /auth/register em M3
-    Future.delayed(const Duration(milliseconds: 1000), () {
-      if (!mounted) return;
-      // Sucesso mock → volta ao login
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _selectedRole == 'aluno'
-                ? 'Conta de aluno criada com sucesso!'
-                : 'Pedido de conta de docente enviado para aprovação.',
-          ),
-          backgroundColor: AppTheme.brandAccent,
-        ),
-      );
-      context.pop();
-    });
+    ref.read(authProvider.notifier).register(
+      name: name,
+      email: email,
+      password: password,
+      role: _selectedRole,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    
+    // Listener para navegação e feedback
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (next.isAuthenticated) {
+        // Usa Future.microtask para dar ao routerProvider tempo de reconstruir
+        Future.microtask(() {
+          if (mounted) {
+            context.go('/courses');
+          }
+        });
+      } else if (next.registrationSuccess && !next.isAuthenticated && _loading) {
+        // Conta criada mas requer aprovação
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _selectedRole == 'aluno'
+                  ? 'Conta criada com sucesso!'
+                  : 'Pedido de docente enviado para aprovação.',
+            ),
+            backgroundColor: AppTheme.brandAccent,
+          ),
+        );
+        if (mounted) {
+          context.pop();
+        }
+      } else if (next.error != null && _loading) {
+        setState(() {
+          _errorMessage = next.error;
+          _loading = false;
+        });
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundPrimary,
       body: SafeArea(
@@ -128,18 +151,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     children: [
                       Expanded(
                         child: GestureDetector(
-                          onTap: () => setState(() => _selectedRole = 'aluno'),
+                          onTap: () => setState(() => _selectedRole = 'Student'),
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
-                              color: _selectedRole == 'aluno' ? AppTheme.brandAccent : Colors.transparent,
+                              color: _selectedRole == 'Student' ? AppTheme.brandAccent : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
                               'Aluno',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: _selectedRole == 'aluno' ? Colors.white : AppTheme.textSecondary,
+                                color: _selectedRole == 'Student' ? Colors.white : AppTheme.textSecondary,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
                               ),
@@ -149,11 +172,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       Expanded(
                         child: GestureDetector(
-                          onTap: () => setState(() => _selectedRole = 'professor'),
+                          onTap: () => setState(() => _selectedRole = 'Professor'),
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
-                              color: _selectedRole == 'professor' ? AppTheme.brandAccent : Colors.transparent,
+                              color: _selectedRole == 'Professor' ? AppTheme.brandAccent : Colors.transparent,
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Text(
@@ -186,15 +209,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   controller: _nameController,
                   hint: 'Nome completo',
                   icon: Icons.person_outline,
-                ),
-                const SizedBox(height: 14),
-
-                // NMec
-                _buildField(
-                  controller: _nmecController,
-                  hint: 'Número mecanográfico',
-                  icon: Icons.badge_outlined,
-                  keyboardType: TextInputType.number,
                 ),
                 const SizedBox(height: 14),
 

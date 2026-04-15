@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/router/app_router.dart';
 import '../../core/theme/app_theme.dart';
+import '../../features/auth/providers/auth_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -12,11 +12,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _notificationsEnabled = true;
-  bool _dailyReminder = true;
-  bool _soundEffects = true;
-  String _selectedLanguage = 'Português';
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -40,7 +35,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _SettingsTile(
             icon: Icons.person_outline,
             title: 'Editar Perfil',
-            subtitle: 'Nome, foto, NMec',
+            subtitle: 'Alterar nome ou foto de perfil',
             onTap: () {},
           ),
           _SettingsTile(
@@ -52,58 +47,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _SettingsTile(
             icon: Icons.school_outlined,
             title: 'Disciplinas Inscritas',
-            subtitle: 'Gerir as UCs em que estás inscrito',
+            subtitle: 'Ver as UCs em que estás inscrito',
             onTap: () {},
-          ),
-
-          const SizedBox(height: 32),
-
-          // Secção Notificações
-          const _SectionHeader(title: 'Notificações'),
-          const SizedBox(height: 12),
-          _SettingsSwitch(
-            icon: Icons.notifications_outlined,
-            title: 'Notificações',
-            subtitle: 'Receber alertas de novos exercícios',
-            value: _notificationsEnabled,
-            onChanged: (v) => setState(() => _notificationsEnabled = v),
-          ),
-          _SettingsSwitch(
-            icon: Icons.alarm_outlined,
-            title: 'Lembrete Diário',
-            subtitle: 'Lembrete para praticar todos os dias',
-            value: _dailyReminder,
-            onChanged: (v) => setState(() => _dailyReminder = v),
-          ),
-
-          const SizedBox(height: 32),
-
-          // Secção Preferências
-          const _SectionHeader(title: 'Preferências'),
-          const SizedBox(height: 12),
-          _SettingsSwitch(
-            icon: Icons.volume_up_outlined,
-            title: 'Sons',
-            subtitle: 'Efeitos sonoros ao responder exercícios',
-            value: _soundEffects,
-            onChanged: (v) => setState(() => _soundEffects = v),
-          ),
-          _SettingsTile(
-            icon: Icons.language_outlined,
-            title: 'Idioma',
-            subtitle: _selectedLanguage,
-            trailing: DropdownButton<String>(
-              value: _selectedLanguage,
-              dropdownColor: AppTheme.surfaceSecondary,
-              style: const TextStyle(color: AppTheme.brandAccent, fontSize: 14),
-              underline: const SizedBox(),
-              items: ['Português', 'English'].map((l) {
-                return DropdownMenuItem(value: l, child: Text(l));
-              }).toList(),
-              onChanged: (v) {
-                if (v != null) setState(() => _selectedLanguage = v);
-              },
-            ),
           ),
 
           const SizedBox(height: 32),
@@ -114,13 +59,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _SettingsTile(
             icon: Icons.info_outline,
             title: 'Sobre a App',
-            subtitle: 'PECI Projeto #8 · v0.1.0 · Elaboração (M2)',
-            onTap: () {},
-          ),
-          _SettingsTile(
-            icon: Icons.description_outlined,
-            title: 'Termos e Condições',
-            subtitle: 'Política de privacidade e uso',
+            subtitle: 'PECI Projeto #8 · v0.1.0',
             onTap: () {},
           ),
 
@@ -131,7 +70,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: () {
-                ref.read(mockAuthProvider.notifier).state = false;
+                ref.read(authProvider.notifier).logout();
                 context.go('/login');
               },
               icon: const Icon(Icons.logout_rounded, color: AppTheme.errorState),
@@ -207,38 +146,3 @@ class _SettingsTile extends StatelessWidget {
   }
 }
 
-class _SettingsSwitch extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _SettingsSwitch({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 4),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceSecondary,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: SwitchListTile(
-        secondary: Icon(icon, color: AppTheme.textSecondary, size: 22),
-        title: Text(title, style: const TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w500)),
-        subtitle: Text(subtitle, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
-        value: value,
-        onChanged: onChanged,
-        activeThumbColor: AppTheme.brandAccent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-}

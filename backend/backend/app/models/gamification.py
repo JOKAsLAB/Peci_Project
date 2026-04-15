@@ -67,9 +67,9 @@ class Progress(Base):
     XP_Earned   = Column("xp_earned", Integer,    nullable=False, default=0)
 
     # Renomeado de Date para Record_Date — evita conflito com o tipo Date do SQLAlchemy
-    # Mapeia para a coluna "Date" do schema SQL via name="Date"
+    # Mapeia para a coluna "date" do schema SQL (PostgreSQL normaliza para minúsculas)
     Record_Date = Column(
-        "Date",
+        "date",
         DateTime,
         nullable=False,
         server_default=func.now()  # equivalente ao DEFAULT NOW() do SQL

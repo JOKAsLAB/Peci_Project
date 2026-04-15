@@ -116,11 +116,11 @@ async def seed():
                 await session.execute(text("""
                     INSERT INTO Exercise (
                         ID_UC, Topic_Name, Material_Ref,
-                        Type, Question, Solution, Difficulty, Explanation
+                        Type, Question, Solution, Difficulty, Explanation, Published
                     ) VALUES (
                         :id_uc, :topic, NULL,
                         :type, :question, CAST(:solution AS jsonb),
-                        :difficulty, :explanation
+                        :difficulty, :explanation, TRUE
                     )
                 """), {
                     "id_uc":       int(q["id_uc"]),

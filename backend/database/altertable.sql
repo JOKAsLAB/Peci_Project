@@ -1,0 +1,1 @@
+ALTER TABLE exercise ADD COLUMN published BOOLEAN NOT NULL DEFAULT false;

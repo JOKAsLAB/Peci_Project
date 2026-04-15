@@ -22,7 +22,7 @@ class QuestionGeneratorTeacher:
     }
     DEFAULT_DB_PATH = os.path.join(_BASE_DIR, "chroma_db")
 
-    def __init__(self, db_path: str = DEFAULT_DB_PATH, device="cuda"):
+    def __init__(self, db_path: str = DEFAULT_DB_PATH, device="cuda", embeddings=None):
         _dir = os.path.dirname(os.path.abspath(__file__))
         load_dotenv(os.path.join(_dir, "keys.env"), override=True)
         
@@ -34,15 +34,26 @@ class QuestionGeneratorTeacher:
         os.environ["HF_TOKEN"] = gemma_token
         os.environ["GROQ_API_KEY"] = groq_key
 
-        model_kwargs = {"device": device, "trust_remote_code": True, "model_kwargs": {"torch_dtype": torch.float32}}
+        
 
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name='google/embeddinggemma-300m',
-            model_kwargs=model_kwargs,
-            encode_kwargs={'normalize_embeddings': True}
-        )
+        if embeddings is not None:
+            self.embeddings = embeddings
+        else:
+            model_kwargs = {"device": device, "trust_remote_code": True, "model_kwargs": {"torch_dtype": torch.float32}}
+            self.embeddings = HuggingFaceEmbeddings(
+                model_name='google/embeddinggemma-300m',
+                model_kwargs=model_kwargs,
+                encode_kwargs={'normalize_embeddings': True}
+            )
 
         self.db = Chroma(
+            persist_directory=db_path,
+            embedding_function=self.embeddings,
+            collection_name="conhecimento_geral",
+            relevance_score_fn=lambda distance: 1 - distance
+        )
+
+        self.vectorstore = Chroma(
             persist_directory=db_path,
             embedding_function=self.embeddings,
             collection_name="conhecimento_geral",
@@ -99,11 +110,11 @@ class QuestionGeneratorTeacher:
 
         # 2. Traduzir tópico para termos de busca em inglês
         prompt_prep = f"""Identifica os termos técnicos desta pergunta em Português e escreve-os em Inglês.
-Pergunta: "{topic}"
-Responde apenas com os termos técnicos em Inglês e algo que esteja relacionado.
-Exemplo: Vírgula Flutuante, Floating Point, IEEE 754 single/double precision.
-DEVOLVE NO FORMATO: "termo1, termo2, termo3"
-"""
+    Pergunta: "{topic}"
+    Responde apenas com os termos técnicos em Inglês e algo que esteja relacionado.
+    Exemplo: Vírgula Flutuante, Floating Point, IEEE 754 single/double precision.
+    DEVOLVE NO FORMATO: "termo1, termo2, termo3"
+    """
         try:
             termos_en = self.llm_groq.invoke(prompt_prep).content.strip()
             query_para_busca = f"{topic} {termos_en}"
@@ -111,7 +122,15 @@ DEVOLVE NO FORMATO: "termo1, termo2, termo3"
         except Exception as e:
             query_para_busca = topic
             print(f"⚠️ Falha na tradução de termos: {e}")
+        query_formatada = f"task: search result | query: {query_para_busca}"
+        print(f"DEBUG - Query Formatada para Busca: '{query_formatada}'")
 
+        resultados_teste = self.vectorstore.similarity_search_with_relevance_scores(query_formatada, k=5)
+        best_score = max(resultados_teste, key=lambda x: x[1])[1]
+        print(f"DEBUG - '{topic}' | Score Gemma: {best_score:.4f}")
+
+        if best_score < 0.40:
+            return f"Tema não coberto pelos manuais técnicos. (Relevância: {best_score:.2f})", 
         # 3. Fazer a busca no ChromaDB filtrando pelo livro
         print(f"🔄 A procurar contexto relevante com '{query_para_busca}'...")
         try:
@@ -206,7 +225,7 @@ FORMATO DA LISTA DE JSONs:
                     print(f"⚠️ Erro ao fazer parse de bloco: {je}")
                     continue
         
-        print(f"✅ {len(lista_json)} perguntas parseadas")
+     
         
         for i, ex in enumerate(lista_json):
             try:
@@ -242,15 +261,7 @@ FORMATO DA LISTA DE JSONs:
         return perguntas
 
     def generate_questions_by_topic(self, ficheiro_id: str, topic: str, n_perguntas: int, difficulty: str = "variada", question_type: str = "Escolha Múltipla"):
-        print(f"\n{'='*70}")
-        print(f"🚀 INICIANDO GERAÇÃO DE PERGUNTAS")
-        print(f"   Ficheiro: {ficheiro_id}")
-        print(f"   Tópico: {topic}")
-        print(f"   Quantidade: {n_perguntas}")
-        print(f"   Dificuldade: {difficulty}")
-        print(f"   Tipo: {question_type}")
-        print(f"{'='*70}\n")
-        
+
         try:
             # Obter contexto relevante do livro
             contexto, topicos_permitidos, topicos_str, id_uc = self._get_context_from_book(ficheiro_id, topic)
@@ -262,14 +273,11 @@ FORMATO DA LISTA DE JSONs:
             # Gerar perguntas com base no contexto
             perguntas = self.generate_questions(contexto, topicos_str, n_perguntas, id_uc, topicos_permitidos, difficulty, question_type)
             
-            print(f"\n{'='*70}")
-            print(f"✅ GERAÇÃO CONCLUÍDA: {len(perguntas)} perguntas geradas com sucesso")
-            print(f"{'='*70}\n")
+
             return perguntas
         
         except Exception as e:
-            print(f"\n{'='*70}")
-            print(f"❌ ERRO NA GERAÇÃO: {str(e)}")
+        
             import traceback
             traceback.print_exc()
             print(f"{'='*70}\n")
