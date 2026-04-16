@@ -547,7 +547,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
                           ),
                         ),
                 ),
-                SafeArea(top: false, child: const SizedBox(height: 8)),
+                const SafeArea(top: false, child: SizedBox(height: 8)),
               ],
             ),
           ),

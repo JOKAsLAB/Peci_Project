@@ -111,7 +111,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       } else {
         // Sem token — conta criada mas requer aprovação
         print('[AUTH] No token - registration requires approval');
-        state = AuthState(
+        state = const AuthState(
           isLoading: false,
           registrationSuccess: true,
         );

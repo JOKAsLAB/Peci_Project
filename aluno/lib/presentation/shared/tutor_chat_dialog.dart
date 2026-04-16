@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -452,8 +451,8 @@ class _AssistantBubble extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8, top: 2),
+              const Padding(
+                padding: EdgeInsets.only(right: 8, top: 2),
                 child: Icon(Icons.auto_awesome, color: AppTheme.brandAccent, size: 13),
               ),
               Expanded(
