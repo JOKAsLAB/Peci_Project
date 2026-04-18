@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:peci_project/data/models/exercise.dart';
@@ -18,49 +17,39 @@ final learningPathsProvider = FutureProvider<List<LearningPath>>((ref) async {
   return await studentRepository.getLearningPaths();
 });
 
-// Estado do feed de exercícios
+// Estado do feed de exercícios (modo exploração livre — sem limites)
 @immutable
 class FeedState {
   final List<Exercise> currentDeck;
   final int currentIndex;
-  final int cycleSize;
-  final int cycleNumber;
   final FeedFilters filters;
   final List<Topic> availableTopics;
-  final List<Map<String, dynamic>> availableCourses; // Adicionado para guardar as UCs
+  final List<Map<String, dynamic>> availableCourses;
   final bool isLoading;
 
   const FeedState({
     this.currentDeck = const [],
     this.currentIndex = 0,
-    this.cycleSize = 10,
-    this.cycleNumber = 1,
     this.filters = const FeedFilters(),
     this.availableTopics = const [],
-    this.availableCourses = const [], // Adicionado
+    this.availableCourses = const [],
     this.isLoading = true,
   });
-
-  int get totalExercisesInDeck => currentDeck.length;
 
   FeedState copyWith({
     List<Exercise>? currentDeck,
     int? currentIndex,
-    int? cycleSize,
-    int? cycleNumber,
     FeedFilters? filters,
     List<Topic>? availableTopics,
-    List<Map<String, dynamic>>? availableCourses, // Adicionado
+    List<Map<String, dynamic>>? availableCourses,
     bool? isLoading,
   }) {
     return FeedState(
       currentDeck: currentDeck ?? this.currentDeck,
       currentIndex: currentIndex ?? this.currentIndex,
-      cycleSize: cycleSize ?? this.cycleSize,
-      cycleNumber: cycleNumber ?? this.cycleNumber,
       filters: filters ?? this.filters,
       availableTopics: availableTopics ?? this.availableTopics,
-      availableCourses: availableCourses ?? this.availableCourses, // Adicionado
+      availableCourses: availableCourses ?? this.availableCourses,
       isLoading: isLoading ?? this.isLoading,
     );
   }
@@ -69,7 +58,7 @@ class FeedState {
 // Filtros aplicados
 @immutable
 class FeedFilters {
-  final int? courseId; // Alterado para int?
+  final int? courseId;
   final String? topicName;
   final ExerciseDifficulty? difficulty;
   final ExerciseType? type;
@@ -82,7 +71,7 @@ class FeedFilters {
   });
 
   FeedFilters copyWith({
-    ValueGetter<int?>? courseId, // Alterado para ValueGetter<int?>
+    ValueGetter<int?>? courseId,
     ValueGetter<String?>? topicName,
     ValueGetter<ExerciseDifficulty?>? difficulty,
     ValueGetter<ExerciseType?>? type,
@@ -96,18 +85,19 @@ class FeedFilters {
   }
 }
 
-// Notifier que gere o estado do feed
-class FeedNotifier extends StateNotifier<FeedState> {
-  final StudentRepository _studentRepository;
-  final Ref _ref;
-  final _random = Random();
+// Notifier que gere o estado do feed (exploração livre)
+class FeedNotifier extends Notifier<FeedState> {
+  late final StudentRepository _studentRepository;
 
-  FeedNotifier(this._studentRepository, this._ref) : super(const FeedState()) {
-    _init();
+  @override
+  FeedState build() {
+    _studentRepository = ref.read(studentRepositoryProvider);
+    Future.microtask(_init);
+    return const FeedState();
   }
 
   Future<void> _init() async {
-    await _fetchCourseUnits(); // Carrega as UCs primeiro
+    await _fetchCourseUnits();
     await _fetchExercises();
   }
 
@@ -141,7 +131,6 @@ class FeedNotifier extends StateNotifier<FeedState> {
     }
   }
 
-  // Métodos de atualização de filtros
   void updateCourseFilter(int? courseId) {
     state = state.copyWith(
       filters: state.filters.copyWith(
@@ -211,37 +200,6 @@ class FeedNotifier extends StateNotifier<FeedState> {
   void updateIndex(int index) {
     state = state.copyWith(currentIndex: index);
   }
-
-  List<Exercise> _shuffleRound(List<Exercise> source, {String? avoidFirstId}) {
-    if (source.isEmpty) return const [];
-    final round = List<Exercise>.from(source)..shuffle(_random);
-    if (round.length > 1 && avoidFirstId != null && round.first.id == avoidFirstId) {
-      final swapIndex = round.indexWhere((e) => e.id != avoidFirstId);
-      if (swapIndex > 0) {
-        final first = round.first;
-        round[0] = round[swapIndex];
-        round[swapIndex] = first;
-      }
-    }
-    return round;
-  }
-
-  void _ensureDeckAhead() {
-    if (state.currentDeck.isEmpty) return;
-    final threshold = state.currentDeck.length - 3;
-    if (state.currentIndex >= threshold) {
-      final avoidFirstId = state.currentDeck.last.id;
-      final source = state.currentDeck.sublist(0, state.cycleSize);
-      final nextRound = _shuffleRound(source, avoidFirstId: avoidFirstId);
-      state = state.copyWith(
-        currentDeck:  [...state.currentDeck, ...nextRound],
-        cycleNumber: (state.currentIndex ~/ state.cycleSize) + 1,
-      );
-    }
-  }
 }
 
-final feedProvider = StateNotifierProvider<FeedNotifier, FeedState>((ref) {
-  final studentRepository = ref.watch(studentRepositoryProvider);
-  return FeedNotifier(studentRepository, ref);
-});
+final feedProvider = NotifierProvider<FeedNotifier, FeedState>(FeedNotifier.new);

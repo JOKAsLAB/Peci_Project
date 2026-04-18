@@ -8,6 +8,7 @@ import '../../presentation/courses/courses_screen.dart';
 import '../../presentation/gamification/exercise_feed_screen.dart';
 import '../../presentation/profile/profile_screen.dart';
 import '../../presentation/profile/settings_screen.dart';
+import '../../presentation/profile/stats_screen.dart';
 import '../../presentation/auth/login_screen.dart';
 import '../../presentation/auth/register_screen.dart';
 
@@ -95,6 +96,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/stats',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const StatsScreen(),
       ),
     ],
   );

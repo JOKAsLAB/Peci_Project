@@ -18,7 +18,10 @@ http.interceptors.request.use((config) => {
   if (!(config.data instanceof FormData)) {
     config.headers['Content-Type'] = 'application/json';
   }
-  
+
+  // Necessário para ngrok não mostrar página de aviso
+  config.headers['ngrok-skip-browser-warning'] = 'true';
+
   // Adiciona Authorization header se houver token
   if (authStoreRef && authStoreRef.token) {
     const token = authStoreRef.token;
@@ -27,7 +30,7 @@ http.interceptors.request.use((config) => {
       console.log('✓ Auth header added:', token.substring(0, 20) + '...');
     }
   }
-  
+
   return config;
 });
 

@@ -70,7 +70,14 @@ class Exercise {
       // Opções (tenta variações)
       final rawOptions = sol['options'] ?? sol['opcoes'] ?? sol['choices'] ?? [];
       if (rawOptions is List) {
-        options = rawOptions.map((o) => o.toString()).toList();
+        options = rawOptions.map((o) {
+          final str = o.toString();
+          // Strip "A) ", "B) " etc. prefix added by the question generator
+          if (str.length >= 3 && str[1] == ')' && str[2] == ' ') {
+            return str.substring(3);
+          }
+          return str;
+        }).toList();
       }
       // Índice correto (tenta variações)
       final rawCorrect = sol['correct_index'] ?? sol['correctIndex'] ?? sol['resposta_correta'] ?? sol['correct'] ?? 0;
@@ -88,6 +95,9 @@ class Exercise {
           correctIndex = 0; // Verdadeiro
         } else if (lower == 'false') {
           correctIndex = 1; // Falso
+        } else if (lower.length == 1 && lower.codeUnitAt(0) >= 97 && lower.codeUnitAt(0) <= 122) {
+          // Letra: 'a' → 0, 'b' → 1, 'c' → 2, 'd' → 3, ...
+          correctIndex = lower.codeUnitAt(0) - 97;
         } else {
           correctIndex = int.tryParse(rawCorrect) ?? 0;
         }

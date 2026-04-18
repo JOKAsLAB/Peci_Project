@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import and_, case, select, text, func
+from sqlalchemy import and_, case, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -18,6 +18,8 @@ from app.schemas.gamification import (
 
 router = APIRouter(prefix="/api/v1/students", tags=["students"])
 
+DAILY_LIMIT = 5
+
 
 # =============================================================
 # HELPERS
@@ -27,6 +29,68 @@ async def _student_uc_table_exists(db: AsyncSession) -> bool:
 	"""Compatibility gate: environments without migrations should still serve students endpoints."""
 	result = await db.scalar(text("SELECT to_regclass('public.student_uc')"))
 	return result is not None
+
+
+async def _get_daily_done_count(student_id, db: AsyncSession, id_uc: int | None = None) -> int:
+	"""Count distinct exercises attempted today (any result), optionally filtered by UC."""
+	from sqlalchemy import text as raw_text
+	if id_uc is not None:
+		result = await db.scalar(
+			raw_text(
+				"SELECT COUNT(DISTINCT p.id_exercise) FROM progress p "
+				"JOIN exercise e ON e.id_exercise = p.id_exercise "
+				"WHERE p.id_student = :uid AND DATE(p.date) = CURRENT_DATE "
+				"AND e.id_uc = :id_uc"
+			),
+			{"uid": str(student_id), "id_uc": id_uc},
+		)
+	else:
+		result = await db.scalar(
+			raw_text(
+				"SELECT COUNT(DISTINCT id_exercise) FROM progress "
+				"WHERE id_student = :uid AND DATE(date) = CURRENT_DATE"
+			),
+			{"uid": str(student_id)},
+		)
+	return int(result or 0)
+
+
+async def _get_topic_completion(id_uc: int, student_id, db: AsyncSession) -> dict[str, dict]:
+	"""
+	Returns per-topic completion info for a UC and student.
+	{topic_name: {correct_count, total_count, is_completed}}
+	A topic with 0 published exercises is treated as auto-completed.
+	"""
+	from sqlalchemy import text as raw_text
+	rows = (
+		await db.execute(
+			raw_text("""
+				SELECT
+					e.topic_name,
+					COUNT(DISTINCT e.id_exercise)                                          AS total_count,
+					COUNT(DISTINCT p.id_exercise) FILTER (WHERE p.status = 'Correct')     AS correct_count,
+					COUNT(DISTINCT p.id_exercise)                                          AS attempted_count
+				FROM exercise e
+				LEFT JOIN progress p ON p.id_exercise = e.id_exercise AND p.id_student = :uid
+				WHERE e.id_uc = :id_uc AND e.published = TRUE
+				GROUP BY e.topic_name
+			"""),
+			{"uid": str(student_id), "id_uc": id_uc},
+		)
+	).all()
+	result = {}
+	for row in rows:
+		total    = int(row.total_count    or 0)
+		correct  = int(row.correct_count  or 0)
+		attempted = int(row.attempted_count or 0)
+		# Tópico completo quando TODOS os exercícios foram tentados (acerto ou erro)
+		result[row.topic_name] = {
+			"correct_count": correct,
+			"attempted_count": attempted,
+			"total_count": total,
+			"is_completed": total == 0 or attempted >= total,
+		}
+	return result
 
 
 DIFFICULTY_ORDER = case(
@@ -98,11 +162,11 @@ def to_streak_response(item: Streak) -> StreakResponse:
 	)
 
 
-async def _build_checkpoints(id_uc: int, db: AsyncSession) -> list[dict]:
+async def _build_checkpoints(id_uc: int, db: AsyncSession, student_id=None) -> list[dict]:
 	"""
 	Busca tópicos e exercícios publicados de uma UC num único JOIN,
 	ordenados por N_Order do tópico e depois por dificuldade.
-	Espelha a lógica do router de professores.
+	Se student_id for fornecido, inclui informação de lock/completion por tópico.
 	"""
 	stmt = (
 		select(Topic, Exercise)
@@ -130,14 +194,37 @@ async def _build_checkpoints(id_uc: int, db: AsyncSession) -> list[dict]:
 		if exercise is not None:
 			topic_exercises[topic.Name].append(to_exercise_response(exercise))
 
-	return [
-		{
+	completion: dict[str, dict] = {}
+	if student_id is not None:
+		completion = await _get_topic_completion(id_uc, student_id, db)
+
+	sorted_names = sorted(topic_order_map, key=lambda n: topic_order_map[n])
+	checkpoints = []
+	prev_completed = True  # first topic is always unlocked
+
+	for name in sorted_names:
+		n_exercises = len(topic_exercises[name])
+		comp = completion.get(
+			name,
+			{"correct_count": 0, "attempted_count": 0, "total_count": n_exercises, "is_completed": n_exercises == 0},
+		)
+		is_locked = not prev_completed
+		is_completed = comp["is_completed"] if student_id is not None else False
+
+		checkpoints.append({
 			"topic_name": name,
 			"topic_order": topic_order_map[name],
 			"exercises": [ex.model_dump() for ex in topic_exercises[name]],
-		}
-		for name in sorted(topic_order_map, key=lambda n: topic_order_map[n])
-	]
+			"is_locked": is_locked,
+			"is_completed": is_completed,
+			"correct_count": comp["correct_count"],
+			"attempted_count": comp.get("attempted_count", 0),
+			"total_count": comp["total_count"],
+		})
+
+		prev_completed = is_completed
+
+	return checkpoints
 
 
 # =============================================================
@@ -147,7 +234,7 @@ async def _build_checkpoints(id_uc: int, db: AsyncSession) -> list[dict]:
 @router.get("/me", response_model=StudentProfileResponse)
 async def my_profile(
 	db: AsyncSession = Depends(get_db),
-	current_student: Base_User = Depends(require_roles("Student")),
+	current_student: Base_User = Depends(require_roles("Student", "Professor", "Admin")),
 ):
 	# with_polymorphic: "*" means current_student is already a Student instance.
 	# But we do a direct query to guarantee fresh data from the current session.
@@ -179,7 +266,7 @@ async def my_profile(
 @router.get("/course-units", response_model=list[CourseUnitResponse])
 async def list_course_units(
 	db: AsyncSession = Depends(get_db),
-	current_student: Base_User = Depends(require_roles("Student")),
+	current_student: Base_User = Depends(require_roles("Student", "Professor", "Admin")),
 ):
 	if await _student_uc_table_exists(db):
 		has_enrollment = await db.scalar(
@@ -209,33 +296,13 @@ async def list_exercises(
 	topic_name: str | None = Query(default=None),
 	difficulty: str | None = Query(default=None),
 	type_filter: str | None = Query(default=None, alias="type"),
-	limit: int = Query(default=5, ge=1, le=50),  # 50 max para queries com filtros
-	offset: int = Query(default=None, ge=0),
+	limit: int = Query(default=20, ge=1, le=50),
+	offset: int = Query(default=0, ge=0),
 	db: AsyncSession = Depends(get_db),
-	current_student: Base_User = Depends(require_roles("Student")),
+	current_student: Base_User = Depends(require_roles("Student", "Professor", "Admin")),
 ):
-	# ─ Calcula o offset automaticamente apenas no modo prática sem filtros ─
-	# Com filtros activos o aluno está a explorar exercícios específicos,
-	# por isso o offset deve ser 0 para mostrar todos os resultados.
-	if offset is None:
-		has_filters = any([id_uc, topic_name, difficulty, type_filter])
-		if has_filters:
-			offset = 0
-		else:
-			today = date.today()
-			stmt_count = (
-				select(func.count(Progress.ID_Progress))
-				.where(
-					and_(
-						Progress.ID_Student == current_student.ID_User,
-						func.date(Progress.Record_Date) == today,
-						Progress.Status == 'Correct'
-					)
-				)
-			)
-			exercises_today = await db.scalar(stmt_count)
-			offset = exercises_today or 0
-	
+	# Contexto de exploração livre — sem limite diário, sem offset automático.
+	# O limite diário aplica-se apenas ao contexto dos Cursos (practice_session).
 	stmt = (
 		select(Exercise, Course_Unit)
 		.join(Course_Unit, Exercise.ID_UC == Course_Unit.ID_UC)
@@ -270,7 +337,7 @@ async def list_exercises(
 async def create_progress(
 	payload: ProgressCreateRequest,
 	db: AsyncSession = Depends(get_db),
-	current_student: Base_User = Depends(require_roles("Student")),
+	current_student: Base_User = Depends(require_roles("Student", "Professor", "Admin")),
 ):
 	exercise = await db.scalar(select(Exercise).where(Exercise.ID_Exercise == payload.id_exercise))
 	if not exercise:
@@ -365,7 +432,7 @@ async def create_progress(
 async def get_streak(
 	limit: int = Query(default=30, ge=1, le=365),
 	db: AsyncSession = Depends(get_db),
-	current_student: Base_User = Depends(require_roles("Student")),
+	current_student: Base_User = Depends(require_roles("Student", "Professor", "Admin")),
 ):
 	stmt = (
 		select(Streak)
@@ -377,16 +444,140 @@ async def get_streak(
 	return [to_streak_response(item) for item in items]
 
 
+@router.get("/daily-status")
+async def daily_status(
+	id_uc: int | None = Query(default=None),
+	db: AsyncSession = Depends(get_db),
+	current_student: Base_User = Depends(require_roles("Student", "Professor", "Admin")),
+):
+	"""
+	Devolve o estado diário de prática do aluno.
+	Se id_uc for fornecido, o limite é calculado para essa UC específica (5/dia por UC).
+	"""
+	done = await _get_daily_done_count(current_student.ID_User, db, id_uc=id_uc)
+	remaining = max(0, DAILY_LIMIT - done)
+	return {
+		"done_today": done,
+		"daily_limit": DAILY_LIMIT,
+		"can_practice": remaining > 0,
+		"remaining_today": remaining,
+	}
+
+
+@router.get("/practice-session")
+async def practice_session(
+	id_uc: int,
+	db: AsyncSession = Depends(get_db),
+	current_student: Base_User = Depends(require_roles("Student", "Professor", "Admin")),
+):
+	"""
+	Devolve os próximos exercícios para o aluno praticar numa UC.
+	- Encontra o tópico ativo (primeiro incompleto e desbloqueado)
+	- Ordena: nunca tentados → incorretos → corretos (todos aleatórios dentro do grupo)
+	- Respeita o limite de 5 exercícios por dia
+	"""
+	from sqlalchemy import text as raw_text
+
+	uid = current_student.ID_User
+	done_today = await _get_daily_done_count(uid, db, id_uc=id_uc)
+	remaining = max(0, DAILY_LIMIT - done_today)
+	streak_met = done_today >= DAILY_LIMIT
+
+	base_resp = {"done_today": done_today, "daily_limit": DAILY_LIMIT, "remaining_today": remaining, "streak_met": streak_met}
+
+	# Tópicos da UC por ordem
+	topics = (
+		await db.scalars(select(Topic).where(Topic.ID_UC == id_uc).order_by(Topic.N_Order.asc()))
+	).all()
+
+	if not topics:
+		return {**base_resp, "can_practice": False, "all_completed": False, "current_topic": None, "exercises": [], "streak_met": streak_met}
+
+	completion = await _get_topic_completion(id_uc, uid, db)
+
+	# Encontra o tópico ativo: primeiro desbloqueado e incompleto
+	current_topic = None
+	prev_completed = True
+	for topic in topics:
+		if not prev_completed:
+			break  # tópico bloqueado — não há mais tópicos acessíveis
+		comp = completion.get(topic.Name, {"total_count": 0, "is_completed": True})
+		if not comp["is_completed"]:
+			current_topic = topic
+			break
+		prev_completed = comp["is_completed"]
+
+	if current_topic is None:
+		return {**base_resp, "can_practice": True, "all_completed": True, "current_topic": None, "exercises": []}
+
+	# Exercícios do tópico ativo com ordering inteligente
+	# Exercícios ainda não tentados: acerto ou erro conta como feito e não volta a aparecer.
+	rows = (
+		await db.execute(
+			raw_text("""
+				WITH attempted AS (
+					SELECT DISTINCT id_exercise
+					FROM progress
+					WHERE id_student = :uid
+				)
+				SELECT
+					e.id_exercise, e.id_uc, e.topic_name, e.material_ref,
+					e.type, e.question, e.solution, e.difficulty, e.explanation, e.published
+				FROM exercise e
+				WHERE e.id_uc = :id_uc
+				  AND e.topic_name = :topic_name
+				  AND e.published = TRUE
+				  AND e.id_exercise NOT IN (SELECT id_exercise FROM attempted)
+				ORDER BY
+					CASE e.difficulty WHEN 'Easy' THEN 1 WHEN 'Medium' THEN 2 WHEN 'Hard' THEN 3 ELSE 4 END ASC,
+					RANDOM()
+			"""),
+			{"uid": str(uid), "id_uc": id_uc, "topic_name": current_topic.Name},
+		)
+	).all()
+
+	exercises = [
+		{
+			"id_exercise": str(row.id_exercise),
+			"id_uc": row.id_uc,
+			"topic_name": row.topic_name,
+			"material_ref": str(row.material_ref) if row.material_ref else None,
+			"type": row.type,
+			"question": row.question,
+			"solution": row.solution,
+			"difficulty": row.difficulty,
+			"explanation": row.explanation,
+			"published": row.published,
+			"course_unit_info": None,
+		}
+		for row in rows
+	]
+
+	comp_info = completion.get(current_topic.Name, {"correct_count": 0, "total_count": 0})
+	return {
+		**base_resp,
+		"can_practice": True,
+		"all_completed": False,
+		"current_topic": {
+			"name": current_topic.Name,
+			"order": current_topic.N_Order,
+			"correct_count": comp_info["correct_count"],
+			"total_count": comp_info.get("total_count", 0),
+		},
+		"exercises": exercises,
+	}
+
+
 @router.get("/learning-paths", response_model=list[dict])
 async def get_learning_paths(
 	db: AsyncSession = Depends(get_db),
-	current_student: Base_User = Depends(require_roles("Student")),
+	current_student: Base_User = Depends(require_roles("Student", "Professor", "Admin")),
 ):
 	"""
 	Devolve todas as UCs disponíveis para o aluno poder escolher.
 	Cada UC inclui os seus tópicos e exercícios publicados, ordenados
 	por N_Order do tópico e depois por dificuldade (Easy → Medium → Hard).
-	Não filtra por Student_UC — o aluno vê tudo e escolhe.
+	Inclui informação de lock/completion por tópico para o aluno logado.
 	"""
 	courses = (
 		await db.scalars(select(Course_Unit).order_by(Course_Unit.Name.asc()))
@@ -397,7 +588,7 @@ async def get_learning_paths(
 
 	paths = []
 	for course in courses:
-		checkpoints = await _build_checkpoints(course.ID_UC, db)
+		checkpoints = await _build_checkpoints(course.ID_UC, db, student_id=current_student.ID_User)
 		paths.append({
 			"id_uc": course.ID_UC,
 			"name": course.Name,
@@ -413,17 +604,17 @@ async def get_learning_paths(
 async def get_learning_path(
 	id_uc: int,
 	db: AsyncSession = Depends(get_db),
-	current_student: Base_User = Depends(require_roles("Student")),
+	current_student: Base_User = Depends(require_roles("Student", "Professor", "Admin")),
 ):
 	"""
 	Devolve o learning path de uma UC específica escolhida pelo aluno.
-	Útil para o frontend carregar só a UC selecionada sem ter de pedir todas.
+	Inclui informação de lock/completion por tópico para o aluno logado.
 	"""
 	course = await db.scalar(select(Course_Unit).where(Course_Unit.ID_UC == id_uc))
 	if not course:
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course unit not found")
 
-	checkpoints = await _build_checkpoints(id_uc, db)
+	checkpoints = await _build_checkpoints(id_uc, db, student_id=current_student.ID_User)
 
 	return {
 		"id_uc": course.ID_UC,
@@ -438,7 +629,7 @@ async def get_learning_path(
 async def list_topics(
 	id_uc: int,
 	db: AsyncSession = Depends(get_db),
-	current_student: Base_User = Depends(require_roles("Student")),
+	current_student: Base_User = Depends(require_roles("Student", "Professor", "Admin")),
 ):
 	stmt = (
 		select(Topic)
@@ -447,3 +638,72 @@ async def list_topics(
 	)
 	topics = (await db.scalars(stmt)).all()
 	return [{"name": t.Name, "order": t.N_Order} for t in topics]
+
+
+@router.get("/stats/topics", response_model=list[dict])
+async def topic_stats(
+	id_uc: int | None = Query(default=None),
+	db: AsyncSession = Depends(get_db),
+	current_student: Base_User = Depends(require_roles("Student", "Professor", "Admin")),
+):
+	"""
+	Estatísticas por tópico para o aluno — aparece no perfil.
+	Usa o último resultado de cada exercício (DISTINCT ON) para não penalizar
+	tentativas repetidas: se o aluno errou 3x e acertou 1x conta como Correto.
+	Ordenado do melhor para o pior tópico (accuracy descrescente).
+	Aceita filtro opcional por UC (id_uc).
+	"""
+	from sqlalchemy import text as raw_text
+
+	uid = current_student.ID_User
+	params: dict = {"uid": str(uid)}
+	uc_filter = ""
+	if id_uc is not None:
+		uc_filter = "AND e.id_uc = :id_uc"
+		params["id_uc"] = id_uc
+
+	rows = (
+		await db.execute(
+			raw_text(f"""
+				WITH latest AS (
+					SELECT DISTINCT ON (id_exercise) id_exercise, status
+					FROM progress
+					WHERE id_student = :uid
+					ORDER BY id_exercise, date DESC
+				)
+				SELECT
+					e.topic_name,
+					e.id_uc,
+					cu.name                                                              AS course_unit_name,
+					COUNT(DISTINCT l.id_exercise)                                        AS total_answered,
+					COUNT(DISTINCT l.id_exercise) FILTER (WHERE l.status = 'Correct')   AS correct_count,
+					COUNT(DISTINCT l.id_exercise) FILTER (WHERE l.status = 'Incorrect') AS incorrect_count
+				FROM latest l
+				JOIN exercise e    ON e.id_exercise = l.id_exercise
+				JOIN course_unit cu ON cu.id_uc     = e.id_uc
+				WHERE TRUE {uc_filter}
+				GROUP BY e.topic_name, e.id_uc, cu.name
+				ORDER BY
+					COUNT(DISTINCT l.id_exercise) FILTER (WHERE l.status = 'Correct')::float
+					/ NULLIF(COUNT(DISTINCT l.id_exercise), 0) DESC NULLS LAST,
+					total_answered DESC
+			"""),
+			params,
+		)
+	).all()
+
+	stats = []
+	for row in rows:
+		total   = int(row.total_answered  or 0)
+		correct = int(row.correct_count   or 0)
+		stats.append({
+			"topic_name":        row.topic_name,
+			"id_uc":             row.id_uc,
+			"course_unit_name":  row.course_unit_name,
+			"total_answered":    total,
+			"correct_count":     correct,
+			"incorrect_count":   int(row.incorrect_count or 0),
+			"accuracy":          round(correct / total * 100, 1) if total > 0 else 0.0,
+		})
+
+	return stats

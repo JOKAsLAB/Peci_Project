@@ -1,6 +1,6 @@
 <template>
   <div
-    v-if="authChecking"
+    v-if="authChecking || (isAuthenticated && !isRouteReady)"
     class="min-h-screen bg-background font-inter text-text-primary flex items-center justify-center"
   >
     <div class="text-center">
@@ -25,21 +25,16 @@
     <aside
       class="w-72 panel-surface border-r border-white/5 flex flex-col shrink-0 z-10"
     >
-      <div class="p-8">
-        <div class="flex items-center gap-3 mb-10">
-          <div
-            class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center shadow-lg shadow-brand/20"
-          >
-            <span class="font-bold text-white text-xl">{{
-              activeRole === 'Admin' ? 'A' : 'P'
-            }}</span>
-          </div>
-          <h1 class="text-xl font-bold tracking-tight">
-            {{ activeRole === 'Admin' ? 'Admin' : 'Docente'
-            }}<span class="text-brand">Hub</span>
-          </h1>
-        </div>
+      <!-- Logo -->
+      <div class="h-20 border-b border-white/5 shrink-0 overflow-hidden px-6">
+        <img
+          src="/logo_horizontal.png"
+          alt="LogicStreak"
+          class="w-full h-full object-contain object-left"
+        />
+      </div>
 
+      <div class="p-8">
         <nav class="space-y-2">
           <router-link
             v-for="item in navItems"
@@ -152,6 +147,13 @@ const authChecking = ref(true);
 
 const isAuthenticated = computed(() => authStore.isAuthenticated);
 const activeRole = computed(() => authStore.activeRole || 'Professor');
+const isRouteReady = computed(() => {
+  if (!authStore.isAuthenticated) return false;
+  const role = authStore.activeRole;
+  if (role === 'Admin') return route.path.startsWith('/admin');
+  if (role === 'Professor') return route.path.startsWith('/professor');
+  return false;
+});
 const navItems = computed(() =>
   activeRole.value === 'Admin' ? adminNav : professorNav,
 );
@@ -167,12 +169,13 @@ onMounted(async () => {
   try {
     // Setup do interceptor de autenticação (deve ser feito depois que a store está disponível)
     setupAuthInterceptor(authStore);
-    
+
     await authStore.restoreSession();
-    if (authStore.isAuthenticated && route.path === '/') {
-      await router.replace(
-        authStore.activeRole === 'Admin' ? '/admin' : '/professor',
-      );
+    if (authStore.isAuthenticated) {
+      const targetBase = authStore.activeRole === 'Admin' ? '/admin' : '/professor';
+      if (!route.path.startsWith(targetBase)) {
+        await router.replace(targetBase);
+      }
     }
   } finally {
     authChecking.value = false;

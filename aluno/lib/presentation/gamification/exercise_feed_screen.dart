@@ -3,9 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:peci_project/data/models/topic.dart';
 import '../../core/theme/app_theme.dart';
 import '../shared/tutor_chat_dialog.dart';
-import '../shared/xp_gain_overlay.dart';
 import '../../features/gamification/providers/feed_provider.dart';
-import '../../features/profile/providers/profile_provider.dart';
 import '../../data/models/exercise.dart';
 import '../../data/remote/student_repository.dart';
 
@@ -61,9 +59,8 @@ class _ExerciseFeedScreenState extends ConsumerState<ExerciseFeedScreen> {
               selectedType: feedState.filters.type,
               availableCourses: feedState.availableCourses,
               availableTopics: feedState.availableTopics,
-              currentIndex: feedState.cycleSize == 0 ? 0 : (feedState.currentIndex % feedState.cycleSize) + 1,
-              cycleNumber: feedState.cycleNumber,
-              totalExercises: feedState.cycleSize,
+              currentIndex: feedState.currentIndex + 1,
+              totalExercises: feedState.currentDeck.length,
               onCourseChanged: feedNotifier.updateCourseFilter,
               onTopicChanged: feedNotifier.updateTopicFilter,
               onDifficultyChanged: feedNotifier.updateDifficultyFilter,
@@ -90,30 +87,7 @@ class _ExerciseFeedScreenState extends ConsumerState<ExerciseFeedScreen> {
                           return _ExerciseFeedCard(
                             key: ValueKey('${exercise.id}_$index'),
                             exercise: exercise,
-                            onProgress: (exerciseId, isCorrect, difficulty) async {
-                              try {
-                                final diffStr = switch (difficulty) {
-                                  ExerciseDifficulty.easy   => 'Easy',
-                                  ExerciseDifficulty.medium => 'Medium',
-                                  ExerciseDifficulty.hard   => 'Hard',
-                                };
-                                final repo = ref.read(studentRepositoryProvider);
-                                final result = await repo.postProgress(
-                                  exerciseId: exerciseId,
-                                  isCorrect: isCorrect,
-                                  difficulty: diffStr,
-                                );
-                                ref.invalidate(profileStateProvider);
-                                if (result.xpEarned > 0 && context.mounted) {
-                                  XpGainOverlay.show(
-                                    context,
-                                    xp: result.xpEarned,
-                                    levelUp: result.levelUp,
-                                    newLevel: result.newLevel,
-                                  );
-                                }
-                              } catch (_) {}
-                            },
+                            onProgress: null,
                           );
                         },
                       ),
@@ -134,7 +108,6 @@ class _CompactFilterBar extends StatelessWidget {
   final List<Map<String, dynamic>> availableCourses;
   final List<Topic> availableTopics;
   final int currentIndex;
-  final int cycleNumber;
   final int totalExercises;
   final ValueChanged<int?> onCourseChanged;
   final ValueChanged<String?> onTopicChanged;
@@ -152,7 +125,6 @@ class _CompactFilterBar extends StatelessWidget {
     required this.availableCourses,
     required this.availableTopics,
     required this.currentIndex,
-    required this.cycleNumber,
     required this.totalExercises,
     required this.onCourseChanged,
     required this.onTopicChanged,
@@ -207,7 +179,6 @@ class _CompactFilterBar extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Linha: título + contador + botão de filtros
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 4, 6),
             child: Row(
@@ -278,7 +249,6 @@ class _CompactFilterBar extends StatelessWidget {
               ],
             ),
           ),
-          // Tags dos filtros ativos (só se houver)
           if (tags.isNotEmpty) ...[
             SizedBox(
               height: 30,
@@ -332,7 +302,7 @@ class _CompactFilterBar extends StatelessWidget {
   }
 }
 
-// ─── Bottom Sheet de Filtros (navegação interna) ─────────────────────────────
+// ─── Bottom Sheet de Filtros ──────────────────────────────────────────────────
 
 typedef _ApplyCallback = void Function({
   required int? courseId,
@@ -369,10 +339,8 @@ class _FilterSheet extends StatefulWidget {
 }
 
 class _FilterSheetState extends State<_FilterSheet> {
-  // null = página principal; 'course' | 'topic' | 'difficulty' | 'type' = sub-página
   String? _subPage;
 
-  // Estado local temporário — só é aplicado ao premir "Aplicar"
   late int? _tempCourseId;
   late String? _tempTopicName;
   late ExerciseDifficulty? _tempDifficulty;
@@ -455,15 +423,12 @@ class _FilterSheetState extends State<_FilterSheet> {
     );
   }
 
-  // ── Página principal ──────────────────────────────────────────────────────
-
   Widget _buildMain(BuildContext context) {
     return Column(
       key: const ValueKey('main'),
       mainAxisSize: MainAxisSize.min,
       children: [
         _Handle(),
-        // Cabeçalho
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
           child: Row(
@@ -477,7 +442,6 @@ class _FilterSheetState extends State<_FilterSheet> {
             ],
           ),
         ),
-        // Linhas de filtro
         _FilterRow(
           label: 'Disciplina',
           value: _courseName,
@@ -502,7 +466,6 @@ class _FilterSheetState extends State<_FilterSheet> {
           value: _difficultyName,
           onTap: () => setState(() => _subPage = 'difficulty'),
         ),
-        // Botões de ação
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Row(
@@ -537,8 +500,6 @@ class _FilterSheetState extends State<_FilterSheet> {
       ],
     );
   }
-
-  // ── Sub-página genérica ───────────────────────────────────────────────────
 
   Widget _buildSub(BuildContext context, String page) {
     final String title;
@@ -594,8 +555,6 @@ class _FilterSheetState extends State<_FilterSheet> {
         ];
     }
 
-    // ConstrainedBox impede que a coluna ultrapasse a altura do ecrã
-    // quando há muitos tópicos ou disciplinas.
     return ConstrainedBox(
       key: ValueKey('sub_$page'),
       constraints: BoxConstraints(
@@ -605,7 +564,6 @@ class _FilterSheetState extends State<_FilterSheet> {
         mainAxisSize: MainAxisSize.min,
         children: [
           _Handle(),
-          // Cabeçalho com voltar
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 8, 8, 4),
             child: Row(
@@ -624,7 +582,6 @@ class _FilterSheetState extends State<_FilterSheet> {
               ],
             ),
           ),
-          // Loading de tópicos
           if (page == 'topic' && _loadingTopics)
             const Padding(
               padding: EdgeInsets.symmetric(vertical: 24),
@@ -635,7 +592,6 @@ class _FilterSheetState extends State<_FilterSheet> {
               padding: EdgeInsets.symmetric(vertical: 24),
               child: Center(child: Text('Sem tópicos disponíveis.', style: TextStyle(color: AppTheme.textSecondary))),
             )
-          // Lista de opções num ListView scrollable para evitar overflow
           else
             Flexible(
               child: ListView.separated(
@@ -712,7 +668,7 @@ class _FilterSheetState extends State<_FilterSheet> {
   }
 }
 
-// ─── Auxiliares do Filter Sheet ───────────────────────────────────────────────
+// ─── Auxiliares ───────────────────────────────────────────────────────────────
 
 class _FilterOption {
   final String label;
@@ -780,7 +736,6 @@ class _FilterRow extends StatelessWidget {
     );
   }
 }
-
 
 class _Chip extends StatelessWidget {
   final String label;
@@ -881,15 +836,6 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
 
   bool get _isCorrect => _selectedOption == widget.exercise.correctIndex;
 
-  int get _xpForDifficulty {
-    if (!_isCorrect) return 0;
-    return switch (widget.exercise.difficulty) {
-      ExerciseDifficulty.easy   => 10,
-      ExerciseDifficulty.medium => 20,
-      ExerciseDifficulty.hard   => 35,
-    };
-  }
-
   void _confirm() {
     if (_selectedOption == null || _answered) return;
     setState(() => _answered = true);
@@ -930,9 +876,12 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
     super.build(context);
     final ex = widget.exercise;
 
+    // FIX 1 & 2: O card inteiro é um Column onde a secção de opções usa
+    // um SingleChildScrollView para não causar overflow, e a pergunta usa
+    // ClampingScrollPhysics em vez de NeverScrollableScrollPhysics.
     return Column(
       children: [
-        // Secção da pergunta (fundo escuro)
+        // Secção da pergunta — scrollable, flex para usar o espaço disponível
         Expanded(
           flex: 45,
           child: Padding(
@@ -960,11 +909,12 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
                     _Tag(text: _typeLabel, color: Colors.grey.shade500),
                   ],
                 ),
-                // Pergunta
+                // FIX 2: Substituída NeverScrollableScrollPhysics → ClampingScrollPhysics
+                // para que perguntas longas possam ser lidas sem overflow.
                 Expanded(
                   child: Center(
                     child: SingleChildScrollView(
-                      physics: const NeverScrollableScrollPhysics(),
+                      physics: const ClampingScrollPhysics(),
                       child: Text(
                         ex.question,
                         style: const TextStyle(
@@ -983,42 +933,54 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
           ),
         ),
 
-        // Secção de opções + ações (painel claro)
+        // FIX 1: Painel de opções — sem altura máxima fixa, usa
+        // SingleChildScrollView para absorver overflow em ecrãs pequenos.
         Container(
           decoration: const BoxDecoration(
             color: AppTheme.surfaceSecondary,
             borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 16),
-              // Opções
-              ..._buildOptions(ex),
-              // Confirmar / Feedback
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (child, anim) => SizeTransition(
-                  sizeFactor: anim,
-                  axisAlignment: -1,
-                  child: FadeTransition(opacity: anim, child: child),
-                ),
-                child: _answered
-                    ? _buildFeedback(ex)
-                    : Padding(
-                        key: const ValueKey('btn-confirm'),
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                        child: SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: _selectedOption == null ? null : _confirm,
-                            child: const Text('Confirmar', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          // Limita a altura máxima a 60 % do ecrã para não engolir a pergunta.
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.60,
+          ),
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: SafeArea(
+              top: false,
+              // FIX 3 (SafeArea bottom): aplicada aqui, dentro do painel,
+              // em vez de envolver o Scaffold inteiro — evita espaço branco
+              // excessivo em dispositivos sem notch e respeita o home indicator.
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 16),
+                  ..._buildOptions(ex),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (child, anim) => SizeTransition(
+                      sizeFactor: anim,
+                      axisAlignment: -1,
+                      child: FadeTransition(opacity: anim, child: child),
+                    ),
+                    child: _answered
+                        ? _buildFeedback(ex)
+                        : Padding(
+                            key: const ValueKey('btn-confirm'),
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: ElevatedButton(
+                                onPressed: _selectedOption == null ? null : _confirm,
+                                child: const Text('Confirmar', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ],
@@ -1090,8 +1052,8 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
                   child: Text(
                     ex.options[i],
                     style: TextStyle(color: textColor, fontSize: 14, height: 1.3),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
+                    // FIX: removido maxLines + ellipsis — o texto expande naturalmente
+                    // dentro do SingleChildScrollView do painel.
                   ),
                 ),
                 if (_answered && isCorrect)
@@ -1109,7 +1071,7 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
   Widget _buildFeedback(Exercise ex) {
     return Padding(
       key: const ValueKey('feedback'),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1137,7 +1099,7 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  _isCorrect ? 'Correto! +$_xpForDifficulty XP' : 'Incorreto',
+                  _isCorrect ? 'Correto!' : 'Incorreto',
                   style: TextStyle(
                     color: _isCorrect ? AppTheme.successState : AppTheme.errorState,
                     fontWeight: FontWeight.w700,
@@ -1147,13 +1109,13 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
               ],
             ),
           ),
-          // Explicação
+          // FIX 4: Caixa de explicação sem maxHeight fixo — expande livremente
+          // e usa SingleChildScrollView apenas se o conteúdo for muito longo.
           if (ex.explanation.isNotEmpty) ...[
             const SizedBox(height: 8),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              constraints: const BoxConstraints(maxHeight: 100),
               decoration: BoxDecoration(
                 color: AppTheme.brandAccent.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(10),
@@ -1165,19 +1127,15 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
                   const Icon(Icons.auto_awesome, color: AppTheme.brandAccent, size: 13),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: SingleChildScrollView(
-                      physics: const ClampingScrollPhysics(),
-                      child: Text(
-                        ex.explanation,
-                        style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12, height: 1.45),
-                      ),
+                    child: Text(
+                      ex.explanation,
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12, height: 1.45),
                     ),
                   ),
                 ],
               ),
             ),
           ],
-          // Botão Tutor IA
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
@@ -1185,7 +1143,7 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
             child: TextButton.icon(
               onPressed: () => TutorChatDialog.show(context, exercise: ex, wasCorrect: _isCorrect),
               icon: const Icon(Icons.smart_toy_rounded, size: 17),
-              label: const Text('Pedir explicação ao Tutor IA', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+              label: const Text('Pedir explicação ao Andy', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
               style: TextButton.styleFrom(
                 foregroundColor: AppTheme.brandAccent,
                 backgroundColor: AppTheme.brandAccent.withValues(alpha: 0.07),

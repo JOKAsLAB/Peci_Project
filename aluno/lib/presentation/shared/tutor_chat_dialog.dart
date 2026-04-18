@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/exercise.dart';
@@ -154,11 +154,11 @@ class _TutorChatDialogState extends ConsumerState<TutorChatDialog> {
       debugPrint('[TutorChat] ❌ erro ao enviar mensagem: $e');
       String errorText;
       if (e.toString().contains('receiveTimeout') || e.toString().contains('connectTimeout')) {
-        errorText = 'O Tutor IA demorou demasiado a responder. Tenta novamente.';
+        errorText = 'O Andy demorou demasiado a responder. Tenta novamente.';
       } else if (e.toString().contains('503') || e.toString().contains('SERVICE_UNAVAILABLE')) {
-        errorText = 'O Tutor IA não está disponível de momento.';
+        errorText = 'O Andy não está disponível de momento.';
       } else {
-        errorText = 'Não foi possível contactar o Tutor IA. Verifica a ligação e tenta novamente.';
+        errorText = 'Não foi possível contactar o Andy. Verifica a ligação e tenta novamente.';
       }
       setState(() {
         _messages.add(_ChatMessage(isUser: false, text: errorText));
@@ -211,28 +211,40 @@ class _TutorChatDialogState extends ConsumerState<TutorChatDialog> {
               ),
               // Header
               Container(
-                padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+                padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
                 decoration: BoxDecoration(
                   border: Border(bottom: BorderSide(color: Colors.grey.shade800, width: 0.5)),
                 ),
                 child: Row(
                   children: [
                     Container(
-                      width: 36,
-                      height: 36,
+                      width: 52,
+                      height: 52,
                       decoration: BoxDecoration(
-                        color: AppTheme.brandAccent.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(10),
+                        color: AppTheme.backgroundPrimary,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppTheme.brandAccent.withValues(alpha: 0.4),
+                          width: 1.5,
+                        ),
                       ),
-                      child: const Icon(Icons.smart_toy_rounded, color: AppTheme.brandAccent, size: 20),
+                      child: Padding(
+                        padding: const EdgeInsets.all(5),
+                        child: Image.asset(
+                          'assets/chatbot_photo.png',
+                          fit: BoxFit.contain,
+                          color: Colors.white,
+                          colorBlendMode: BlendMode.difference,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 12),
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Tutor IA', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: 15)),
-                          Text('Assistente de estudo', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
+                          Text('Andy', style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: 16)),
+                          Text('Companheiro de estudo com IA', style: TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
                         ],
                       ),
                     ),
@@ -410,6 +422,22 @@ class _AssistantBubble extends StatelessWidget {
   final String text;
   const _AssistantBubble({required this.text});
 
+  /// Converte LaTeX $$ ... $$ e $ ... $ em blocos/inline de código Markdown,
+  /// que o flutter_markdown_plus consegue renderizar correctamente.
+  static String _sanitize(String raw) {
+    // Bloco LaTeX: $$ ... $$ → bloco de código
+    var s = raw.replaceAllMapped(
+      RegExp(r'\$\$\s*([\s\S]+?)\s*\$\$'),
+      (m) => '\n```\n${m.group(1)!.trim()}\n```\n',
+    );
+    // Inline LaTeX: $ ... $ → código inline (apenas em linhas sem $$ já processadas)
+    s = s.replaceAllMapped(
+      RegExp(r'\$([^\$\n]+)\$'),
+      (m) => '`${m.group(1)!.trim()}`',
+    );
+    return s;
+  }
+
   static final _markdownStyleSheet = MarkdownStyleSheet(
     p: const TextStyle(color: AppTheme.textPrimary, fontSize: 13, height: 1.5),
     strong: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: 13),
@@ -449,21 +477,10 @@ class _AssistantBubble extends StatelessWidget {
               bottomRight: Radius.circular(16),
             ),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8, top: 2),
-                child: Icon(Icons.auto_awesome, color: AppTheme.brandAccent, size: 13),
-              ),
-              Expanded(
-                child: MarkdownBody(
-                  data: text,
-                  styleSheet: _markdownStyleSheet,
-                  shrinkWrap: true,
-                ),
-              ),
-            ],
+          child: MarkdownBody(
+            data: _sanitize(text),
+            styleSheet: _markdownStyleSheet,
+            shrinkWrap: true,
           ),
         ),
       ),

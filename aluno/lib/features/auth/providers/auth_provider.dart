@@ -28,7 +28,6 @@ class AuthState {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       isLoading: isLoading ?? this.isLoading,
-      // Só limpa o erro se clearError=true ou se foi passado um erro novo
       error: clearError ? null : (error ?? this.error),
       user: user ?? this.user,
       registrationSuccess: registrationSuccess ?? this.registrationSuccess,
@@ -36,11 +35,14 @@ class AuthState {
   }
 }
 
-class AuthNotifier extends StateNotifier<AuthState> {
-  final AuthRepository _repo;
-  final Ref _ref;
+class AuthNotifier extends Notifier<AuthState> {
+  late final AuthRepository _repo;
 
-  AuthNotifier(this._repo, this._ref) : super(const AuthState());
+  @override
+  AuthState build() {
+    _repo = ref.read(authRepositoryProvider);
+    return const AuthState();
+  }
 
   Future<void> login(String email, String password) async {
     print('[AUTH] Starting login for $email');
@@ -53,12 +55,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final token = data['access_token'] as String;
         print('[AUTH] Token received: ${token.substring(0, 20)}...');
 
-        // Guarda o token ANTES de atualizar o state
-        // Usa _ref.read para não criar dependência reativa
-        _ref.read(authTokenProvider.notifier).state = token;
+        ref.read(authTokenProvider.notifier).setToken(token);
         print('[AUTH] Token stored, updating auth state');
 
-        // Atualiza o state num único passo atómico
         state = AuthState(
           isAuthenticated: true,
           isLoading: false,
@@ -99,7 +98,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (token != null) {
         print('[AUTH] Token received, storing');
-        _ref.read(authTokenProvider.notifier).state = token;
+        ref.read(authTokenProvider.notifier).setToken(token);
         print('[AUTH] Token stored, updating auth state');
 
         state = AuthState(
@@ -109,7 +108,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         );
         print('[AUTH] Auth state updated: authenticated=true');
       } else {
-        // Sem token — conta criada mas requer aprovação
         print('[AUTH] No token - registration requires approval');
         state = AuthState(
           isLoading: false,
@@ -126,14 +124,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void logout() {
-    _ref.read(authTokenProvider.notifier).state = null;
+    ref.read(authTokenProvider.notifier).setToken(null);
     state = const AuthState();
   }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(
-    ref.read(authRepositoryProvider), // ref.read evita que mudanças no token invalide este provider
-    ref,
-  );
-});
+final authProvider = NotifierProvider<AuthNotifier, AuthState>(AuthNotifier.new);

@@ -991,10 +991,18 @@ async function saveEdit(exerciseId, type) {
   if (savingEdit.value) return;
   savingEdit.value = true;
   try {
+    // Normalize correct to a letter so Flutter can parse it
+    const rawCorrect = editForm.correct;
+    const correctLetter =
+      type === 'Multiple Choice'
+        ? typeof rawCorrect === 'number'
+          ? String.fromCharCode(65 + rawCorrect)
+          : String(rawCorrect ?? 'A').toUpperCase()
+        : rawCorrect; // True/False: keeps 'true'/'false'
     const solution =
       type === 'Multiple Choice'
-        ? { options: [...editForm.options], correct: editForm.correct }
-        : { correct: editForm.correct };
+        ? { options: [...editForm.options], correct: correctLetter }
+        : { correct: correctLetter };
 
     await exerciseStore.updateExercise(exerciseId, {
       question: editForm.question,

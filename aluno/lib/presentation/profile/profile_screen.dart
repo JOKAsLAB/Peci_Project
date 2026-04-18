@@ -190,6 +190,10 @@ class _ProfileView extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(height: 12),
+
+                // ── Acesso a estatísticas ──────────────────────────────────────
+                const _StatsPreviewCard(),
                 const SizedBox(height: 32),
               ],
             ),
@@ -264,6 +268,69 @@ class _StreakCard extends StatelessWidget {
             style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Stats Preview Card ───────────────────────────────────────────────────────
+
+class _StatsPreviewCard extends ConsumerWidget {
+  const _StatsPreviewCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsAsync = ref.watch(topicStatsProvider);
+
+    final (String subtitle, bool hasData) = statsAsync.when(
+      loading: () => ('A carregar...', false),
+      error: (_, __) => ('Desempenho por tópico', false),
+      data: (stats) {
+        if (stats.isEmpty) return ('Ainda sem dados — começa pelos Cursos!', false);
+        final totalAnswered = stats.fold(0, (s, e) => s + (e['total_answered'] as num).toInt());
+        final totalCorrect  = stats.fold(0, (s, e) => s + (e['correct_count']  as num).toInt());
+        final globalAcc = totalAnswered > 0 ? (totalCorrect / totalAnswered * 100).toStringAsFixed(0) : '0';
+        return ('${stats.length} tópicos  •  $globalAcc% de acerto global', true);
+      },
+    );
+
+    return Material(
+      color: AppTheme.surfaceSecondary,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: hasData ? () => context.push('/stats') : null,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 42, height: 42,
+                decoration: BoxDecoration(
+                  color: AppTheme.brandAccent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.bar_chart_rounded, color: AppTheme.brandAccent, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Desempenho por Tópico',
+                      style: TextStyle(color: AppTheme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12)),
+                  ],
+                ),
+              ),
+              if (hasData)
+                const Icon(Icons.chevron_right_rounded, color: AppTheme.textSecondary, size: 20),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -44,7 +44,7 @@ UC_INFO = {
         ],
     },
     40333: {
-        "nome": "",
+        "nome": "Laboratório de Sistemas Digitais",
         "objetivos": [],
         "resultados_aprendizagem": [],
         "topicos": [
@@ -57,9 +57,18 @@ UC_INFO = {
         ],
     },
     42545: {
-        "nome": "",
-        "objetivos": [],
-        "resultados_aprendizagem": [],
+        "nome": "Arquitetura de Computadores",
+        "objetivos": [
+            "Compreender a organização dos computadores digitais.",
+            "Adquirir familiaridade com a arquitectura de microprocessadores através da programação em assembly.",
+            "Compreender a estrutura interna dos processadores.",
+            "Conhecer as formas de representação da informação nos computadores digitais, com relevo para a representação da informação numérica (inteiros e vírgula flutuante) e as operações aritméticas básicas.",
+        ],
+        "resultados_aprendizagem": [
+            "Definir genericamente a organização dos computadores digitais.",
+            "Capacidade de programar computadores digitais em linguagem Assembly.",
+            "Analisar e interpretar funcionalmente a estrutura interna dos processadores.",
+        ],
         "topicos": [
             "Organização funcional e programação em assembly",
             "Tradução de linguagens de alto nível e assemblagem",
@@ -219,7 +228,6 @@ class QuestionGenerator:
 
         return perguntas
 
-
     def _build_validation_prompt(self, pergunta: Dict, contexto_chunk: str, id_uc: int) -> str:
         uc = UC_INFO.get(id_uc, {})
         outras_ucs_str = "\n".join(
@@ -269,6 +277,88 @@ class QuestionGenerator:
         Rejeita perguntas que mencionem tópicos mais relacionados a Física ou seja Volts Amperes e coisas do género pois as UCs são focadas em sistemas digitais e arquitetura de computadores.
         """
 
+    def _verify_answer_correctness(self, pergunta: Dict) -> Tuple[bool, str]:
+        """
+        Passo independente: pede ao LLM para resolver a pergunta sem ver a resposta marcada.
+        Compara a resposta independente com a resposta marcada.
+        Retorna (resposta_correta, justificacao).
+        """
+        options_str = "\n".join(pergunta.get("options", []))
+        correct_marked = pergunta.get("correct", "").strip().upper()
+
+        prompt = f"""Resolve esta pergunta de engenharia como se fosses um estudante experiente.
+            NÃO tens acesso à resposta correta — tens de raciocinar a partir do teu conhecimento.
+
+            PERGUNTA:
+            {pergunta.get("question", "")}
+
+            OPÇÕES:
+            {options_str}
+
+            Responde APENAS com JSON, sem texto adicional:
+            {{"resposta": "A", "confianca": "alta|media|baixa", "raciocinio": "..."}}
+
+            A resposta deve ser apenas a letra da opção correta (A, B, C ou D, ou "Verdadeiro"/"Falso" para True/False)."""
+
+        raw = self._invoke_llm(prompt)
+        try:
+            match = re.search(r'\{[^{}]+\}', raw, re.DOTALL)
+            result = json.loads(match.group()) if match else {}
+        except:
+            return True, "parse_error — mantida por omissão"
+
+        resposta_llm = result.get("resposta", "").strip().upper()
+        confianca = result.get("confianca", "baixa").lower()
+        raciocinio = result.get("raciocinio", "")
+
+        correct_norm = correct_marked.upper()
+        resposta_norm = resposta_llm.upper()
+
+        # Se o LLM não tem confiança, não rejeitar com base nisto
+        if confianca == "baixa":
+            return True, f"confiança baixa — mantida ({raciocinio[:60]})"
+
+        if correct_norm == resposta_norm:
+            return True, f"resposta verificada: {resposta_llm} == {correct_marked}"
+        else:
+            return False, f"RESPOSTA ERRADA: LLM escolheu {resposta_llm}, marcada é {correct_marked}. {raciocinio[:80]}"
+
+    def _reclassify_topic(self, pergunta: Dict, novo_uc_id: int) -> str:
+        """
+        Dado um swap de UC, pede ao LLM para atribuir o tópico correto
+        da UC de destino à pergunta.
+        Retorna o tópico mais adequado (texto exato de UC_INFO).
+        """
+        uc_info = UC_INFO.get(novo_uc_id, {})
+        topicos_destino = uc_info.get("topicos", [])
+        if not topicos_destino:
+            return ""
+
+        topicos_str = "\n".join(f"- {t}" for t in topicos_destino)
+
+        prompt = f"""Tens esta pergunta de engenharia:
+{json.dumps(pergunta, ensure_ascii=False)}
+
+Pertence à unidade curricular "{uc_info.get('nome', '')}" (ID: {novo_uc_id}).
+Os tópicos disponíveis dessa UC são:
+{topicos_str}
+
+Indica qual dos tópicos acima melhor classifica esta pergunta.
+Responde APENAS com o texto exato do tópico, sem mais nada."""
+
+        raw = self._invoke_llm(prompt).strip()
+
+        # Validar que a resposta é mesmo um dos tópicos disponíveis
+        if raw in topicos_destino:
+            return raw
+
+        # Fallback: correspondência parcial por palavras
+        best = next(
+            (t for t in topicos_destino if any(p in t.lower() for p in raw.lower().split())),
+            topicos_destino[0]  # último recurso: primeiro tópico da UC
+        )
+        return best
+
     def validate_question(self, pergunta: Dict, contexto_chunk: str) -> Tuple[Dict, bool, str]:
         id_uc = int(pergunta.get("id_uc", 0))
         prompt = self._build_validation_prompt(pergunta, contexto_chunk, id_uc)
@@ -285,17 +375,26 @@ class QuestionGenerator:
         uc_correta_id = result.get("uc_correta_id")
         if uc_correta_id and str(uc_correta_id) != str(id_uc) and int(uc_correta_id) in UC_INFO:
             print(f"    🔄 Swap: UC {id_uc} → {uc_correta_id}")
-            pergunta = {**pergunta, "id_uc": str(uc_correta_id)}
-            return pergunta, True, f"Transferida para UC {uc_correta_id}: {result.get('justificacao', '')}"
+            novo_topico = self._reclassify_topic(pergunta, int(uc_correta_id))
+            pergunta = {**pergunta, "id_uc": str(uc_correta_id), "topic": novo_topico}
+            return pergunta, True, f"Transferida para UC {uc_correta_id} (tópico: {novo_topico}): {result.get('justificacao', '')}"
 
-        aprovada = (
+        aprovada_validacao = (
             result.get("no_ambito", True)
             and result.get("factualmente_correta", True)
             and result.get("avalia_competencia_certa", True)
         )
         justificacao = result.get("justificacao", "sem justificação")
 
-        return pergunta, aprovada, justificacao
+        if not aprovada_validacao:
+            return pergunta, False, justificacao
+
+        # Segundo passo: verificação independente da resposta correta
+        resposta_ok, motivo_resposta = self._verify_answer_correctness(pergunta)
+        if not resposta_ok:
+            return pergunta, False, f"Verificação de resposta falhou: {motivo_resposta}"
+
+        return pergunta, True, f"{justificacao} | {motivo_resposta}"
 
     def validate_batch(self, perguntas: List[Dict], contexto_chunk: str) -> Tuple[List[Dict], List[Dict]]:
         aprovadas, rejeitadas = [], []
@@ -307,7 +406,6 @@ class QuestionGenerator:
                 rejeitadas.append(p)
             print(f"    Validação {i+1}/{len(perguntas)}: {'✓' if aprovada else '✗'} — {justificacao[:80]}")
         return aprovadas, rejeitadas
-
 
     def generate_questions(self, filename: str, validar: bool = True) -> Tuple[List[Dict], List[Dict]]:
         """Gera e opcionalmente valida perguntas para todos os chunks do ficheiro.
@@ -397,8 +495,8 @@ class QuestionGenerator:
 if __name__ == "__main__":
     gerador = QuestionGenerator()
     aprovadas, rejeitadas = gerador.generate_questions(
-        "2006_WakerlyDDP_4ed.pdf",
+        "book.pdf",
         validar=True
     )
-    gerador.export_json(aprovadas, "perguntas_aprovadas_wakerly.json")
-    gerador.export_json(rejeitadas, "perguntas_rejeitadas_wakerly.json")
+    gerador.export_json(aprovadas, "book_aprovadas.json")
+    gerador.export_json(rejeitadas, "book_rejeitadas.json")
