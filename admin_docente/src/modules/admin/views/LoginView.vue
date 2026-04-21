@@ -3,11 +3,8 @@
     <div class="w-full max-w-md mx-auto p-8">
       <!-- Logo -->
       <div class="text-center mb-10">
-        <div class="w-16 h-16 bg-brand rounded-2xl flex items-center justify-center mx-auto shadow-lg shadow-brand/20 mb-6">
-          <span class="font-bold text-white text-2xl">{{ isAdmin ? 'A' : 'P' }}</span>
-        </div>
-        <h1 class="text-2xl font-bold">{{ isAdmin ? 'Admin' : 'Docente' }}<span class="text-brand">Panel</span></h1>
-        <p class="text-text-secondary text-sm mt-2">PECI Projeto #8 · Universidade de Aveiro</p>
+        <img src="/logo_LogicStreak.png" alt="LogicStreak" class="mx-auto rounded-2xl shadow-lg shadow-brand/20" style="width: 200px; height: 200px; object-fit: cover;" />
+        <p class="text-text-secondary text-sm mt-3">{{ isAdmin ? 'Admin' : 'Docente' }} · Universidade de Aveiro</p>
       </div>
 
       <!-- Login Form -->

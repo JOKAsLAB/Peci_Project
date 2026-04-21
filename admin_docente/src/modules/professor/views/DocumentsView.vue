@@ -186,7 +186,10 @@
             >
               <span
                 class="bg-brand/10 text-brand px-2 py-0.5 rounded-chip font-bold"
-                >{{ doc.discipline }}</span
+                >{{
+                  authStore.user?.course_units?.find((u) => u.id === doc.id_uc)
+                    ?.name ?? doc.discipline
+                }}</span
               >
               <span>·</span>
               <span>{{ doc.uploadedAt }}</span>
@@ -235,25 +238,32 @@
             </span>
           </div>
 
-          <!-- Ações — só o dono pode reindexar/remover -->
-          <div
-            v-if="doc.is_mine"
-            class="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-          >
-            <button
-              @click="handleReindex(doc.id_material)"
-              class="text-text-secondary hover:text-brand transition-colors"
-              title="Re-indexar"
-            >
-              <i class="pi pi-refresh"></i>
-            </button>
-            <button
-              @click="handleRemove(doc.id_material)"
-              class="text-text-secondary hover:text-error transition-colors"
-              title="Remover"
-            >
-              <i class="pi pi-trash"></i>
-            </button>
+          <!-- Ações -->
+          <div class="flex gap-3 shrink-0 w-[52px] justify-end">
+            <template v-if="doc.is_mine">
+              <button
+                @click="handleReindex(doc.id_material)"
+                class="text-text-secondary hover:text-brand transition-colors opacity-0 group-hover:opacity-100"
+                title="Re-indexar"
+              >
+                <i class="pi pi-refresh"></i>
+              </button>
+              <button
+                @click="handleRemove(doc.id_material)"
+                class="text-text-secondary hover:text-error transition-colors opacity-0 group-hover:opacity-100"
+                title="Remover"
+              >
+                <i class="pi pi-trash"></i>
+              </button>
+            </template>
+            <template v-else>
+              <span
+                class="text-text-secondary/30"
+                title="Adicionado por outro docente — não pode ser removido por si"
+              >
+                <i class="pi pi-lock text-sm"></i>
+              </span>
+            </template>
           </div>
         </div>
 

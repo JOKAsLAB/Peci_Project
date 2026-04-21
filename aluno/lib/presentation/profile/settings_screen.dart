@@ -12,6 +12,17 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  void _showComingSoon(BuildContext context, String feature) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$feature — em breve'),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,31 +47,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             icon: Icons.person_outline,
             title: 'Editar Perfil',
             subtitle: 'Alterar nome ou foto de perfil',
-            onTap: () {},
+            onTap: () {
+              _showComingSoon(context, 'Editar Perfil');
+            },
           ),
           _SettingsTile(
             icon: Icons.lock_outline,
             title: 'Alterar Password',
             subtitle: 'Modificar as credenciais de acesso',
-            onTap: () {},
+            onTap: () {
+              _showComingSoon(context, 'Alterar Password');
+            },
           ),
           _SettingsTile(
             icon: Icons.school_outlined,
             title: 'Disciplinas Inscritas',
             subtitle: 'Ver as UCs em que estás inscrito',
-            onTap: () {},
-          ),
-
-          const SizedBox(height: 32),
-
-          // Secção Sobre
-          const _SectionHeader(title: 'Sobre'),
-          const SizedBox(height: 12),
-          _SettingsTile(
-            icon: Icons.info_outline,
-            title: 'Sobre a App',
-            subtitle: 'PECI Projeto #8 · v0.1.0',
-            onTap: () {},
+            onTap: () => context.go('/courses'),
           ),
 
           const SizedBox(height: 32),

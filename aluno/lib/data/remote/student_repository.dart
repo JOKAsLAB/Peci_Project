@@ -5,7 +5,7 @@ import 'package:logging/logging.dart';
 import 'package:peci_project/data/models/exercise.dart';
 import 'package:peci_project/data/models/topic.dart';
 
-import '../models/learning_path.dart';
+import '../models/learning_path.dart' show LearningPath, PracticeSession;
 import '../models/student_profile.dart';
 import 'api_client.dart';
 
@@ -26,12 +26,14 @@ class StudentRepository {
   }
 
   /// Regista uma resposta. Devolve XP ganho, nível atual e se houve level-up.
+  /// [bonus] — true nos 5 exercícios diários dos Cursos (1.5× XP).
   Future<ProgressResult> postProgress({
     required String exerciseId,
     required bool isCorrect,
     required String difficulty, // 'Easy' | 'Medium' | 'Hard'
+    bool bonus = false,
   }) async {
-    final xp = isCorrect ? _xpForDifficulty(difficulty) : 0;
+    final xp = isCorrect ? _xpForDifficulty(difficulty, bonus: bonus) : 0;
     final body = {
       'id_exercise': exerciseId,
       'status': isCorrect ? 'Correct' : 'Incorrect',
@@ -54,11 +56,14 @@ class StudentRepository {
     }
   }
 
-  static int _xpForDifficulty(String difficulty) => switch (difficulty.toLowerCase()) {
-    'easy'   => 10,
-    'hard'   => 35,
-    _        => 20, // medium
-  };
+  static int _xpForDifficulty(String difficulty, {bool bonus = false}) {
+    final base = switch (difficulty.toLowerCase()) {
+      'easy' => 10,
+      'hard' => 35,
+      _      => 20, // medium
+    };
+    return bonus ? (base * 1.5).round() : base;
+  }
 
   Future<List<LearningPath>> getLearningPaths() async {
     final r = await _dio.get('/students/learning-paths');
@@ -140,6 +145,43 @@ class StudentRepository {
       return [];
     } on DioException catch (e) {
       _log.severe('Falha ao obter exercícios', e.response?.data);
+      return [];
+    }
+  }
+
+  Future<PracticeSession> getPracticeSession(int idUc) async {
+    try {
+      final r = await _dio.get('/students/practice-session', queryParameters: {'id_uc': idUc});
+      return PracticeSession.fromJson(r.data as Map<String, dynamic>);
+    } on DioException catch (e) {
+      _log.severe('Falha ao obter sessão de prática', e.response?.data);
+      return const PracticeSession(
+        doneToday: 0, dailyLimit: 5, remainingToday: 5,
+        canPractice: true, allCompleted: false,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> getDailyStatus() async {
+    try {
+      final r = await _dio.get('/students/daily-status');
+      return r.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      _log.severe('Falha ao obter estado diário', e.response?.data);
+      return {'done_today': 0, 'daily_limit': 5, 'can_practice': true, 'remaining_today': 5};
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getTopicStats({int? idUc}) async {
+    try {
+      final params = idUc != null ? {'id_uc': idUc} : null;
+      final r = await _dio.get('/students/stats/topics', queryParameters: params);
+      if (r.statusCode == 200 && r.data is List) {
+        return List<Map<String, dynamic>>.from(r.data);
+      }
+      return [];
+    } on DioException catch (e) {
+      _log.severe('Falha ao obter estatísticas por tópico', e.response?.data);
       return [];
     }
   }

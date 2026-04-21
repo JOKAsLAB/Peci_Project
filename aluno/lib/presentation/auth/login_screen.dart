@@ -63,17 +63,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Logo
-                Container(
-                  width: 80, height: 80,
-                  decoration: BoxDecoration(
-                    color: AppTheme.brandAccent,
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: const Icon(Icons.school_rounded, color: Colors.white, size: 40),
-                ),
+                Image.asset('assets/logo.png', width: 160, fit: BoxFit.contain),
                 const SizedBox(height: 24),
-                Text('PECI Study', style: Theme.of(context).textTheme.displayLarge?.copyWith(fontSize: 28, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 6),
                 const Text('Aprende. Pratica. Evolui.', style: TextStyle(color: AppTheme.textSecondary, fontSize: 14)),
                 const SizedBox(height: 48),
 

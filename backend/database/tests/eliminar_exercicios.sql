@@ -1,1 +1,1 @@
-DELETE FROM Exercise;
+TRUNCATE TABLE Exercise CASCADE;

@@ -20,7 +20,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _obscureConfirm = true;
   bool _loading = false;
   String? _errorMessage;
-  String _selectedRole = 'Student';
 
   @override
   void dispose() {
@@ -63,39 +62,35 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       name: name,
       email: email,
       password: password,
-      role: _selectedRole,
+      role: 'Student',
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    
-    // Listener para navegação e feedback
+
     ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next.isAuthenticated) {
-        // Usa Future.microtask para dar ao routerProvider tempo de reconstruir
-        Future.microtask(() {
-          if (mounted) {
-            context.go('/courses');
-          }
-        });
-      } else if (next.registrationSuccess && !next.isAuthenticated && _loading) {
-        // Conta criada mas requer aprovação
+      // Só reagir se estava mesmo a registar (evita disparos de estados anteriores)
+      if (!_loading) return;
+
+      if (next.registrationSuccess || next.isAuthenticated) {
+        // Se a API devolveu token, fazer logout imediato para não deixar
+        // o router ir para /courses com conta sem matrícula
+        if (next.isAuthenticated) {
+          ref.read(authProvider.notifier).logout();
+        }
+        setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              _selectedRole == 'aluno'
-                  ? 'Conta criada com sucesso!'
-                  : 'Pedido de docente enviado para aprovação.',
-            ),
+          const SnackBar(
+            content: Text('Conta criada com sucesso! Faz login para entrar.'),
             backgroundColor: AppTheme.brandAccent,
           ),
         );
-        if (mounted) {
-          context.pop();
-        }
-      } else if (next.error != null && _loading) {
+        Future.microtask(() {
+          if (mounted) context.go('/login');
+        });
+      } else if (next.error != null) {
         setState(() {
           _errorMessage = next.error;
           _loading = false;
@@ -140,71 +135,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Role selector
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceSecondary,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  padding: const EdgeInsets.all(4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _selectedRole = 'Student'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _selectedRole == 'Student' ? AppTheme.brandAccent : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              'Aluno',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: _selectedRole == 'Student' ? Colors.white : AppTheme.textSecondary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: GestureDetector(
-                          onTap: () => setState(() => _selectedRole = 'Professor'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: _selectedRole == 'Professor' ? AppTheme.brandAccent : Colors.transparent,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              'Docente',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: _selectedRole == 'professor' ? Colors.white : AppTheme.textSecondary,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (_selectedRole == 'professor')
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(
-                      'Contas de docente requerem aprovação do administrador.',
-                      style: TextStyle(color: Colors.amber.shade600, fontSize: 12),
-                    ),
-                  ),
-                const SizedBox(height: 24),
-
-                // Name
+                // Nome
                 _buildField(
                   controller: _nameController,
                   hint: 'Nome completo',
@@ -249,7 +180,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: 14),
 
-                // Confirm password
+                // Confirmar password
                 TextField(
                   controller: _confirmPasswordController,
                   obscureText: _obscureConfirm,
@@ -278,7 +209,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Error
+                // Erro
                 if (_errorMessage != null)
                   Container(
                     width: double.infinity,
@@ -299,30 +230,30 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                   ),
 
-                // Register button
+                // Botão criar conta
                 SizedBox(
                   width: double.infinity,
                   height: 52,
                   child: ElevatedButton(
-                    onPressed: _loading ? null : _register,
+                    onPressed: authState.isLoading ? null : _register,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.brandAccent,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
-                    child: _loading
+                    child: authState.isLoading
                         ? const SizedBox(
                             width: 22, height: 22,
                             child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
                           )
-                        : Text(
-                            _selectedRole == 'aluno' ? 'Criar Conta' : 'Enviar Pedido',
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        : const Text(
+                            'Criar Conta',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                   ),
                 ),
                 const SizedBox(height: 16),
 
-                // Back to login
+                // Link login
                 TextButton(
                   onPressed: () => context.pop(),
                   child: const Text.rich(

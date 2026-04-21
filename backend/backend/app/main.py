@@ -85,7 +85,7 @@ async def lifespan(app: FastAPI):
             app.state.chatbot = None
             print(f"⚠️ Chatbot não disponível: {ce}")
 
-    except Exception as e:
+    except Exception as e:  
         app.state.question_generator = None
         app.state.pdf_indexer = None
         app.state.chatbot = None

@@ -1,5 +1,15 @@
-SELECT id_uc, name FROM course_unit;
-SELECT * FROM topic;
+
+-- =============================================================
+-- DIAGNÓSTICO: professores e as suas UCs associadas
+-- =============================================================
+SELECT *
+FROM Exercise
+WHERE ID_Exercise IN (
+    'b436f9eb-f4e7-4b91-80c5-1e58ff414a6e',
+    'bd372cd4-210d-41b9-a628-f115aefc81f7',
+    '78ea8ff2-4bac-416e-b48b-4bdc2805529a',
+    '3d431753-ac2f-4f0d-badd-a365ac6bf49c'
+);
 -- =============================================================
 -- VERIFICAÇÃO DE REGISTOS POR TABELA
 -- =============================================================
