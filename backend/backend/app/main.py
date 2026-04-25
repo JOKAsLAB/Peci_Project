@@ -2,6 +2,7 @@ import asyncio
 import os
 import sys
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -32,6 +33,7 @@ def parse_cors_origins(raw_value: str) -> list[str]:
 async def lifespan(app: FastAPI):
     max_retries = 5
     base_delay = 2
+    load_dotenv(os.path.join(AI_ENGINE_PATH, "keys.env"))
     for attempt in range(1, max_retries + 1):
         try:
             async with engine.begin() as conn:
@@ -49,12 +51,12 @@ async def lifespan(app: FastAPI):
         from ImportFiles import PDFIndexer                              # type: ignore
         import torch
         from langchain_huggingface import HuggingFaceEmbeddings
-
-
+        os.environ["HF_TOKEN"] = os.getenv("TOKEN_GEMMA", "")
+        
         shared_embeddings = HuggingFaceEmbeddings(
             model_name="google/embeddinggemma-300m",
             model_kwargs={
-                "device": "cuda",
+                "device": "cpu",
                 "trust_remote_code": True,
                 "model_kwargs": {"torch_dtype": torch.float32}
             },
@@ -63,12 +65,12 @@ async def lifespan(app: FastAPI):
 
 
         app.state.question_generator = QuestionGeneratorTeacher(
-            device="cuda",
+            device="cpu",
             db_path=os.path.join(AI_ENGINE_PATH, "chroma_db"),
             embeddings=shared_embeddings,
         )
         app.state.pdf_indexer = PDFIndexer(
-            device="cuda",
+            device="cpu",
             upload_dir=os.path.join(AI_ENGINE_PATH, "uploads"),
             embeddings=shared_embeddings,
         )
@@ -78,7 +80,7 @@ async def lifespan(app: FastAPI):
             from chatbot import Chatbot  # type: ignore
             app.state.chatbot = Chatbot(
                 db_path=os.path.join(AI_ENGINE_PATH, "chroma_db"),
-                device="cuda",
+                device="cpu",
                 embeddings=shared_embeddings,
             )
         except Exception as ce:
