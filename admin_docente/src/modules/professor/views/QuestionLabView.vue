@@ -125,24 +125,6 @@
               </p>
             </div>
 
-            <!-- Tópico -->
-            <div>
-              <label
-                class="text-xs font-bold text-text-secondary uppercase tracking-widest"
-                >Tópico</label
-              >
-              <select
-                v-model="form.topic"
-                class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm"
-                :disabled="topicsForDiscipline.length === 0"
-              >
-                <option value="">-- Seleciona um tópico --</option>
-                <option v-for="t in topicsForDiscipline" :key="t" :value="t">
-                  {{ t }}
-                </option>
-              </select>
-            </div>
-
             <!-- Tipo de Pergunta -->
             <div>
               <label

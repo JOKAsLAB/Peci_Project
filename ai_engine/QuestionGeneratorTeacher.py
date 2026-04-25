@@ -130,7 +130,7 @@ class QuestionGeneratorTeacher:
         print(f"DEBUG - '{topic}' | Score Gemma: {best_score:.4f}")
 
         if best_score < 0.40:
-            return f"Tema não coberto pelos manuais técnicos. (Relevância: {best_score:.2f})", 
+            return None, None, None, None
         # 3. Fazer a busca no ChromaDB filtrando pelo livro
         print(f"🔄 A procurar contexto relevante com '{query_para_busca}'...")
         try:
@@ -169,26 +169,26 @@ class QuestionGeneratorTeacher:
     def generate_questions(self, context: str, topicos_str: str, n_perguntas: int, id_uc: str, topicos_permitidos: List[str], difficulty: str, question_type: str) -> List[Dict]:
         prompt = f"""És um professor de engenharia a criar exercícios de avaliação.
 
-Com base no conteúdo técnico abaixo, gera {n_perguntas} perguntas do tipo '{question_type}' com dificuldade '{difficulty}'.
-Se o conteúdo der para criar perguntas mas não {n_perguntas}, gera as que conseguires. Se o conteúdo não estiver relacionado com nenhum dos tópicos disponíveis, responde apenas com: []
+        Com base no conteúdo técnico abaixo, gera {n_perguntas} perguntas do tipo '{question_type}' com dificuldade '{difficulty}'.
+        Se o conteúdo der para criar perguntas mas não {n_perguntas}, gera as que conseguires. Se o conteúdo não estiver relacionado com nenhum dos tópicos disponíveis, responde apenas com: []
 
-CONTEUDO:
-{context}
+        CONTEUDO:
+        {context}
 
-TOPICOS DISPONIVEIS:
-{topicos_str}
+        TOPICOS DISPONIVEIS:
+        {topicos_str}
 
 
-REGRAS:
-1. Cada pergunta deve estar diretamente baseada no conteúdo fornecido MAS NÃO O DEVE MENCIONAR.
-2. Cada pergunta deve pertencer a um dos tópicos disponíveis.
-3. Opções incorretas devem ser plausíveis mas claramente erradas.
-4. A dificuldade deve ser '{difficulty}'. Se a dificuldade for 'variada', podes usar 'easy', 'medium', ou 'hard'.
-5. Responde APENAS com uma lista de JSONs, sem texto adicional.
-6. Perguntas do tipo 'True/False' devem ter apenas as opções "Verdadeiro" e "Falso".
+        REGRAS:
+        1. Cada pergunta deve estar diretamente baseada no conteúdo fornecido MAS NÃO O DEVE MENCIONAR.
+        2. Cada pergunta deve pertencer a um dos tópicos disponíveis.
+        3. Opções incorretas devem ser plausíveis mas claramente erradas.
+        4. A dificuldade deve ser '{difficulty}'. Se a dificuldade for 'variada', podes usar 'easy', 'medium', ou 'hard'.
+        5. Responde APENAS com uma lista de JSONs, sem texto adicional.
+        6. Perguntas do tipo 'True/False' devem ter apenas as opções "Verdadeiro" e "Falso".
 
-FORMATO DA LISTA DE JSONs:
-[{{"question": "...", "type": "{question_type}", "options": ["A) ...", "B) ...", "C) ...", "D) ..."], "correct": "A", "difficulty": "{difficulty}", "explanation": "...", "topic": "..."}}]"""
+        FORMATO DA LISTA DE JSONs:
+        [{{"question": "...", "type": "{question_type}", "options": ["A) ...", "B) ...", "C) ...", "D) ..."], "correct": "A", "difficulty": "{difficulty}", "explanation": "...", "topic": "..."}}]"""
 
         print(f"📤 A chamar LLM para gerar {n_perguntas} perguntas ({question_type}, {difficulty})...")
         try:

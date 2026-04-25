@@ -454,10 +454,10 @@ async def generate_questions(
             question_type=payload.question_type,
         )
 
-        print(f"📈 Gerador retornou {len(perguntas)} perguntas")
+        print(f"Gerador retornou {len(perguntas)} perguntas")
 
         if not perguntas:
-            raise HTTPException(status_code=400, detail="Não foram geradas perguntas para o tópico indicado")
+            raise HTTPException(status_code=400, detail="Não existe conteúdo que seja sobre os tópicos da UC!")
 
         type_map = {
             "Escolha Múltipla": "Multiple Choice",
