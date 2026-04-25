@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status, UploadFile, File
+from langgraph import func
 from sqlalchemy import and_, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
@@ -11,6 +12,7 @@ from app.models import (
     Base_User,
     Course_Unit,
     Exercise,
+    Exercise_Report,
     Professor_UC,
     Request as RequestModel,
     Teaching_Material,
@@ -29,6 +31,7 @@ from app.schemas.academic import (
     IndexMaterialResponse,
     MaterialCreateRequest,
     MaterialResponse,
+    ExerciseReportedResponse,
 )
 from app.schemas.admin import AdminRequestResponse, ProfessorRequestCreateRequest
 
@@ -249,6 +252,44 @@ async def delete_exercise(
 
     await db.execute(delete(Exercise).where(Exercise.ID_Exercise == ex_uuid))
     await db.commit()
+
+@router.get("/exercises/reported", response_model=list[ExerciseReportedResponse])
+async def list_reported_exercises(
+    threshold: int = Query(default=3, ge=1),
+    db: AsyncSession = Depends(get_db),
+    current_professor: Base_User = Depends(require_roles("Professor")),
+):
+    allowed_ucs = select(Professor_UC.ID_UC).where(
+        Professor_UC.ID_Professor == current_professor.ID_User
+    )
+
+    stmt = (
+        select(Exercise, func.count(Exercise_Report.ID_Student).label("report_count"))
+        .join(Exercise_Report, Exercise_Report.ID_Exercise == Exercise.ID_Exercise)
+        .where(Exercise.ID_UC.in_(allowed_ucs))
+        .group_by(Exercise.ID_Exercise)
+        .having(func.count(Exercise_Report.ID_Student) >= threshold)
+        .order_by(func.count(Exercise_Report.ID_Student).desc())  # mais reportados primeiro
+    )
+
+    rows = (await db.execute(stmt)).all()
+
+    return [
+        ExerciseReportedResponse(
+            id_exercise=ex.ID_Exercise,
+            id_uc=ex.ID_UC,
+            topic_name=ex.Topic_Name,
+            material_ref=ex.Material_Ref,
+            type=ex.Type,
+            question=ex.Question,
+            solution=ex.Solution,
+            difficulty=ex.Difficulty,
+            explanation=ex.Explanation,
+            published=ex.Published,
+            report_count=count,
+        )
+        for ex, count in rows
+    ]
 
 
 @router.get("/materials", response_model=list[MaterialResponse])

@@ -63,6 +63,23 @@ class ExerciseResponse(BaseModel):
     class Config:
         from_attributes = True
 
+#Para Exercicios reportados por alunos
+class ExerciseReportedResponse(BaseModel):
+    id_exercise: UUID
+    id_uc: int
+    topic_name: str
+    material_ref: UUID | None = None
+    type: ExerciseType
+    question: str
+    solution: dict[str, Any]
+    difficulty: DifficultyLevel
+    explanation: str | None = None
+    published: bool = False
+    report_count: int  # <- único campo extra
+
+    class Config:
+        from_attributes = True
+
 
 class ExerciseCreateRequest(BaseModel):
     id_uc: int
