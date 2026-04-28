@@ -10,7 +10,6 @@ import '../shared/tutor_chat_dialog.dart';
 import '../shared/xp_gain_overlay.dart';
 
 // ─── Ecrã principal: lista de UCs ────────────────────────────────────────────
-
 class CoursesScreen extends ConsumerStatefulWidget {
   const CoursesScreen({super.key});
 
@@ -213,7 +212,6 @@ class _CourseCard extends StatelessWidget {
 }
 
 // ─── Ecrã path (zigzag) ───────────────────────────────────────────────────────
-
 class CoursePathScreen extends ConsumerWidget {
   final LearningPath path;
 
@@ -285,7 +283,6 @@ class CoursePathScreen extends ConsumerWidget {
 }
 
 // ─── Popup de onboarding ──────────────────────────────────────────────────────
-
 class _OnboardingDialog extends StatelessWidget {
   const _OnboardingDialog();
 
@@ -382,7 +379,6 @@ class _OnboardingDialog extends StatelessWidget {
 }
 
 // ─── Popup de regras ─────────────────────────────────────────────────────────
-
 class _RulesDialog extends StatelessWidget {
   const _RulesDialog();
 
@@ -571,7 +567,6 @@ class _XpRow extends StatelessWidget {
 }
 
 // ─── Linha de ligação entre nós ───────────────────────────────────────────────
-
 class _PathConnector extends StatelessWidget {
   final bool isLocked;
   const _PathConnector({this.isLocked = false});
@@ -597,7 +592,6 @@ class _PathConnector extends StatelessWidget {
 }
 
 // ─── Nó circular do checkpoint ────────────────────────────────────────────────
-
 class _CheckpointNode extends StatelessWidget {
   final Checkpoint checkpoint;
   final int courseUnitId;
@@ -712,7 +706,6 @@ class _CheckpointNode extends StatelessWidget {
 }
 
 // ─── Loader de sessão de prática ─────────────────────────────────────────────
-
 class TopicPracticeLoader extends ConsumerStatefulWidget {
   final int courseUnitId;
   const TopicPracticeLoader({super.key, required this.courseUnitId});
@@ -811,7 +804,6 @@ class _TopicPracticeLoaderState extends ConsumerState<TopicPracticeLoader> {
 }
 
 // ─── Ecrã "limite diário atingido" ───────────────────────────────────────────
-
 class _DailyLimitScreen extends StatelessWidget {
   final int doneToday;
   final int dailyLimit;
@@ -870,7 +862,6 @@ class _DailyLimitScreen extends StatelessWidget {
 }
 
 // ─── Ecrã "UC concluída" ─────────────────────────────────────────────────────
-
 class _UcCompletedScreen extends StatelessWidget {
   const _UcCompletedScreen();
 
@@ -907,7 +898,6 @@ class _UcCompletedScreen extends StatelessWidget {
 }
 
 // ─── Ecrã de exercícios ───────────────────────────────────────────────────────
-
 class ExerciseScreen extends ConsumerStatefulWidget {
   final List<LearningExercise> exercises;
   final String topicName;
@@ -1377,7 +1367,6 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
 }
 
 // ─── Badges e tabela XP ──────────────────────────────────────────────────────
-
 class _XpBadge extends StatelessWidget {
   final String difficulty;
   final bool bonus;

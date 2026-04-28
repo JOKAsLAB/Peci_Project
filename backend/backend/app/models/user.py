@@ -83,6 +83,7 @@ class Student(Base_User):
     student_ucs      = relationship("Student_UC", back_populates="student", passive_deletes=True)
     progress_records = relationship("Progress", back_populates="student", passive_deletes=True)
     streak_records   = relationship("Streak",   back_populates="student", passive_deletes=True)
+    exercise_reports = relationship("Exercise_Report", back_populates="student")
 
 
 # =============================================================

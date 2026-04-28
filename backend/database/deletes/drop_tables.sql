@@ -7,6 +7,8 @@ DROP TABLE IF EXISTS Request;
 -- Junction tables / folhas intermédias
 DROP TABLE IF EXISTS Learning_Path_Exercise;
 
+DROP TABLE IF EXISTS Exercise_Report;
+
 -- Exercise depende de Topic e Teaching_Material
 DROP TABLE IF EXISTS Exercise;
 

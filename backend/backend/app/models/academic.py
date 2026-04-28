@@ -216,6 +216,9 @@ class Exercise(Base):
     # Relação com Progress
     progress_records = relationship("Progress", back_populates="exercise")
 
+    # Relación con Exercise_Report
+    exercise_reports = relationship("Exercise_Report", back_populates="exercise")
+
 #Para botão report nos exercícios
 class Exercise_Report(Base):
     __tablename__ = "exercise_report"
@@ -234,6 +237,5 @@ class Exercise_Report(Base):
     )
     Created_At   = Column("created_at", DateTime, nullable=False, server_default=func.now())
 
-    # Relações inversas
-    exercise = relationship("Exercise", back_populates="progress_records")
+    exercise = relationship("Exercise", back_populates="exercise_reports")
     student  = relationship("Student",  back_populates="exercise_reports")
