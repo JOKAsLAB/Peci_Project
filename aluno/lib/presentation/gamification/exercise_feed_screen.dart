@@ -88,6 +88,7 @@ class _ExerciseFeedScreenState extends ConsumerState<ExerciseFeedScreen> {
                             key: ValueKey('${exercise.id}_$index'),
                             exercise: exercise,
                             onProgress: null,
+                            onReport: (id) => ref.read(studentRepositoryProvider).reportExercise(id),
                           );
                         },
                       ),
@@ -99,7 +100,6 @@ class _ExerciseFeedScreenState extends ConsumerState<ExerciseFeedScreen> {
 }
 
 // ─── Barra de Filtros Compacta ────────────────────────────────────────────────
-
 class _CompactFilterBar extends StatelessWidget {
   final int? selectedCourseId;
   final String? selectedTopicName;
@@ -303,7 +303,6 @@ class _CompactFilterBar extends StatelessWidget {
 }
 
 // ─── Bottom Sheet de Filtros ──────────────────────────────────────────────────
-
 typedef _ApplyCallback = void Function({
   required int? courseId,
   required String? topicName,
@@ -669,7 +668,6 @@ class _FilterSheetState extends State<_FilterSheet> {
 }
 
 // ─── Auxiliares ───────────────────────────────────────────────────────────────
-
 class _FilterOption {
   final String label;
   final bool isSelected;
@@ -778,7 +776,6 @@ class _Chip extends StatelessWidget {
 }
 
 // ─── Estado Vazio ─────────────────────────────────────────────────────────────
-
 class _EmptyState extends StatelessWidget {
   final bool hasFilters;
   const _EmptyState({required this.hasFilters});
@@ -810,17 +807,20 @@ class _EmptyState extends StatelessWidget {
 }
 
 // ─── Card de Exercício ────────────────────────────────────────────────────────
-
 typedef _ProgressCallback = Future<void> Function(
   String exerciseId,
   bool isCorrect,
   ExerciseDifficulty difficulty,
 );
 
+//Para o report de exercícios
+typedef _ReportCallback = Future<void> Function(String exerciseId);
+
 class _ExerciseFeedCard extends StatefulWidget {
   final Exercise exercise;
   final _ProgressCallback? onProgress;
-  const _ExerciseFeedCard({super.key, required this.exercise, this.onProgress});
+  final _ReportCallback? onReport;
+  const _ExerciseFeedCard({super.key, required this.exercise, this.onProgress, this.onReport});
 
   @override
   State<_ExerciseFeedCard> createState() => _ExerciseFeedCardState();
@@ -850,6 +850,40 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
       _isCorrect,
       widget.exercise.difficulty,
     );
+  }
+
+  Future<void> _reportExercise() async {
+    try {
+      await widget.onReport?.call(widget.exercise.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(children: [
+            Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Expanded(child: Text('Obrigado! O exercício foi reportado.', style: TextStyle(fontSize: 14))),
+          ]),
+          backgroundColor: AppTheme.successState,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(children: [
+            Icon(Icons.error_rounded, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Expanded(child: Text('Erro ao reportar. Tenta novamente.', style: TextStyle(fontSize: 14))),
+          ]),
+          backgroundColor: AppTheme.errorState,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   Color get _difficultyColor {
@@ -1151,6 +1185,26 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
               ),
             ),
           ),
+
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 42,
+            child: TextButton.icon(
+              onPressed: () => _reportExercise(),
+              icon: const Icon(Icons.flag_rounded, size: 16),
+              label: const Text(
+                'Reportar problema',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.errorState,
+                backgroundColor: AppTheme.errorState.withValues(alpha: 0.07),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+
         ],
       ),
     );
