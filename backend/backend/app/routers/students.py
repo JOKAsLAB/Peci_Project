@@ -1,8 +1,9 @@
 from collections import defaultdict
 from datetime import date
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import UUID, and_, case, select, text
+from sqlalchemy import and_, case, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -340,7 +341,10 @@ async def report_exercise(
     db: AsyncSession = Depends(get_db),
     current_student: Base_User = Depends(require_roles("Student")),
 ):
-    ex_uuid = UUID(exercise_id)
+    try:
+        ex_uuid = uuid.UUID(exercise_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
 	
     # Verifica se o exercício existe
     exercise = await db.scalar(select(Exercise).where(Exercise.ID_Exercise == ex_uuid))

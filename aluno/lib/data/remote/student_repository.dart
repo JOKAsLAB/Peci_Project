@@ -193,6 +193,25 @@ class StudentRepository {
         .toList();
   }
 
+  /// Reportar um exercício
+  /// True se o report foi enviado, false se já tinha sido reportado antes.
+  Future<bool> reportExercise(String exerciseId) async {
+    try {
+      await _dio.post('/students/exercises/$exerciseId/report');
+      debugPrint('[reportExercise] ✅ Exercise $exerciseId reported');
+      return true;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 409) {
+        // 409 Conflict → já tinha reportado antes
+        debugPrint('[reportExercise] ⚠️ Already reported');
+        return false;
+      }
+      debugPrint('[reportExercise] ❌ erro=${e.response?.statusCode} msg=${e.message}');
+      _log.severe('Falha ao reportar exercício', e.response?.data);
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> chatQuery(
     String question, {
     int? courseUnitId,

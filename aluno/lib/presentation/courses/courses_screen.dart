@@ -986,6 +986,65 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
     }
   }
 
+  Future<void> _reportExercise() async {
+    final repo = ref.read(studentRepositoryProvider);
+    
+    try {
+      final success = await repo.reportExercise(_ex.id);
+      
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                success ? Icons.check_circle_rounded : Icons.info_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  success
+                      ? 'Obrigado! O exercício foi reportado.'
+                      : 'Já reportaste este exercício anteriormente.',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: success ? AppTheme.successState : AppTheme.textSecondary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Erro ao reportar. Tenta novamente.',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppTheme.errorState,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   void _showStreakDialog() {
     final parentNav = Navigator.of(context);
     showDialog(
@@ -1351,6 +1410,27 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
               ),
             ),
           ),
+
+          //Botão report
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 42,
+            child: TextButton.icon(
+              onPressed: () => _reportExercise(),
+              icon: const Icon(Icons.flag_rounded, size: 16),
+              label: const Text(
+                'Reportar problema',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.errorState,
+                backgroundColor: AppTheme.errorState.withValues(alpha: 0.07),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
