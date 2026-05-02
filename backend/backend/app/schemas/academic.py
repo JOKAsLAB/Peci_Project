@@ -75,7 +75,9 @@ class ExerciseReportedResponse(BaseModel):
     difficulty: DifficultyLevel
     explanation: str | None = None
     published: bool = False
-    report_count: int  # <- único campo extra
+    report_count: int
+    first_reported_at: datetime | None = None
+    last_reported_at: datetime | None = None
 
     class Config:
         from_attributes = True

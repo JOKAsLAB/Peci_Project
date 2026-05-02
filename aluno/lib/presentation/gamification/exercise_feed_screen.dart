@@ -814,7 +814,7 @@ typedef _ProgressCallback = Future<void> Function(
 );
 
 //Para o report de exercícios
-typedef _ReportCallback = Future<void> Function(String exerciseId);
+typedef _ReportCallback = Future<bool> Function(String exerciseId);
 
 class _ExerciseFeedCard extends StatefulWidget {
   final Exercise exercise;
@@ -854,16 +854,27 @@ class _ExerciseFeedCardState extends State<_ExerciseFeedCard> with AutomaticKeep
 
   Future<void> _reportExercise() async {
     try {
-      await widget.onReport?.call(widget.exercise.id);
+      final success = await widget.onReport?.call(widget.exercise.id) ?? false;
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(children: [
-            Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
-            SizedBox(width: 8),
-            Expanded(child: Text('Obrigado! O exercício foi reportado.', style: TextStyle(fontSize: 14))),
+          content: Row(children: [
+            Icon(
+              success ? Icons.check_circle_rounded : Icons.info_rounded,
+              color: Colors.white,
+              size: 18,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                success
+                    ? 'Obrigado! O exercício foi reportado.'
+                    : 'Já reportaste este exercício anteriormente.',
+                style: const TextStyle(fontSize: 14),
+              ),
+            ),
           ]),
-          backgroundColor: AppTheme.successState,
+          backgroundColor: success ? AppTheme.successState : AppTheme.textSecondary,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           duration: const Duration(seconds: 3),

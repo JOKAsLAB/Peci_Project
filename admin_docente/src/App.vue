@@ -138,6 +138,9 @@ const professorNav: NavItem[] = [
     icon: 'pi pi-sparkles',
   },
   { to: '/professor/requests', label: 'Pedidos ao Admin', icon: 'pi pi-inbox' },
+
+  { to: '/professor/reported', label: 'Perguntas reportadas', icon: 'pi pi-inbox' },
+
 ];
 
 const route = useRoute();

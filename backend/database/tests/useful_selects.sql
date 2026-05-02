@@ -34,6 +34,8 @@ SELECT 'Teaching_Material',COUNT(*) FROM Teaching_Material
 UNION ALL
 SELECT 'Exercise',         COUNT(*) FROM Exercise
 UNION ALL
+SELECT 'Exercise_Report',  COUNT(*) FROM Exercise_Report
+UNION ALL
 SELECT 'Progress',         COUNT(*) FROM Progress
 UNION ALL
 SELECT 'Streak',           COUNT(*) FROM Streak

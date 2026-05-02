@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status, UploadFile, File
-from langgraph import func
-from sqlalchemy import and_, select, delete
+from sqlalchemy import and_, select, delete, func as sa_func
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 import glob
@@ -223,6 +222,86 @@ async def update_exercise(
     await db.commit()
     return to_exercise_response(exercise)
 
+## Atenção que esta rota tem de estar antes do delete_exercise
+@router.get("/exercises/reported", response_model=list[ExerciseReportedResponse])
+async def list_reported_exercises(
+    threshold: int = Query(default=3, ge=1),
+    db: AsyncSession = Depends(get_db),
+    current_professor: Base_User = Depends(require_roles("Professor")),
+):
+    """Devolve exercícios com >= threshold reports de alunos distintos."""
+    allowed_ucs = select(Professor_UC.ID_UC).where(
+        Professor_UC.ID_Professor == current_professor.ID_User
+    )
+
+    stmt = (
+        select(
+            Exercise,
+            sa_func.count(Exercise_Report.ID_Student).label("report_count"),
+            sa_func.min(Exercise_Report.Created_At).label("first_reported_at"),
+            sa_func.max(Exercise_Report.Created_At).label("last_reported_at"),
+        )
+        .join(Exercise_Report, Exercise_Report.ID_Exercise == Exercise.ID_Exercise)
+        .where(Exercise.ID_UC.in_(allowed_ucs))
+        .group_by(Exercise.ID_Exercise)
+        .having(sa_func.count(Exercise_Report.ID_Student) >= threshold)
+        .order_by(sa_func.count(Exercise_Report.ID_Student).desc())
+    )
+
+    rows = (await db.execute(stmt)).all()
+
+    return [
+        ExerciseReportedResponse(
+            id_exercise=ex.ID_Exercise,
+            id_uc=ex.ID_UC,
+            topic_name=ex.Topic_Name,
+            material_ref=ex.Material_Ref,
+            type=ex.Type,
+            question=ex.Question,
+            solution=ex.Solution,
+            difficulty=ex.Difficulty,
+            explanation=ex.Explanation,
+            published=ex.Published,
+            report_count=count,
+            first_reported_at=first_reported_at,
+            last_reported_at=last_reported_at,
+        )
+        for ex, count, first_reported_at, last_reported_at in rows
+    ]
+
+
+@router.delete("/exercises/{exercise_id}/reports", status_code=status.HTTP_204_NO_CONTENT)
+async def dismiss_exercise_reports(
+    exercise_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_professor: Base_User = Depends(require_roles("Professor")),
+):
+    """Apaga todos os reports de um exercício (dispensa o alerta) sem eliminar o exercício."""
+    try:
+        ex_uuid = UUID(exercise_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid UUID format")
+
+    exercise = await db.scalar(select(Exercise).where(Exercise.ID_Exercise == ex_uuid))
+    if not exercise:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+
+    has_access = await db.scalar(
+        select(Professor_UC).where(
+            and_(
+                Professor_UC.ID_Professor == current_professor.ID_User,
+                Professor_UC.ID_UC == exercise.ID_UC,
+            )
+        )
+    )
+    if not has_access:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
+
+    await db.execute(
+        delete(Exercise_Report).where(Exercise_Report.ID_Exercise == ex_uuid)
+    )
+    await db.commit()
+
 
 @router.delete("/exercises/{exercise_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_exercise(
@@ -252,44 +331,6 @@ async def delete_exercise(
 
     await db.execute(delete(Exercise).where(Exercise.ID_Exercise == ex_uuid))
     await db.commit()
-
-@router.get("/exercises/reported", response_model=list[ExerciseReportedResponse])
-async def list_reported_exercises(
-    threshold: int = Query(default=3, ge=1),
-    db: AsyncSession = Depends(get_db),
-    current_professor: Base_User = Depends(require_roles("Professor")),
-):
-    allowed_ucs = select(Professor_UC.ID_UC).where(
-        Professor_UC.ID_Professor == current_professor.ID_User
-    )
-
-    stmt = (
-        select(Exercise, func.count(Exercise_Report.ID_Student).label("report_count"))
-        .join(Exercise_Report, Exercise_Report.ID_Exercise == Exercise.ID_Exercise)
-        .where(Exercise.ID_UC.in_(allowed_ucs))
-        .group_by(Exercise.ID_Exercise)
-        .having(func.count(Exercise_Report.ID_Student) >= threshold)
-        .order_by(func.count(Exercise_Report.ID_Student).desc())  # mais reportados primeiro
-    )
-
-    rows = (await db.execute(stmt)).all()
-
-    return [
-        ExerciseReportedResponse(
-            id_exercise=ex.ID_Exercise,
-            id_uc=ex.ID_UC,
-            topic_name=ex.Topic_Name,
-            material_ref=ex.Material_Ref,
-            type=ex.Type,
-            question=ex.Question,
-            solution=ex.Solution,
-            difficulty=ex.Difficulty,
-            explanation=ex.Explanation,
-            published=ex.Published,
-            report_count=count,
-        )
-        for ex, count in rows
-    ]
 
 
 @router.get("/materials", response_model=list[MaterialResponse])
