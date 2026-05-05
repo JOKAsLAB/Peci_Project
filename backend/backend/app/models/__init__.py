@@ -65,6 +65,15 @@ from app.models.learning_path import (
     LearningPathExercise,
 )
 
+# --- Bloco 6: Quizzes ---
+from app.models.quiz import (
+    Quiz,
+    Quiz_Exercise,
+    Quiz_Session,
+    Quiz_Participant,
+    Quiz_Answer,
+)
+
 # =============================================================
 # __all__ — define o que é exportado quando alguém faz:
 # from app.models import *
@@ -92,4 +101,10 @@ __all__ = [
     # Learning Paths
     "LearningPath",
     "LearningPathExercise",
+    # Quizzes
+    "Quiz",
+    "Quiz_Exercise",
+    "Quiz_Session",
+    "Quiz_Participant",
+    "Quiz_Answer",
 ]

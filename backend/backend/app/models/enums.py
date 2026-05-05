@@ -44,3 +44,8 @@ class RequestType(str, enum.Enum):
     PLATFORM = "platform"
     OPERATIONS = "operations"
     OTHER = "other"
+
+class QuizSessionStatus(str, enum.Enum):
+    WAITING = "waiting"
+    ACTIVE = "active"
+    FINISHED = "finished"

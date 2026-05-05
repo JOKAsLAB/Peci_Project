@@ -85,6 +85,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../modules/professor/views/ReportedQuestionsView.vue'),
     meta: { requiresAuth: true, role: 'Professor' },
   },
+  {
+    path: '/professor/quiz',
+    name: 'Quiz em Direto',
+    component: () => import('../modules/professor/views/QuizView.vue'),
+    meta: { requiresAuth: true, role: 'Professor' },
+  },
 ]
 
 const router = createRouter({

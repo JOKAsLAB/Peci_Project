@@ -23,6 +23,9 @@ dependencies:
   # Markdown rendering
   flutter_markdown_plus: ^1.0.7
 
+  # WebSocket (quiz em direto)
+  web_socket_channel: ^2.4.0
+
   # Persistência de preferências (popup de regras, etc.)
   shared_preferences: ^2.3.0
 

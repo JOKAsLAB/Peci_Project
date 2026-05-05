@@ -33,7 +33,7 @@ class _MainShellState extends State<MainShell> {
     }
 
     final currentIndex = widget.navigationShell.currentIndex;
-    if ((_dragDistance < 0 || velocity < 0) && currentIndex < 2) {
+    if ((_dragDistance < 0 || velocity < 0) && currentIndex < 3) {
       _goBranch(currentIndex + 1);
     } else if ((_dragDistance > 0 || velocity > 0) && currentIndex > 0) {
       _goBranch(currentIndex - 1);
@@ -67,6 +67,11 @@ class _MainShellState extends State<MainShell> {
             icon: Icon(Icons.bolt_outlined),
             selectedIcon: Icon(Icons.bolt),
             label: 'Prática',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.gamepad_outlined),
+            selectedIcon: Icon(Icons.gamepad),
+            label: 'Quizzes',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

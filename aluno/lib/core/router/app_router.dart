@@ -11,11 +11,14 @@ import '../../presentation/profile/settings_screen.dart';
 import '../../presentation/profile/stats_screen.dart';
 import '../../presentation/auth/login_screen.dart';
 import '../../presentation/auth/register_screen.dart';
+import '../../presentation/quiz/quiz_screen.dart';
+import '../../presentation/quiz/quiz_game_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _shellNavigatorCoursesKey = GlobalKey<NavigatorState>(debugLabel: 'shell_courses');
 final _shellNavigatorFeedKey = GlobalKey<NavigatorState>(debugLabel: 'shell_feed');
 final _shellNavigatorProfileKey = GlobalKey<NavigatorState>(debugLabel: 'shell_profile');
+final _shellNavigatorQuizKey = GlobalKey<NavigatorState>(debugLabel: 'shell_quiz');
 
 final routerProvider = Provider<GoRouter>((ref) {
   // A magia está aqui: o router "ouve" o authProvider
@@ -82,6 +85,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
           StatefulShellBranch(
+            navigatorKey: _shellNavigatorQuizKey,
+            routes: [
+              GoRoute(
+                path: '/quiz',
+                builder: (context, state) => const QuizScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
             navigatorKey: _shellNavigatorProfileKey,
             routes: [
               GoRoute(
@@ -91,6 +103,15 @@ final routerProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/quiz/game/:sessionId',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final sessionId = state.pathParameters['sessionId']!;
+          final sessionData = (state.extra as Map<String, dynamic>?) ?? {};
+          return QuizGameScreen(sessionId: sessionId, sessionData: sessionData);
+        },
       ),
       GoRoute(
         path: '/settings',

@@ -84,6 +84,7 @@ class Student(Base_User):
     progress_records = relationship("Progress", back_populates="student", passive_deletes=True)
     streak_records   = relationship("Streak",   back_populates="student", passive_deletes=True)
     exercise_reports = relationship("Exercise_Report", back_populates="student")
+    quiz_participations = relationship("Quiz_Participant", back_populates="student", passive_deletes=True)
 
 
 # =============================================================
@@ -112,6 +113,7 @@ class Professor(Base_User):
     professor_ucs      = relationship("Professor_UC",      back_populates="professor")
     teaching_materials = relationship("Teaching_Material", back_populates="professor")
     requests           = relationship("Request",           back_populates="professor", passive_deletes=True)
+    quizzes            = relationship("Quiz",              back_populates="professor", passive_deletes=True)
 
 
 # =============================================================
