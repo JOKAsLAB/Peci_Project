@@ -43,6 +43,7 @@ class Course_Unit(Base):
     topics             = relationship("Topic",             back_populates="course_unit")
     teaching_materials = relationship("Teaching_Material", back_populates="course_unit")
     exercises          = relationship("Exercise",          back_populates="course_unit")
+    quizzes            = relationship("Quiz",              back_populates="course_unit")
 
 
 # =============================================================
