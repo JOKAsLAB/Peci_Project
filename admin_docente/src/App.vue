@@ -137,6 +137,7 @@ const professorNav: NavItem[] = [
     label: 'Perguntas com LLM',
     icon: 'pi pi-sparkles',
   },
+  { to: '/professor/quiz', label: 'Quiz em Direto', icon: 'pi pi-bolt' },
   { to: '/professor/requests', label: 'Pedidos ao Admin', icon: 'pi pi-inbox' },
 ];
 

@@ -8,6 +8,8 @@ from sqlalchemy import text
 
 from app.database import engine, settings
 from app.routers import admin, ai_tutor, auth, professors, students, learning_paths, learning_paths_student
+from app.routers import quiz_professor, quiz_student, quiz_ws
+from app.quiz_manager import quiz_manager
 
 AI_ENGINE_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '..', '..', '..', 'ai_engine')
@@ -92,6 +94,8 @@ async def lifespan(app: FastAPI):
         app.state.ai_engine_path = AI_ENGINE_PATH
         print(f"⚠️ AI Engine não disponível: {e}")
 
+    app.state.quiz_manager = quiz_manager
+
     yield
 
     await engine.dispose()
@@ -114,6 +118,9 @@ app.include_router(students.router)
 app.include_router(ai_tutor.router)
 app.include_router(learning_paths.router)
 app.include_router(learning_paths_student.router)
+app.include_router(quiz_professor.router)
+app.include_router(quiz_student.router)
+app.include_router(quiz_ws.router)
 
 
 @app.get("/")

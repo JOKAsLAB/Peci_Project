@@ -17,8 +17,9 @@ CREATE TYPE exercise_type_enum    AS ENUM ('Multiple Choice', 'True/False');
 CREATE TYPE difficulty_level_enum AS ENUM ('Easy', 'Medium', 'Hard');
 CREATE TYPE progress_status_enum  AS ENUM ('Correct', 'Incorrect', 'Partial');
 CREATE TYPE sync_status_enum      AS ENUM ('Pending', 'Synced', 'Failed');
-CREATE TYPE request_status_enum   AS ENUM ('pending', 'approved', 'rejected');
-CREATE TYPE request_type_enum     AS ENUM ('access', 'platform', 'operations', 'other');
+CREATE TYPE request_status_enum        AS ENUM ('pending', 'approved', 'rejected');
+CREATE TYPE request_type_enum          AS ENUM ('access', 'platform', 'operations', 'other');
+CREATE TYPE quiz_session_status_enum   AS ENUM ('waiting', 'active', 'finished');
 
 
 -- =============================================================
@@ -207,6 +208,70 @@ CREATE TABLE Request (
     )
 );
 
+
+-- =============================================================
+-- BLOCK 5: QUIZZES (Kahoot-style live sessions)
+-- =============================================================
+
+-- A Quiz is a collection of published exercises created by a professor for a UC.
+CREATE TABLE Quiz (
+    ID_Quiz      UUID    PRIMARY KEY DEFAULT gen_random_uuid(),
+    ID_Professor UUID    NOT NULL REFERENCES Professor(ID_Professor) ON DELETE CASCADE,
+    ID_UC        INT     NOT NULL REFERENCES Course_Unit(ID_UC) ON DELETE RESTRICT,
+    Title        VARCHAR(200) NOT NULL,
+    Created_At   TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+-- Junction: which exercises are in a quiz, in what order.
+CREATE TABLE Quiz_Exercise (
+    ID_Quiz         UUID     NOT NULL REFERENCES Quiz(ID_Quiz) ON DELETE CASCADE,
+    ID_Exercise     UUID     NOT NULL REFERENCES Exercise(ID_Exercise) ON DELETE CASCADE,
+    Question_Order  SMALLINT NOT NULL,
+    PRIMARY KEY (ID_Quiz, ID_Exercise)
+);
+
+-- A live session opened by the professor for a specific quiz.
+-- Room_Code is what students type to join (6 uppercase alphanumeric chars).
+CREATE TABLE Quiz_Session (
+    ID_Session              UUID                       PRIMARY KEY DEFAULT gen_random_uuid(),
+    ID_Quiz                 UUID                       NOT NULL REFERENCES Quiz(ID_Quiz) ON DELETE CASCADE,
+    Room_Code               VARCHAR(8)                 NOT NULL UNIQUE,
+    Status                  quiz_session_status_enum   NOT NULL DEFAULT 'waiting',
+    Current_Question_Index  INT                        NOT NULL DEFAULT 0,
+    Created_At              TIMESTAMP                  NOT NULL DEFAULT NOW(),
+    Started_At              TIMESTAMP,
+    Finished_At             TIMESTAMP
+);
+
+-- Students who joined a session.
+CREATE TABLE Quiz_Participant (
+    ID_Session  UUID      NOT NULL REFERENCES Quiz_Session(ID_Session) ON DELETE CASCADE,
+    ID_Student  UUID      NOT NULL REFERENCES Student(ID_Student) ON DELETE CASCADE,
+    Score       INT       NOT NULL DEFAULT 0,
+    Joined_At   TIMESTAMP NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (ID_Session, ID_Student)
+);
+
+-- Each answer a student gives during a session.
+-- Points_Earned = 0 if wrong, 1000-1500 if correct (speed bonus).
+CREATE TABLE Quiz_Answer (
+    ID_Answer      UUID      PRIMARY KEY DEFAULT gen_random_uuid(),
+    ID_Session     UUID      NOT NULL REFERENCES Quiz_Session(ID_Session) ON DELETE CASCADE,
+    ID_Student     UUID      NOT NULL REFERENCES Student(ID_Student) ON DELETE CASCADE,
+    ID_Exercise    UUID      NOT NULL REFERENCES Exercise(ID_Exercise) ON DELETE CASCADE,
+    Answer         JSONB     NOT NULL,
+    Is_Correct     BOOLEAN   NOT NULL,
+    Time_Taken_Ms  INT,
+    Points_Earned  INT       NOT NULL DEFAULT 0,
+    Answered_At    TIMESTAMP NOT NULL DEFAULT NOW(),
+    -- One answer per student per exercise per session
+    UNIQUE (ID_Session, ID_Student, ID_Exercise)
+);
+
+
+-- =============================================================
+-- BLOCK 6: ADMIN AUDIT LOG
+-- =============================================================
 
 -- Immutable audit log of all admin actions (deleting users, changing permissions, etc.).
 -- Target_ID stores the UUID or ID of the affected entity as text (flexible).
