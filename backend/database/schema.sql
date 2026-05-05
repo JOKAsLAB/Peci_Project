@@ -149,6 +149,13 @@ CREATE TABLE Exercise (
     FOREIGN KEY (ID_UC, Topic_Name) REFERENCES Topic(ID_UC, Name) ON DELETE RESTRICT
 );
 
+CREATE TABLE Exercise_Report (
+    ID_Exercise  UUID  NOT NULL REFERENCES Exercise(ID_Exercise) ON DELETE CASCADE,
+    ID_Student   UUID  NOT NULL REFERENCES Student(ID_Student) ON DELETE CASCADE,
+    Created_At   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (ID_Exercise, ID_Student)  -- evita duplicados automaticamente
+);
+
 
 -- =============================================================
 -- BLOCK 3: GAMIFICATION AND PROGRESSION

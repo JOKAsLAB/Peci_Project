@@ -10,7 +10,6 @@ import '../shared/tutor_chat_dialog.dart';
 import '../shared/xp_gain_overlay.dart';
 
 // ─── Ecrã principal: lista de UCs ────────────────────────────────────────────
-
 class CoursesScreen extends ConsumerStatefulWidget {
   const CoursesScreen({super.key});
 
@@ -213,7 +212,6 @@ class _CourseCard extends StatelessWidget {
 }
 
 // ─── Ecrã path (zigzag) ───────────────────────────────────────────────────────
-
 class CoursePathScreen extends ConsumerWidget {
   final LearningPath path;
 
@@ -285,7 +283,6 @@ class CoursePathScreen extends ConsumerWidget {
 }
 
 // ─── Popup de onboarding ──────────────────────────────────────────────────────
-
 class _OnboardingDialog extends StatelessWidget {
   const _OnboardingDialog();
 
@@ -382,7 +379,6 @@ class _OnboardingDialog extends StatelessWidget {
 }
 
 // ─── Popup de regras ─────────────────────────────────────────────────────────
-
 class _RulesDialog extends StatelessWidget {
   const _RulesDialog();
 
@@ -571,7 +567,6 @@ class _XpRow extends StatelessWidget {
 }
 
 // ─── Linha de ligação entre nós ───────────────────────────────────────────────
-
 class _PathConnector extends StatelessWidget {
   final bool isLocked;
   const _PathConnector({this.isLocked = false});
@@ -597,7 +592,6 @@ class _PathConnector extends StatelessWidget {
 }
 
 // ─── Nó circular do checkpoint ────────────────────────────────────────────────
-
 class _CheckpointNode extends StatelessWidget {
   final Checkpoint checkpoint;
   final int courseUnitId;
@@ -712,7 +706,6 @@ class _CheckpointNode extends StatelessWidget {
 }
 
 // ─── Loader de sessão de prática ─────────────────────────────────────────────
-
 class TopicPracticeLoader extends ConsumerStatefulWidget {
   final int courseUnitId;
   const TopicPracticeLoader({super.key, required this.courseUnitId});
@@ -811,7 +804,6 @@ class _TopicPracticeLoaderState extends ConsumerState<TopicPracticeLoader> {
 }
 
 // ─── Ecrã "limite diário atingido" ───────────────────────────────────────────
-
 class _DailyLimitScreen extends StatelessWidget {
   final int doneToday;
   final int dailyLimit;
@@ -870,7 +862,6 @@ class _DailyLimitScreen extends StatelessWidget {
 }
 
 // ─── Ecrã "UC concluída" ─────────────────────────────────────────────────────
-
 class _UcCompletedScreen extends StatelessWidget {
   const _UcCompletedScreen();
 
@@ -907,7 +898,6 @@ class _UcCompletedScreen extends StatelessWidget {
 }
 
 // ─── Ecrã de exercícios ───────────────────────────────────────────────────────
-
 class ExerciseScreen extends ConsumerStatefulWidget {
   final List<LearningExercise> exercises;
   final String topicName;
@@ -993,6 +983,65 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
       Future.delayed(const Duration(milliseconds: 700), () {
         if (mounted) _showStreakDialog();
       });
+    }
+  }
+
+  Future<void> _reportExercise() async {
+    final repo = ref.read(studentRepositoryProvider);
+    
+    try {
+      final success = await repo.reportExercise(_ex.id);
+      
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                success ? Icons.check_circle_rounded : Icons.info_rounded,
+                color: Colors.white,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  success
+                      ? 'Obrigado! O exercício foi reportado.'
+                      : 'Já reportaste este exercício anteriormente.',
+                  style: const TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: success ? AppTheme.successState : AppTheme.textSecondary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.error_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Erro ao reportar. Tenta novamente.',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: AppTheme.errorState,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 3),
+        ),
+      );
     }
   }
 
@@ -1361,6 +1410,27 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
               ),
             ),
           ),
+
+          //Botão report
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            height: 42,
+            child: TextButton.icon(
+              onPressed: () => _reportExercise(),
+              icon: const Icon(Icons.flag_rounded, size: 16),
+              label: const Text(
+                'Reportar problema',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.errorState,
+                backgroundColor: AppTheme.errorState.withValues(alpha: 0.07),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+
           const SizedBox(height: 8),
           SizedBox(
             width: double.infinity,
@@ -1377,7 +1447,6 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
 }
 
 // ─── Badges e tabela XP ──────────────────────────────────────────────────────
-
 class _XpBadge extends StatelessWidget {
   final String difficulty;
   final bool bonus;

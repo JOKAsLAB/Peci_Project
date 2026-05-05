@@ -216,3 +216,27 @@ class Exercise(Base):
 
     # Relação com Progress
     progress_records = relationship("Progress", back_populates="exercise")
+
+    # Relación con Exercise_Report
+    exercise_reports = relationship("Exercise_Report", back_populates="exercise")
+
+#Para botão report nos exercícios
+class Exercise_Report(Base):
+    __tablename__ = "exercise_report"
+
+    ID_Exercise  = Column(
+        "id_exercise",
+        UUID(as_uuid=True),
+        ForeignKey("exercise.id_exercise", ondelete="CASCADE"),
+        primary_key=True
+    )
+    ID_Student   = Column(
+        "id_student",
+        UUID(as_uuid=True),
+        ForeignKey("student.id_student", ondelete="CASCADE"),
+        primary_key=True
+    )
+    Created_At   = Column("created_at", DateTime, nullable=False, server_default=func.now())
+
+    exercise = relationship("Exercise", back_populates="exercise_reports")
+    student  = relationship("Student",  back_populates="exercise_reports")

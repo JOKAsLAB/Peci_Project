@@ -80,9 +80,10 @@ class Student(Base_User):
     }
 
     # Relações com tabelas filhas
-    student_ucs        = relationship("Student_UC",        back_populates="student", passive_deletes=True)
-    progress_records   = relationship("Progress",          back_populates="student", passive_deletes=True)
-    streak_records     = relationship("Streak",            back_populates="student", passive_deletes=True)
+    student_ucs      = relationship("Student_UC", back_populates="student", passive_deletes=True)
+    progress_records = relationship("Progress", back_populates="student", passive_deletes=True)
+    streak_records   = relationship("Streak",   back_populates="student", passive_deletes=True)
+    exercise_reports = relationship("Exercise_Report", back_populates="student")
     quiz_participations = relationship("Quiz_Participant", back_populates="student", passive_deletes=True)
 
 

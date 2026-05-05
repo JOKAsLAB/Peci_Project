@@ -44,6 +44,7 @@ from app.models.academic import (
     Topic,
     Teaching_Material,
     Exercise,
+    Exercise_Report,
 )
 
 # --- Bloco 3: Gamificação ---
@@ -90,6 +91,7 @@ __all__ = [
     "Topic",
     "Teaching_Material",
     "Exercise",
+    "Exercise_Report",
     # Gamificação
     "Progress",
     "Streak",

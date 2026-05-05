@@ -1,12 +1,13 @@
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import and_, case, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.models import Base_User, Course_Unit, Exercise, Progress, Streak, Student, Student_UC, Topic
+from app.models import Base_User, Course_Unit, Exercise, Progress, Streak, Student, Exercise_Report, Student_UC, Topic
 from app.routers.deps import require_roles
 from app.schemas.academic import CourseUnitBasicInfo, CourseUnitResponse, ExerciseResponse
 from app.schemas.gamification import (
@@ -331,6 +332,45 @@ async def list_exercises(
 	stmt = stmt.order_by(Exercise.ID_Exercise.desc()).offset(offset).limit(limit)
 	rows = (await db.execute(stmt)).all()
 	return [to_exercise_response(exercise, course_unit) for exercise, course_unit in rows]
+
+
+# O endpoint do botão report num exercício: tenta inserir um registro na tabela Exercise_Report.
+@router.post("/exercises/{exercise_id}/report", status_code=status.HTTP_201_CREATED)
+async def report_exercise(
+    exercise_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_student: Base_User = Depends(require_roles("Student")),
+):
+    try:
+        ex_uuid = uuid.UUID(exercise_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid UUID format")
+	
+    # Verifica se o exercício existe
+    exercise = await db.scalar(select(Exercise).where(Exercise.ID_Exercise == ex_uuid))
+    if not exercise:
+        raise HTTPException(status_code=404, detail="Exercise not found")
+
+    # Tenta inserir — se já existir (mesmo aluno, mesmo exercício), ignora
+    existing = await db.scalar(
+        select(Exercise_Report).where(
+            and_(
+                Exercise_Report.ID_Exercise == ex_uuid,
+                Exercise_Report.ID_Student == current_student.ID_User,
+            )
+        )
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="Already reported")
+
+    report = Exercise_Report(
+        ID_Exercise=ex_uuid,
+        ID_Student=current_student.ID_User,
+    )
+    db.add(report)
+    await db.flush()
+    await db.commit()
+    return {"detail": "Report submitted"}
 
 
 @router.post("/progress", response_model=ProgressResponse, status_code=status.HTTP_201_CREATED)

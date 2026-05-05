@@ -80,6 +80,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, role: 'Professor' },
   },
   {
+    path: '/professor/reported',
+    name: 'Perguntas Reportadas',
+    component: () => import('../modules/professor/views/ReportedQuestionsView.vue'),
+    meta: { requiresAuth: true, role: 'Professor' },
+  },
+  {
     path: '/professor/quiz',
     name: 'Quiz em Direto',
     component: () => import('../modules/professor/views/QuizView.vue'),

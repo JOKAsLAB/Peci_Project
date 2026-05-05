@@ -139,6 +139,9 @@ const professorNav: NavItem[] = [
   },
   { to: '/professor/quiz', label: 'Quiz em Direto', icon: 'pi pi-bolt' },
   { to: '/professor/requests', label: 'Pedidos ao Admin', icon: 'pi pi-inbox' },
+
+  { to: '/professor/reported', label: 'Perguntas reportadas', icon: 'pi pi-inbox' },
+
 ];
 
 const route = useRoute();
