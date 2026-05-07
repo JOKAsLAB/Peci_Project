@@ -8,6 +8,7 @@ export default {
         surface: '#1E1E1E',
         brand: '#00B140',
         success: '#00E676',
+        warning: '#FFB300',
         error: '#CF6679',
         text: {
           primary: '#FFFFFF',
@@ -21,6 +22,9 @@ export default {
         'card': '16px',
         'btn': '12px',
         'chip': '20px',
+      },
+      zIndex: {
+        '60': '60',
       }
     },
   },
