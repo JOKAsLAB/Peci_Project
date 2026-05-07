@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/tutorial/onboarding_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/learning_path.dart';
 import '../../data/remote/student_repository.dart';
@@ -22,35 +22,12 @@ class CoursesScreen extends ConsumerStatefulWidget {
 
 class _CoursesScreenState extends ConsumerState<CoursesScreen> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowOnboarding());
-  }
-
-  Future<void> _maybeShowOnboarding() async {
-    final String userId;
-    try {
-      final profile = await ref.read(profileStateProvider.future);
-      userId = profile.id;
-    } catch (_) {
-      return;
-    }
-    if (!mounted) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final key = 'onboarding_shown_$userId';
-    final shown = prefs.getBool(key) ?? false;
-    if (shown || !mounted) return;
-
-    await prefs.setBool(key, true);
-    await prefs.setBool('courses_rules_shown', true);
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const _OnboardingDialog(),
-    );
-  }
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback(
+    (_) => OnboardingService.maybeShow(context, ref),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +39,12 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
         title: const Text('Cursos', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: AppTheme.surfaceSecondary,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline_rounded, color: AppTheme.textSecondary),
+            onPressed: () => OnboardingService.showForced(context, ref),
+          ),
+        ],
       ),
       body: pathsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -380,8 +363,6 @@ class _OnboardingDialog extends StatelessWidget {
     );
   }
 }
-
-
 
 // ─── Linha de ligação entre nós ───────────────────────────────────────────────
 class _PathConnector extends StatelessWidget {
