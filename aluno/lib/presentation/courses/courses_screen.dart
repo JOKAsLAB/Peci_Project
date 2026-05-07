@@ -268,102 +268,6 @@ class CoursePathScreen extends ConsumerWidget {
   }
 }
 
-// ─── Popup de onboarding ──────────────────────────────────────────────────────
-class _OnboardingDialog extends StatelessWidget {
-  const _OnboardingDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    // FIX: Dialog responsivo — usa fração do ecrã e SingleChildScrollView
-    // para não cortar conteúdo em ecrãs pequenos ou quando o teclado sobe.
-    return Dialog(
-      backgroundColor: AppTheme.surfaceSecondary,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.88,
-          maxWidth: 480,
-        ),
-        child: SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Andy avatar
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppTheme.backgroundPrimary,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: AppTheme.brandAccent.withValues(alpha: 0.4),
-                    width: 1.5,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Image.asset(
-                    'assets/chatbot_photo.png',
-                    fit: BoxFit.contain,
-                    color: Colors.white,
-                    colorBlendMode: BlendMode.difference,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Olá! Sou o Andy 👋',
-                style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: 20),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'O teu companheiro de estudo com IA.\nAbre-me depois de qualquer exercício para esclarecer dúvidas e aprender melhor.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.55),
-              ),
-              const SizedBox(height: 20),
-              Divider(color: Colors.grey.shade800, height: 1),
-              const SizedBox(height: 16),
-              RuleItem(
-                icon: Icons.local_fire_department_rounded,
-                color: const Color(0xFFFB923C),
-                title: '5 exercícios diários = Bónus XP',
-                description: 'Os primeiros 5 por dia têm 1.5× XP de bónus + mantêm o streak:',
-                extra: const XpTable(),
-              ),
-              const SizedBox(height: 14),
-              RuleItem(
-                icon: Icons.trending_up_rounded,
-                color: AppTheme.successState,
-                title: 'Progressão por dificuldade',
-                description: 'Cada tópico segue Fácil → Médio → Difícil. Após os 5, podes continuar a praticar (XP normal).',
-              ),
-              const SizedBox(height: 22),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.brandAccent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-                    elevation: 0,
-                  ),
-                  child: const Text('Vamos começar!', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ─── Linha de ligação entre nós ───────────────────────────────────────────────
 class _PathConnector extends StatelessWidget {
   final bool isLocked;
@@ -998,7 +902,7 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
                     ],
                   ),
                   const SizedBox(height: 10),
-                  _XpTableInline(bonus: !_localStreakMet),
+                  XpTableInline(bonus: !_localStreakMet),
                   const SizedBox(height: 12),
                   Text(
                     _ex.question,
@@ -1238,45 +1142,6 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
               child: Text(_current < _total - 1 ? 'Próxima' : 'Terminar', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-// ─── Badges e tabela XP ──────────────────────────────────────────────────────
-class _XpTableInline extends StatelessWidget {
-  final bool bonus;
-  const _XpTableInline({required this.bonus});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceSecondary.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: bonus
-              ? const Color(0xFFFB923C).withValues(alpha: 0.25)
-              : Colors.grey.shade800,
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          XpChip(label: 'Fácil',   normal: 10, bonusXp: 15, bonusActive: bonus, color: AppTheme.successState),
-          XpChip(label: 'Médio',   normal: 20, bonusXp: 30, bonusActive: bonus, color: AppTheme.warningState),
-          XpChip(label: 'Difícil', normal: 35, bonusXp: 53, bonusActive: bonus, color: AppTheme.errorState),
-          if (bonus)
-            const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.local_fire_department_rounded, size: 11, color: Color(0xFFFB923C)),
-                SizedBox(width: 3),
-                Text('1.5×', style: TextStyle(color: Color(0xFFFB923C), fontSize: 10, fontWeight: FontWeight.w700)),
-              ],
-            ),
         ],
       ),
     );

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:peci_project/core/theme/app_theme.dart';
 
-
+// ─── Badges e tabela XP ──────────────────────────────────────────────────────
 class XpBadge extends StatelessWidget {
   final String difficulty;
   final bool bonus;
@@ -33,6 +33,44 @@ class XpBadge extends StatelessWidget {
             '+$xp XP',
             style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class XpTableInline extends StatelessWidget {
+  final bool bonus;
+  const XpTableInline({super.key, required this.bonus});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceSecondary.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: bonus
+              ? const Color(0xFFFB923C).withValues(alpha: 0.25)
+              : Colors.grey.shade800,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          XpChip(label: 'Fácil',   normal: 10, bonusXp: 15, bonusActive: bonus, color: AppTheme.successState),
+          XpChip(label: 'Médio',   normal: 20, bonusXp: 30, bonusActive: bonus, color: AppTheme.warningState),
+          XpChip(label: 'Difícil', normal: 35, bonusXp: 53, bonusActive: bonus, color: AppTheme.errorState),
+          if (bonus)
+            const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.local_fire_department_rounded, size: 11, color: Color(0xFFFB923C)),
+                SizedBox(width: 3),
+                Text('1.5×', style: TextStyle(color: Color(0xFFFB923C), fontSize: 10, fontWeight: FontWeight.w700)),
+              ],
+            ),
         ],
       ),
     );
