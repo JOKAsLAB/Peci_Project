@@ -15,8 +15,9 @@ class _OnboardingCarouselState extends State<OnboardingCarousel> {
 
   static const _pages = [
     OnboardingPageWelcome(),
+    OnboardingPageCourses(),
     OnboardingPageXp(),
-    OnboardingPageProgression(),
+    OnboardingPageAndy(),
   ];
 
   void _next() {
