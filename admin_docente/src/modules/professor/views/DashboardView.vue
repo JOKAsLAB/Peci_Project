@@ -2,9 +2,6 @@
   <div class="space-y-8">
     <div v-if="!authStore.hasCourseUnits" class="space-y-8">
       <div>
-        <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">
-          Acesso Restrito
-        </p>
         <h3 class="text-3xl font-bold">Nenhuma Disciplina Atribuída</h3>
         <p class="text-text-secondary mt-1">
           Ainda não tem unidades curriculares associadas à sua conta para editar
@@ -40,74 +37,71 @@
 
     <template v-else>
       <div>
-        <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">
-          Visão Geral
-        </p>
-        <h3 class="text-3xl font-bold">Dashboard Docente</h3>
+        <h3 class="text-2xl sm:text-3xl font-bold">Dashboard</h3>
         <p class="text-text-secondary mt-1">
           Resumo das suas operações de conteúdo e suporte académico.
         </p>
       </div>
 
-      <div class="grid grid-cols-4 gap-6">
-        <div class="bg-surface p-6 rounded-card border border-white/5">
-          <div class="flex items-center gap-3 mb-3">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
+        <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+          <div class="flex items-center gap-2 sm:gap-3 mb-3">
             <div
-              class="w-10 h-10 rounded-btn bg-success/10 flex items-center justify-center"
+              class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-btn bg-success/10 flex items-center justify-center"
             >
-              <i class="pi pi-check-circle text-success"></i>
+              <i class="pi pi-check-circle text-success text-sm sm:text-base"></i>
             </div>
-            <p class="text-text-secondary text-sm">Exercícios Publicados</p>
+            <p class="text-text-secondary text-xs sm:text-sm leading-tight">Exercícios Publicados</p>
           </div>
-          <p class="text-3xl font-bold text-success">
+          <p class="text-2xl sm:text-3xl font-bold text-success">
             {{ exerciseStore.publishedExercises.length }}
           </p>
         </div>
 
-        <div class="bg-surface p-6 rounded-card border border-white/5">
-          <div class="flex items-center gap-3 mb-3">
+        <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+          <div class="flex items-center gap-2 sm:gap-3 mb-3">
             <div
-              class="w-10 h-10 rounded-btn bg-warning/10 flex items-center justify-center"
+              class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-btn bg-warning/10 flex items-center justify-center"
             >
-              <i class="pi pi-pencil text-warning"></i>
+              <i class="pi pi-pencil text-warning text-sm sm:text-base"></i>
             </div>
-            <p class="text-text-secondary text-sm">Exercícios em Rascunho</p>
+            <p class="text-text-secondary text-xs sm:text-sm leading-tight">Em Rascunho</p>
           </div>
-          <p class="text-3xl font-bold text-warning">
+          <p class="text-2xl sm:text-3xl font-bold text-warning">
             {{ exerciseStore.draftExercises.length }}
           </p>
         </div>
 
-        <div class="bg-surface p-6 rounded-card border border-white/5">
-          <div class="flex items-center gap-3 mb-3">
+        <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+          <div class="flex items-center gap-2 sm:gap-3 mb-3">
             <div
-              class="w-10 h-10 rounded-btn bg-brand/10 flex items-center justify-center"
+              class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-btn bg-brand/10 flex items-center justify-center"
             >
-              <i class="pi pi-map text-brand"></i>
+              <i class="pi pi-map text-brand text-sm sm:text-base"></i>
             </div>
-            <p class="text-text-secondary text-sm">Percursos</p>
+            <p class="text-text-secondary text-xs sm:text-sm leading-tight">Percursos</p>
           </div>
-          <p class="text-3xl font-bold text-brand">
+          <p class="text-2xl sm:text-3xl font-bold text-brand">
             {{ pathStore.paths.length }}
           </p>
         </div>
 
-        <div class="bg-surface p-6 rounded-card border border-white/5">
-          <div class="flex items-center gap-3 mb-3">
+        <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+          <div class="flex items-center gap-2 sm:gap-3 mb-3">
             <div
-              class="w-10 h-10 rounded-btn bg-cyan-400/10 flex items-center justify-center"
+              class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-btn bg-cyan-400/10 flex items-center justify-center"
             >
-              <i class="pi pi-file text-cyan-300"></i>
+              <i class="pi pi-file text-cyan-300 text-sm sm:text-base"></i>
             </div>
-            <p class="text-text-secondary text-sm">Documentos Indexados</p>
+            <p class="text-text-secondary text-xs sm:text-sm leading-tight">Docs Indexados</p>
           </div>
-          <p class="text-3xl font-bold text-cyan-300">
+          <p class="text-2xl sm:text-3xl font-bold text-cyan-300">
             {{ indexedDocumentsCount }}
           </p>
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-6">
+      <div class="grid grid-cols-1 gap-6">
         <div class="bg-surface rounded-card border border-white/5 p-6">
           <h4 class="text-lg font-bold mb-4 flex items-center gap-2">
             <i class="pi pi-bolt text-brand"></i> Atividade Recente

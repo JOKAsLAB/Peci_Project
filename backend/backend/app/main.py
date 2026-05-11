@@ -28,6 +28,7 @@ def parse_cors_origins(raw_value: str) -> list[str]:
         "http://127.0.0.1:5173",
         "http://localhost:5174",
         "http://127.0.0.1:5174",
+        "http://localhost:5175"
     ]
 
 
@@ -87,14 +88,14 @@ async def lifespan(app: FastAPI):
             )
         except Exception as ce:
             app.state.chatbot = None
-            print(f"⚠️ Chatbot não disponível: {ce}")
+            print(f"Chatbot não disponível: {ce}")
 
     except Exception as e:  
         app.state.question_generator = None
         app.state.pdf_indexer = None
         app.state.chatbot = None
         app.state.ai_engine_path = AI_ENGINE_PATH
-        print(f"⚠️ AI Engine não disponível: {e}")
+        print(f"AI Engine não disponível: {e}")
 
     app.state.quiz_manager = quiz_manager
 

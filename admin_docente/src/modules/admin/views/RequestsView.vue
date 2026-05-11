@@ -1,8 +1,7 @@
 <template>
   <div class="space-y-8">
     <div>
-      <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">Administração</p>
-      <h3 class="text-3xl font-bold">Pedidos Administrativos</h3>
+      <h3 class="text-3xl font-bold">Pedidos Admin</h3>
       <p class="text-text-secondary mt-1">Inbox de pedidos administrativos enviados pelos docentes (sem pedidos de matéria/exercícios).</p>
     </div>
 
@@ -13,22 +12,22 @@
       <i class="pi pi-exclamation-triangle mr-2"></i> {{ requestStore.error }}
     </div>
 
-    <div class="grid grid-cols-4 gap-6">
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">Total</p>
-        <p class="text-3xl font-bold mt-2">{{ requestStore.requests.length }}</p>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">Total</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2">{{ requestStore.requests.length }}</p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">Pendentes</p>
-        <p class="text-3xl font-bold mt-2 text-warning">{{ requestStore.pendingCount }}</p>
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">Pendentes</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2 text-warning">{{ requestStore.pendingCount }}</p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">Aprovados</p>
-        <p class="text-3xl font-bold mt-2 text-success">{{ requestStore.approvedCount }}</p>
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">Aprovados</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2 text-success">{{ requestStore.approvedCount }}</p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">Rejeitados</p>
-        <p class="text-3xl font-bold mt-2 text-error">{{ requestStore.rejectedCount }}</p>
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">Rejeitados</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2 text-error">{{ requestStore.rejectedCount }}</p>
       </div>
     </div>
 

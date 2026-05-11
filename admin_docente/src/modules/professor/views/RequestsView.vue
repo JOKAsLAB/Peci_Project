@@ -1,10 +1,7 @@
 <template>
   <div class="space-y-8">
-    <div class="flex justify-between items-end">
+    <div class="page-header">
       <div>
-        <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">
-          Suporte Administrativo
-        </p>
         <h3 class="text-3xl font-bold">Pedidos ao Admin</h3>
         <p class="text-text-secondary mt-1">
           Use esta área apenas para temas administrativos e operacionais da
@@ -28,24 +25,24 @@
     </div>
 
     <!-- Métricas -->
-    <div class="grid grid-cols-3 gap-6">
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">Total</p>
-        <p class="text-3xl font-bold mt-2">
+    <div class="grid grid-cols-3 sm:grid-cols-3 gap-3 sm:gap-6">
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">Total</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2">
           {{ requestStore.requests.length }}
         </p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">Pendentes</p>
-        <p class="text-3xl font-bold mt-2 text-warning">
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">Pendentes</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2 text-warning">
           {{
             requestStore.requests.filter((r) => r.status === 'pending').length
           }}
         </p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">Resolvidos</p>
-        <p class="text-3xl font-bold mt-2 text-success">
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">Resolvidos</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2 text-success">
           {{
             requestStore.requests.filter((r) => r.status !== 'pending').length
           }}

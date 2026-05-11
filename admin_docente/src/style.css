@@ -46,7 +46,46 @@ body {
 }
 
 /* Otimização de Scrollbar (Interface Dark) */
-::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #121212; }
 ::-webkit-scrollbar-thumb { background: #1E1E1E; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #00B140; }
+
+/* ─── Responsive text & overflow ──────────────────────────────────────────── */
+
+/* Long text (questions, URLs, IDs) wraps gracefully instead of overflowing */
+p, td, th, li, h1, h2, h3, h4, h5, h6 {
+  overflow-wrap: break-word;
+}
+
+/* Inputs & textareas stay within their containers on mobile */
+input, textarea, select {
+  max-width: 100%;
+}
+
+/* ─── Global mobile overrides (< 640 px) ──────────────────────────────────── */
+/*
+  These rules act as a safety net for any grid or flex pattern that hasn't
+  been given explicit sm: / lg: responsive classes yet. Elements that already
+  have responsive variants (sm:grid-cols-*) are excluded via :not().
+*/
+@media (max-width: 639px) {
+  /* Any 3-col or 4-col grid not already made responsive → max 2 columns */
+  .grid-cols-3:not([class*="sm:grid-cols-"]),
+  .grid-cols-4:not([class*="sm:grid-cols-"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.75rem !important;
+  }
+
+  /* 12-col layout grids (complex sidebar+main patterns) → stack all children */
+  .grid-cols-12 > * {
+    grid-column: 1 / -1 !important;
+  }
+
+  /* Page-level "title + action-button" headers → stack vertically */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}

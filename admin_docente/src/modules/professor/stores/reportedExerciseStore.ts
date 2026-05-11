@@ -25,16 +25,17 @@ export const useReportedExerciseStore = defineStore('reportedExercises', () => {
   const error = ref<string | null>(null);
   const hasLoaded = ref(false);
 
-  async function loadReportedExercises(force = false) {
+  async function loadReportedExercises(force = false, signal?: AbortSignal) {
     if (hasLoaded.value && !force) return;
 
     isLoading.value = true;
     error.value = null;
     try {
-      const { data } = await http.get('/api/v1/professors/exercises/reported');
+      const { data } = await http.get('/api/v1/professors/exercises/reported', { signal });
       reportedExercises.value = Array.isArray(data) ? data : [];
       hasLoaded.value = true;
-    } catch (e) {
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'CanceledError') return;
       reportedExercises.value = [];
       hasLoaded.value = true;
       error.value = getApiErrorMessage(e, 'Erro ao carregar exercícios reportados.');

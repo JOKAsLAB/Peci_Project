@@ -3,9 +3,6 @@
     <!-- Sem Disciplinas -->
     <div v-if="!authStore.hasCourseUnits" class="space-y-8">
       <div>
-        <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">
-          Acesso Restrito
-        </p>
         <h3 class="text-3xl font-bold">Nenhuma Disciplina Atribuída</h3>
         <p class="text-text-secondary mt-1">
           Ainda não tem unidades curriculares associadas à sua conta.
@@ -36,14 +33,9 @@
 
     <!-- Conteúdo Principal -->
     <template v-else>
-      <div class="flex justify-between items-end">
+      <div class="page-header">
         <div>
-          <p
-            class="text-brand font-bold text-sm uppercase tracking-widest mb-1"
-          >
-            Inteligência Artificial
-          </p>
-          <h3 class="text-3xl font-bold">Gerador de Perguntas com IA</h3>
+          <h3 class="text-3xl font-bold">Geração de Perguntas</h3>
           <p class="text-text-secondary mt-1">
             Selecione um ficheiro indexado, configure os parâmetros e escreva o
             prompt.
@@ -65,10 +57,10 @@
         <i class="pi pi-exclamation-triangle"></i>{{ generateError }}
       </div>
 
-      <div class="grid grid-cols-12 gap-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <!-- Sidebar -->
         <aside
-          class="col-span-4 space-y-5"
+          class="lg:col-span-4 space-y-5"
           :class="{ 'opacity-50 pointer-events-none': loading }"
         >
           <section
@@ -200,7 +192,7 @@
         </aside>
 
         <!-- Área principal -->
-        <section class="col-span-8 space-y-5">
+        <section class="lg:col-span-8 space-y-5">
           <!-- Prompt -->
           <article
             class="bg-surface p-6 rounded-card border border-white/5"

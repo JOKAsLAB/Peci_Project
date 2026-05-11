@@ -11,7 +11,19 @@ declare module 'vue-router' {
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/admin',
+    redirect: () => {
+      const auth = useAuthStore()
+      if (auth.user?.role === 'Admin') return '/admin'
+      if (auth.user?.role === 'Professor') return '/professor'
+      if (auth.user?.role === 'Student') return '/aluno'
+      return '/login'
+    },
+  },
+  {
+    path: '/login',
+    name: 'Login',
+    component: () => import('../views/LoginView.vue'),
+    meta: { requiresAuth: false },
   },
   {
     path: '/admin',
@@ -51,13 +63,13 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/professor/path-builder',
-    name: 'Percursos',
+    name: 'Construtor de Percurso',
     component: () => import('../modules/professor/views/PathBuilderView.vue'),
     meta: { requiresAuth: true, role: 'Professor' },
   },
   {
     path: '/professor/exercises',
-    name: 'Exercícios',
+    name: 'Banco de Perguntas',
     component: () => import('../modules/professor/views/ExercisesView.vue'),
     meta: { requiresAuth: true, role: 'Professor' },
   },
@@ -69,7 +81,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/professor/question',
-    name: 'Perguntas com LLM',
+    name: 'Geração de Perguntas',
     component: () => import('../modules/professor/views/QuestionLabView.vue'),
     meta: { requiresAuth: true, role: 'Professor' },
   },
@@ -87,9 +99,39 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/professor/quiz',
-    name: 'Quiz em Direto',
+    name: 'Quizz ao Vivo',
     component: () => import('../modules/professor/views/QuizView.vue'),
     meta: { requiresAuth: true, role: 'Professor' },
+  },
+  {
+    path: '/aluno',
+    name: 'Aluno Dashboard',
+    component: () => import('../modules/aluno/views/DashboardView.vue'),
+    meta: { requiresAuth: true, role: 'Student' },
+  },
+  {
+    path: '/aluno/exercicios',
+    name: 'Praticar',
+    component: () => import('../modules/aluno/views/ExerciseFeedView.vue'),
+    meta: { requiresAuth: true, role: 'Student' },
+  },
+  {
+    path: '/aluno/percursos',
+    name: 'Percursos',
+    component: () => import('../modules/aluno/views/CoursesView.vue'),
+    meta: { requiresAuth: true, role: 'Student' },
+  },
+  {
+    path: '/aluno/quiz',
+    name: 'Quiz ao Vivo',
+    component: () => import('../modules/aluno/views/QuizView.vue'),
+    meta: { requiresAuth: true, role: 'Student' },
+  },
+  {
+    path: '/aluno/perfil',
+    name: 'Estatísticas',
+    component: () => import('../modules/aluno/views/ProfileView.vue'),
+    meta: { requiresAuth: true, role: 'Student' },
   },
 ]
 
@@ -100,13 +142,26 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const authStore = useAuthStore()
-  if (!to.meta.requiresAuth || !authStore.isAuthenticated) {
+
+  if (!to.meta.requiresAuth) {
+    if (to.path === '/login' && authStore.isAuthenticated) {
+      const role = authStore.user?.role
+      if (role === 'Admin') return '/admin'
+      if (role === 'Professor') return '/professor'
+      if (role === 'Student') return '/aluno'
+    }
     return true
   }
 
+  if (!authStore.isAuthenticated) return '/login'
+
   const targetRole = to.meta.role
   if (targetRole && authStore.user?.role !== targetRole) {
-    return authStore.user?.role === 'Admin' ? '/admin' : '/professor'
+    const role = authStore.user?.role
+    if (role === 'Admin') return '/admin'
+    if (role === 'Professor') return '/professor'
+    if (role === 'Student') return '/aluno'
+    return '/login'
   }
 
   return true

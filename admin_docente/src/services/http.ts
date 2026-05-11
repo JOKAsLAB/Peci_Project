@@ -38,7 +38,10 @@ http.interceptors.request.use((config) => {
 // Deve ser chamado após a inicialização da app (quando authStore está disponível)
 export function setupAuthInterceptor(authStore: any) {
   authStoreRef = authStore;
-  console.log('✓ Auth interceptor configured, initial token:', authStore.token?.substring(0, 20) + '...');
+  console.log(
+    '✓ Auth interceptor configured, initial token:',
+    authStore.token?.substring(0, 20) + '...',
+  );
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string): string {

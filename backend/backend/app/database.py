@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     AUTH_COOKIE_DOMAIN: str | None = None
     AUTH_COOKIE_PATH: str = "/"
 
+    # SMTP (optional — email verification)
+    SMTP_HOST: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_FROM: str | None = None
+
     # CORS
     CORS_ALLOW_ORIGINS: str = (
         "http://localhost:5173,"

@@ -3,9 +3,6 @@
     <!-- Sem Disciplinas Atribuídas -->
     <div v-if="!authStore.hasCourseUnits" class="space-y-8">
       <div>
-        <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">
-          Acesso Restrito
-        </p>
         <h3 class="text-3xl font-bold">Nenhuma Disciplina Atribuída</h3>
         <p class="text-text-secondary mt-1">
           Ainda não tem unidades curriculares associadas à sua conta para editar
@@ -53,12 +50,7 @@
 
       <div class="space-y-8" v-else>
         <div>
-          <p
-            class="text-brand font-bold text-sm uppercase tracking-widest mb-1"
-          >
-            Banco de Exercícios
-          </p>
-          <h3 class="text-3xl font-bold">Gestão de Exercícios</h3>
+          <h3 class="text-2xl sm:text-3xl font-bold">Banco de Perguntas</h3>
           <p class="text-text-secondary mt-1">
             Consulte, filtre e edite todo o banco de questões.
           </p>
@@ -73,28 +65,28 @@
         </div>
 
         <!-- Estatísticas -->
-        <div class="grid grid-cols-4 gap-6">
-          <div class="bg-surface p-6 rounded-card border border-white/5">
-            <p class="text-text-secondary text-sm">Total Exercícios</p>
-            <p class="text-3xl font-bold mt-2">
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
+          <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+            <p class="text-text-secondary text-xs sm:text-sm">Total Exercícios</p>
+            <p class="text-2xl sm:text-3xl font-bold mt-2">
               {{ filteredExercises.length }}
             </p>
           </div>
-          <div class="bg-surface p-6 rounded-card border border-white/5">
-            <p class="text-text-secondary text-sm">Publicados</p>
-            <p class="text-3xl font-bold mt-2 text-success">
+          <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+            <p class="text-text-secondary text-xs sm:text-sm">Publicados</p>
+            <p class="text-2xl sm:text-3xl font-bold mt-2 text-success">
               {{ filteredExercises.filter((e) => e.published).length }}
             </p>
           </div>
-          <div class="bg-surface p-6 rounded-card border border-white/5">
-            <p class="text-text-secondary text-sm">Rascunhos</p>
-            <p class="text-3xl font-bold mt-2 text-warning">
+          <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+            <p class="text-text-secondary text-xs sm:text-sm">Rascunhos</p>
+            <p class="text-2xl sm:text-3xl font-bold mt-2 text-warning">
               {{ filteredExercises.filter((e) => !e.published).length }}
             </p>
           </div>
-          <div class="bg-surface p-6 rounded-card border border-white/5">
-            <p class="text-text-secondary text-sm">Disciplinas Atribuídas</p>
-            <p class="text-3xl font-bold mt-2 text-brand">
+          <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+            <p class="text-text-secondary text-xs sm:text-sm">Disciplinas</p>
+            <p class="text-2xl sm:text-3xl font-bold mt-2 text-brand">
               {{ authStore.user?.course_units?.length || 0 }}
             </p>
           </div>

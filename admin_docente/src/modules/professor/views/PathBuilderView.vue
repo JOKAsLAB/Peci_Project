@@ -3,9 +3,6 @@
     <!-- Sem Disciplinas Atribuídas -->
     <div v-if="!authStore.hasCourseUnits" class="space-y-8">
       <div>
-        <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">
-          Acesso Restrito
-        </p>
         <h3 class="text-3xl font-bold">Nenhuma Disciplina Atribuída</h3>
         <p class="text-text-secondary mt-1">
           Ainda não tem unidades curriculares associadas à sua conta.
@@ -52,12 +49,7 @@
 
       <div class="space-y-8" v-else>
         <div>
-          <p
-            class="text-brand font-bold text-sm uppercase tracking-widest mb-1"
-          >
-            Caminho Base
-          </p>
-          <h3 class="text-3xl font-bold">Construtor de Percurso</h3>
+          <h3 class="text-2xl sm:text-3xl font-bold">Percursos</h3>
           <p class="text-text-secondary mt-1">
             Um percurso por disciplina, gerado automaticamente pelos tópicos e
             exercícios publicados.
@@ -71,20 +63,20 @@
           <i class="pi pi-exclamation-triangle mr-2"></i>{{ pathStore.error }}
         </div>
 
-        <div class="grid grid-cols-3 gap-6">
-          <div class="bg-surface p-6 rounded-card border border-white/5">
-            <p class="text-text-secondary text-sm">Percursos</p>
-            <p class="text-3xl font-bold mt-2">{{ pathStore.paths.length }}</p>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
+          <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+            <p class="text-text-secondary text-xs sm:text-sm">Percursos</p>
+            <p class="text-2xl sm:text-3xl font-bold mt-2">{{ pathStore.paths.length }}</p>
           </div>
-          <div class="bg-surface p-6 rounded-card border border-white/5">
-            <p class="text-text-secondary text-sm">Total Tópicos</p>
-            <p class="text-3xl font-bold mt-2 text-brand">
+          <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+            <p class="text-text-secondary text-xs sm:text-sm">Total Tópicos</p>
+            <p class="text-2xl sm:text-3xl font-bold mt-2 text-brand">
               {{ pathStore.totalModules }}
             </p>
           </div>
-          <div class="bg-surface p-6 rounded-card border border-white/5">
-            <p class="text-text-secondary text-sm">Exercícios no Percurso</p>
-            <p class="text-3xl font-bold mt-2 text-warning">
+          <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5 col-span-2 sm:col-span-1">
+            <p class="text-text-secondary text-xs sm:text-sm">Exercícios no Percurso</p>
+            <p class="text-2xl sm:text-3xl font-bold mt-2 text-warning">
               {{ pathStore.totalExercisesInPaths }}
             </p>
           </div>
