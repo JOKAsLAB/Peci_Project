@@ -3,7 +3,7 @@ uvicorn==0.34.0           # Servidor ASGI para correr o FastAPI
 sqlalchemy>=2.0,<2.0.36   # ORM — fala com a base de dados (< 2.0.36 por compatibilidade com langchain-community)
 asyncpg==0.30.0           # Driver assíncrono para PostgreSQL
 pydantic==2.11.2          # Validação de dados (schemas)
-pydantic-settings==2.9.1  # Lê variáveis do ficheiro .env
+pydantic-settings>=2.10.1,<3.0.0  # Lê variáveis do ficheiro .env (>=2.10.1 por compatibilidade com langchain-community)
 python-jose==3.4.0        # Geração e validação de tokens JWT
 passlib==1.7.4            # Hashing de passwords (bcrypt)
 bcrypt==4.0.1             # Compatível com passlib 1.7.4 (evita warning __about__)
