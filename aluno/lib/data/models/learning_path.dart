@@ -84,13 +84,13 @@ class LearningExercise {
 
   factory LearningExercise.fromJson(Map<String, dynamic> json) {
     final solution = json['solution'] as Map<String, dynamic>? ?? {};
-    
+
     final exerciseType = (json['type'] as String? ?? '').toLowerCase();
     final isTrueFalse = exerciseType.contains('true') || exerciseType.contains('false');
-    
+
     // ─ Extrai as opções ──────────────────────────────────────────────────
     List<String> options = [];
-    
+
     if (isTrueFalse) {
       // Para True/False, força as opções padrão em português
       options = ['Verdadeiro', 'Falso'];

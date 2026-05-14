@@ -1,3 +1,11 @@
+import asyncio
+import random
+import smtplib
+import string
+from datetime import datetime, timedelta
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,10 +14,46 @@ from app.database import get_db, settings
 from app.models import Admin, Base_User, Professor, Request, Student
 from app.models.enums import RequestStatus, RequestType, UserRole, UserStatus
 from app.routers.deps import get_current_user
-from app.schemas.user import AuthResponse, LoginRequest, MessageResponse, RegisterRequest, UserResponse
+from app.schemas.user import AuthResponse, LoginRequest, MessageResponse, RegisterRequest, UserResponse, VerifyEmailRequest
 from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+
+# email -> (code, expires_at)
+_verification_codes: dict[str, tuple[str, datetime]] = {}
+
+
+def _generate_code() -> str:
+    return ''.join(random.choices(string.digits, k=6))
+
+
+async def _send_verification_email(to_email: str, code: str) -> None:
+    print(f"[EMAIL VERIFY] Code for {to_email}: {code}")
+    if not settings.SMTP_HOST:
+        return
+
+    def _send() -> None:
+        msg = MIMEMultipart()
+        sender = settings.SMTP_FROM or settings.SMTP_USER
+        msg['From'] = sender
+        msg['To'] = to_email
+        msg['Subject'] = 'PECI LogicStreak — Código de verificação'
+        body = (
+            f"Olá!\n\n"
+            f"O teu código de verificação de email é:\n\n"
+            f"  {code}\n\n"
+            f"O código expira em 15 minutos.\n\n"
+            f"Se não criaste uma conta, ignora este email."
+        )
+        msg.attach(MIMEText(body, 'plain', 'utf-8'))
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.sendmail(sender, to_email, msg.as_string())
+
+    await asyncio.to_thread(_send)
 
 
 def _set_auth_cookie(response: Response, token: str) -> None:
@@ -43,13 +87,14 @@ async def register(payload: RegisterRequest, response: Response, db: AsyncSessio
 		raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
 	is_professor_registration = payload.role == UserRole.PROFESSOR
+	is_student_registration = payload.role == UserRole.STUDENT
 
 	common = {
 		"Name": payload.name,
 		"Email": payload.email,
 		"Password_Hash": hash_password(payload.password),
 		"Role": payload.role,
-		"Status": UserStatus.SUSPENDED if is_professor_registration else UserStatus.ACTIVE,
+		"Status": UserStatus.SUSPENDED if (is_professor_registration or is_student_registration) else UserStatus.ACTIVE,
 	}
 
 	if payload.role == UserRole.STUDENT:
@@ -86,6 +131,16 @@ async def register(payload: RegisterRequest, response: Response, db: AsyncSessio
 		)
 		await db.flush()
 
+	if is_student_registration:
+		code = _generate_code()
+		_verification_codes[payload.email.lower()] = (code, datetime.utcnow() + timedelta(minutes=15))
+		try:
+			await _send_verification_email(payload.email, code)
+		except Exception as e:
+			import traceback
+			print(f"[EMAIL ERROR] {e}")
+			traceback.print_exc()
+
 	token = create_access_token(subject=str(new_user.ID_User), role=new_user.Role)
 	_set_auth_cookie(response, token)
 	return AuthResponse(access_token=token, user=to_user_response(new_user))
@@ -99,6 +154,9 @@ async def login(payload: LoginRequest, response: Response, db: AsyncSession = De
 
 	if user.Role == UserRole.PROFESSOR and user.Status == UserStatus.SUSPENDED:
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account pending admin approval")
+
+	if user.Role == UserRole.STUDENT and user.Status == UserStatus.SUSPENDED:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account not verified. Check your email for the verification code.")
 
 	if user.Status != UserStatus.ACTIVE:
 		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is not active")
@@ -116,6 +174,39 @@ async def logout(response: Response):
 		path=settings.AUTH_COOKIE_PATH,
 	)
 	return MessageResponse(message="Logout successful")
+
+
+@router.post("/refresh", response_model=AuthResponse)
+async def refresh(response: Response, current_user: Base_User = Depends(get_current_user)):
+	if current_user.Status != UserStatus.ACTIVE:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is not active")
+	token = create_access_token(subject=str(current_user.ID_User), role=current_user.Role)
+	_set_auth_cookie(response, token)
+	return AuthResponse(access_token=token, user=to_user_response(current_user))
+
+
+@router.post("/verify-email", response_model=MessageResponse)
+async def verify_email(payload: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
+	email_key = payload.email.lower()
+	entry = _verification_codes.get(email_key)
+	if not entry:
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No verification pending for this email")
+
+	code, expires_at = entry
+	if datetime.utcnow() > expires_at:
+		del _verification_codes[email_key]
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification code expired")
+
+	if payload.code != code:
+		raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code")
+
+	user = await db.scalar(select(Base_User).where(Base_User.Email == payload.email))
+	if not user:
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+	user.Status = UserStatus.ACTIVE
+	del _verification_codes[email_key]
+	return MessageResponse(message="Email verified successfully")
 
 
 @router.get("/me", response_model=UserResponse)

@@ -12,33 +12,51 @@ export const http = axios.create({
 // Referência global ao authStore (será definida em setupAuthInterceptor)
 let authStoreRef: any = null;
 
-// Interceptor para adicionar Content-Type quando necessário (mas permitir FormData)
+// Sliding session — renova token a cada 30 min de atividade
+const REFRESH_INTERVAL_MS = 30 * 60 * 1000;
+let lastRefreshTime = Date.now();
+
+// Interceptor de pedidos — Content-Type + Auth header
 http.interceptors.request.use((config) => {
-  // Se o data é FormData, deixa o navegador definir o Content-Type automaticamente
   if (!(config.data instanceof FormData)) {
     config.headers['Content-Type'] = 'application/json';
   }
-
-  // Necessário para ngrok não mostrar página de aviso
   config.headers['ngrok-skip-browser-warning'] = 'true';
 
-  // Adiciona Authorization header se houver token
-  if (authStoreRef && authStoreRef.token) {
-    const token = authStoreRef.token;
-    if (token && token !== 'cookie-session') {
-      config.headers['Authorization'] = `Bearer ${token}`;
-      console.log('✓ Auth header added:', token.substring(0, 20) + '...');
-    }
+  if (authStoreRef?.token && authStoreRef.token !== 'cookie-session') {
+    config.headers['Authorization'] = `Bearer ${authStoreRef.token}`;
   }
 
   return config;
 });
 
+// Interceptor de respostas — auto-refresh silencioso + logout em 401
+http.interceptors.response.use(
+  (response) => {
+    if (authStoreRef?.isAuthenticated && Date.now() - lastRefreshTime > REFRESH_INTERVAL_MS) {
+      lastRefreshTime = Date.now();
+      http.post<{ access_token: string }>('/api/v1/auth/refresh')
+        .then(({ data }) => {
+          if (authStoreRef && data.access_token) {
+            authStoreRef.token = data.access_token;
+          }
+        })
+        .catch(() => {});
+    }
+    return response;
+  },
+  async (error) => {
+    if (error.response?.status === 401 && authStoreRef?.isAuthenticated) {
+      await authStoreRef.logout({ callApi: false });
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  },
+);
+
 // Setup de interceptor de autenticação
-// Deve ser chamado após a inicialização da app (quando authStore está disponível)
 export function setupAuthInterceptor(authStore: any) {
   authStoreRef = authStore;
-  console.log('✓ Auth interceptor configured, initial token:', authStore.token?.substring(0, 20) + '...');
 }
 
 export function getApiErrorMessage(error: unknown, fallback: string): string {

@@ -3,7 +3,6 @@
     <!-- No course units -->
     <div v-if="!authStore.hasCourseUnits" class="space-y-8">
       <div>
-        <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">Acesso Restrito</p>
         <h3 class="text-3xl font-bold">Nenhuma Disciplina Atribuída</h3>
         <p class="text-text-secondary mt-1">Necessita de disciplinas para criar quizzes.</p>
       </div>
@@ -15,12 +14,11 @@
         <button @click="handleCloseSession" class="flex items-center gap-2 text-text-secondary hover:text-white transition mb-4 text-sm">
           <i class="pi pi-arrow-left"></i> Voltar aos Quizzes
         </button>
-        <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">Sessão em Direto</p>
         <h3 class="text-3xl font-bold">{{ quizStore.activeSession.quiz_title }}</h3>
       </div>
 
       <!-- Lobby Phase -->
-      <div v-if="quizStore.activeSession.phase === 'lobby'" class="grid grid-cols-2 gap-6">
+      <div v-if="quizStore.activeSession.phase === 'lobby'" class="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <!-- Room Code -->
         <div class="bg-surface rounded-card border border-white/5 p-8 flex flex-col items-center justify-center gap-4">
           <p class="text-text-secondary text-sm uppercase tracking-widest">Código da Sala</p>
@@ -65,7 +63,7 @@
       </div>
 
       <!-- Active Phase -->
-      <div v-else-if="quizStore.activeSession.phase === 'active'" class="grid grid-cols-2 gap-6">
+      <div v-else-if="quizStore.activeSession.phase === 'active'" class="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <!-- Current Question -->
         <div class="bg-surface rounded-card border border-white/5 p-6 space-y-4">
           <div class="flex items-center justify-between">
@@ -137,14 +135,13 @@
 
     <!-- Main Quiz List -->
     <template v-else>
-      <div class="flex items-end justify-between">
+      <div class="page-header">
         <div>
-          <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">Quiz em Direto</p>
-          <h3 class="text-3xl font-bold">Gestão de Quizzes</h3>
+          <h3 class="text-2xl sm:text-3xl font-bold">Quizz ao Vivo</h3>
           <p class="text-text-secondary mt-1">Crie quizzes com exercícios publicados e lance sessões ao vivo.</p>
         </div>
         <button @click="showCreate = true"
-          class="flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-btn font-semibold hover:bg-brand/80 transition">
+          class="flex items-center gap-2 px-5 py-2.5 bg-brand text-white rounded-btn font-semibold hover:bg-brand/80 transition shrink-0">
           <i class="pi pi-plus"></i> Novo Quiz
         </button>
       </div>
@@ -165,7 +162,7 @@
       </div>
 
       <!-- Quiz grid -->
-      <div v-else class="grid grid-cols-3 gap-4">
+      <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div v-for="quiz in quizzes" :key="quiz.id_quiz"
           class="bg-surface rounded-card border border-white/5 p-5 flex flex-col gap-4 hover:border-brand/30 transition group">
           <div class="flex items-start justify-between gap-2">

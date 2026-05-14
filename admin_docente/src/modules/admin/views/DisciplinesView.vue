@@ -1,9 +1,8 @@
 <template>
   <div class="space-y-8">
-    <div class="flex justify-between items-end">
+    <div class="page-header">
       <div>
-        <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">Académico</p>
-        <h3 class="text-3xl font-bold">Unidades Curriculares</h3>
+        <h3 class="text-3xl font-bold">Disciplinas</h3>
       </div>
       <button @click="openCreate" class="bg-brand text-white px-6 py-3 rounded-btn font-bold hover:brightness-110 transition-all flex items-center gap-2">
         <i class="pi pi-plus"></i> Criar Disciplina
@@ -17,27 +16,28 @@
       <i class="pi pi-exclamation-triangle mr-2"></i> {{ store.error }}
     </div>
 
-    <div class="grid grid-cols-4 gap-6">
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">Total UCs</p>
-        <p class="text-3xl font-bold mt-2">{{ store.disciplines.length }}</p>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">Total UCs</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2">{{ store.disciplines.length }}</p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">UCs Ativas</p>
-        <p class="text-3xl font-bold mt-2 text-brand">{{ store.activeDisciplines.length }}</p>
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">UCs Ativas</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2 text-brand">{{ store.activeDisciplines.length }}</p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">Alunos Inscritos</p>
-        <p class="text-3xl font-bold mt-2 text-success">{{ store.totalStudents }}</p>
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">Alunos Inscritos</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2 text-success">{{ store.totalStudents }}</p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">UCs Inativas</p>
-        <p class="text-3xl font-bold mt-2 text-error">{{ store.inactiveDisciplines.length }}</p>
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">UCs Inativas</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2 text-error">{{ store.inactiveDisciplines.length }}</p>
       </div>
     </div>
 
     <div class="bg-surface rounded-card border border-white/5 overflow-hidden">
-      <table class="w-full text-left">
+      <div class="overflow-x-auto">
+      <table class="w-full text-left min-w-[700px]">
         <thead class="bg-black/20 text-text-secondary uppercase text-[10px] tracking-widest">
           <tr>
             <th class="px-8 py-5 font-semibold">Código / Acrónimo</th>
@@ -87,6 +87,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <!-- Modal Criar / Editar -->

@@ -1,72 +1,61 @@
 <template>
   <div class="space-y-8">
     <div>
-      <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">
-        Visão Geral
-      </p>
-      <h3 class="text-3xl font-bold">Dashboard</h3>
+      <h3 class="text-2xl sm:text-3xl font-bold">Dashboard</h3>
       <p class="text-text-secondary mt-1">
         Resumo geral da plataforma de aprendizagem.
       </p>
     </div>
 
-    <div class="grid grid-cols-4 gap-6">
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <div class="flex items-center gap-3 mb-3">
-          <div
-            class="w-10 h-10 rounded-btn bg-brand/10 flex items-center justify-center"
-          >
-            <i class="pi pi-book text-brand"></i>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <div class="flex items-center gap-2 sm:gap-3 mb-3">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-btn bg-brand/10 flex items-center justify-center">
+            <i class="pi pi-book text-brand text-sm sm:text-base"></i>
           </div>
-          <p class="text-text-secondary text-sm">Disciplinas Ativas</p>
+          <p class="text-text-secondary text-xs sm:text-sm leading-tight">Disciplinas Ativas</p>
         </div>
-        <p class="text-3xl font-bold text-brand">
+        <p class="text-2xl sm:text-3xl font-bold text-brand">
           {{ disciplineStore.activeDisciplines.length }}
         </p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <div class="flex items-center gap-3 mb-3">
-          <div
-            class="w-10 h-10 rounded-btn bg-success/10 flex items-center justify-center"
-          >
-            <i class="pi pi-users text-success"></i>
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <div class="flex items-center gap-2 sm:gap-3 mb-3">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-btn bg-success/10 flex items-center justify-center">
+            <i class="pi pi-users text-success text-sm sm:text-base"></i>
           </div>
-          <p class="text-text-secondary text-sm">Alunos Registados</p>
+          <p class="text-text-secondary text-xs sm:text-sm leading-tight">Alunos Registados</p>
         </div>
-        <p class="text-3xl font-bold text-success">
+        <p class="text-2xl sm:text-3xl font-bold text-success">
           {{ userStore.students.length }}
         </p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <div class="flex items-center gap-3 mb-3">
-          <div
-            class="w-10 h-10 rounded-btn bg-warning/10 flex items-center justify-center"
-          >
-            <i class="pi pi-briefcase text-warning"></i>
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <div class="flex items-center gap-2 sm:gap-3 mb-3">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-btn bg-warning/10 flex items-center justify-center">
+            <i class="pi pi-briefcase text-warning text-sm sm:text-base"></i>
           </div>
-          <p class="text-text-secondary text-sm">Docentes</p>
+          <p class="text-text-secondary text-xs sm:text-sm leading-tight">Docentes</p>
         </div>
-        <p class="text-3xl font-bold text-warning">
+        <p class="text-2xl sm:text-3xl font-bold text-warning">
           {{ userStore.professors.length }}
         </p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <div class="flex items-center gap-3 mb-3">
-          <div
-            class="w-10 h-10 rounded-btn bg-error/10 flex items-center justify-center"
-          >
-            <i class="pi pi-ban text-error"></i>
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <div class="flex items-center gap-2 sm:gap-3 mb-3">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-btn bg-error/10 flex items-center justify-center">
+            <i class="pi pi-ban text-error text-sm sm:text-base"></i>
           </div>
-          <p class="text-text-secondary text-sm">Utilizadores Inativos</p>
+          <p class="text-text-secondary text-xs sm:text-sm leading-tight">Inativos</p>
         </div>
-        <p class="text-3xl font-bold text-error">
+        <p class="text-2xl sm:text-3xl font-bold text-error">
           {{ userStore.inactiveUsers.length }}
         </p>
       </div>
     </div>
 
     <!-- Disciplinas recentes -->
-    <div class="grid grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div class="bg-surface rounded-card border border-white/5 p-6">
         <h4 class="text-lg font-bold mb-4 flex items-center gap-2">
           <i class="pi pi-book text-brand"></i> Disciplinas Ativas

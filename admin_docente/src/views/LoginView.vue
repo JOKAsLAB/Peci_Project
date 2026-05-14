@@ -13,19 +13,19 @@
             class="rounded-2xl shadow-lg"
             style="width: 200px; height: 200px; object-fit: contain;"
           />
-          <p class="text-text-secondary text-sm mt-3">Painel de Gestão · Universidade de Aveiro</p>
+          <p class="text-text-secondary text-sm mt-3">Universidade de Aveiro</p>
         </div>
 
         <!-- Formulário de login -->
         <div v-if="!showRegister" class="space-y-5">
 
           <!-- Seletor de papel -->
-          <div class="flex gap-2 bg-surface rounded-btn p-1 border border-white/10">
+          <div class="flex gap-1 bg-surface rounded-btn p-1 border border-white/10">
             <button
               type="button"
               @click="selectedRole = 'Admin'"
               :class="selectedRole === 'Admin' ? 'bg-brand text-white' : 'text-text-secondary'"
-              class="flex-1 py-2.5 rounded-btn text-sm font-bold transition-all"
+              class="flex-1 py-2.5 rounded-btn text-xs sm:text-sm font-bold transition-all"
             >
               Admin
             </button>
@@ -33,9 +33,17 @@
               type="button"
               @click="selectedRole = 'Professor'"
               :class="selectedRole === 'Professor' ? 'bg-brand text-white' : 'text-text-secondary'"
-              class="flex-1 py-2.5 rounded-btn text-sm font-bold transition-all"
+              class="flex-1 py-2.5 rounded-btn text-xs sm:text-sm font-bold transition-all"
             >
               Professor
+            </button>
+            <button
+              type="button"
+              @click="selectedRole = 'Student'"
+              :class="selectedRole === 'Student' ? 'bg-brand text-white' : 'text-text-secondary'"
+              class="flex-1 py-2.5 rounded-btn text-xs sm:text-sm font-bold transition-all"
+            >
+              Aluno
             </button>
           </div>
 
@@ -94,11 +102,11 @@
             class="w-full bg-brand py-4 rounded-btn font-bold text-white hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <i v-if="loading" class="pi pi-spin pi-spinner"></i>
-            <span>{{ loading ? 'A autenticar...' : `Entrar como ${selectedRole}` }}</span>
+            <span>{{ loading ? 'A autenticar...' : `Entrar como ${{ Admin: 'Admin', Professor: 'Professor', Student: 'Aluno' }[selectedRole]}` }}</span>
           </button>
 
-          <!-- Registo (apenas Professor) -->
-          <template v-if="selectedRole === 'Professor'">
+          <!-- Registo (Professor ou Aluno) -->
+          <template v-if="selectedRole === 'Professor' || selectedRole === 'Student'">
             <div class="flex items-center gap-4">
               <div class="flex-1 border-t border-white/10"></div>
               <span class="text-text-secondary text-xs">ou</span>
@@ -110,7 +118,7 @@
               @click="openRegister"
               class="w-full border border-white/10 py-4 rounded-btn font-bold text-text-primary hover:border-brand/50 hover:text-brand transition-all"
             >
-              Criar Conta de Professor
+              {{ selectedRole === 'Student' ? 'Criar Conta de Aluno' : 'Criar Conta de Professor' }}
             </button>
 
             <div
@@ -123,56 +131,112 @@
           </template>
         </div>
 
-        <!-- Formulário de registo -->
+        <!-- Formulário de registo / verificação -->
         <div v-else class="space-y-4">
-          <button
-            type="button"
-            @click="showRegister = false"
-            class="flex items-center gap-2 text-text-secondary hover:text-white transition-colors text-sm mb-2"
-          >
-            <i class="pi pi-arrow-left"></i>
-            Voltar ao login
-          </button>
 
-          <h2 class="text-xl font-bold">Criar Conta de Professor</h2>
-          <p class="text-text-secondary text-sm">Regista-te com o teu email institucional da UA.</p>
-          <p class="text-warning text-xs">Contas de docente requerem aprovação do administrador.</p>
+          <!-- Passo de verificação de email (aluno) -->
+          <template v-if="showVerify">
+            <button
+              type="button"
+              @click="showVerify = false"
+              class="flex items-center gap-2 text-text-secondary hover:text-white transition-colors text-sm mb-2"
+            >
+              <i class="pi pi-arrow-left"></i>
+              Voltar ao registo
+            </button>
 
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-text-secondary uppercase tracking-widest block">Nome Completo</label>
-            <input v-model="regName" type="text" placeholder="Nome completo"
-              class="w-full bg-surface p-3.5 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-text-secondary uppercase tracking-widest block">Email Institucional</label>
-            <input v-model="regEmail" type="email" placeholder="nome@ua.pt"
-              class="w-full bg-surface p-3.5 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-text-secondary uppercase tracking-widest block">Password</label>
-            <input v-model="regPassword" type="password" placeholder="Mínimo 6 caracteres"
-              class="w-full bg-surface p-3.5 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-xs font-bold text-text-secondary uppercase tracking-widest block">Confirmar Password</label>
-            <input v-model="regConfirm" type="password" placeholder="Repete a password"
-              class="w-full bg-surface p-3.5 rounded-btn border border-white/10 outline-none focus:border-brand text-sm"
-              @keyup.enter="register" />
-          </div>
+            <h2 class="text-xl font-bold">Verificar Email</h2>
+            <p class="text-text-secondary text-sm">
+              Enviámos um código de 6 dígitos para <strong class="text-white">{{ regEmail }}</strong>. Introduz o código para ativar a tua conta.
+            </p>
 
-          <div v-if="regError" class="bg-error/10 border border-error/20 text-error text-sm p-3 rounded-btn flex items-center gap-2">
-            <i class="pi pi-exclamation-circle"></i>
-            {{ regError }}
-          </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-text-secondary uppercase tracking-widest block">Código de Verificação</label>
+              <input
+                v-model="verifyCode"
+                type="text"
+                maxlength="6"
+                placeholder="000000"
+                class="w-full bg-surface p-3.5 rounded-btn border border-white/10 outline-none focus:border-brand text-sm tracking-[0.5em] text-center"
+                @keyup.enter="verifyEmail"
+              />
+            </div>
 
-          <button
-            @click="register"
-            :disabled="regLoading"
-            class="w-full bg-brand py-4 rounded-btn font-bold text-white hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            <i v-if="regLoading" class="pi pi-spin pi-spinner"></i>
-            <span>{{ regLoading ? 'A processar...' : 'Enviar Pedido' }}</span>
-          </button>
+            <div v-if="verifyError" class="bg-error/10 border border-error/20 text-error text-sm p-3 rounded-btn flex items-center gap-2">
+              <i class="pi pi-exclamation-circle"></i>
+              {{ verifyError }}
+            </div>
+
+            <button
+              @click="verifyEmail"
+              :disabled="verifyLoading"
+              class="w-full bg-brand py-4 rounded-btn font-bold text-white hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <i v-if="verifyLoading" class="pi pi-spin pi-spinner"></i>
+              <span>{{ verifyLoading ? 'A verificar...' : 'Verificar Email' }}</span>
+            </button>
+          </template>
+
+          <!-- Formulário de registo normal -->
+          <template v-else>
+            <button
+              type="button"
+              @click="showRegister = false"
+              class="flex items-center gap-2 text-text-secondary hover:text-white transition-colors text-sm mb-2"
+            >
+              <i class="pi pi-arrow-left"></i>
+              Voltar ao login
+            </button>
+
+            <h2 class="text-xl font-bold">
+              {{ selectedRole === 'Student' ? 'Criar Conta de Aluno' : 'Pedir Acesso como Docente' }}
+            </h2>
+            <p v-if="selectedRole === 'Student'" class="text-text-secondary text-sm">
+              Regista-te com o teu email. Terás de verificar o email antes de fazeres login.
+            </p>
+            <div v-else class="bg-warning/10 border border-warning/30 rounded-btn p-3 flex items-start gap-2">
+              <i class="pi pi-info-circle text-warning text-sm mt-0.5 shrink-0"></i>
+              <p class="text-warning text-xs leading-relaxed">
+                O pedido de acesso fica em análise pelo administrador. Receberás confirmação assim que aprovado.
+              </p>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-text-secondary uppercase tracking-widest block">Nome Completo</label>
+              <input v-model="regName" type="text" placeholder="Nome completo"
+                class="w-full bg-surface p-3.5 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-text-secondary uppercase tracking-widest block">Email</label>
+              <input v-model="regEmail" type="email" placeholder="nome@email.com"
+                class="w-full bg-surface p-3.5 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-text-secondary uppercase tracking-widest block">Password</label>
+              <input v-model="regPassword" type="password" placeholder="Mínimo 6 caracteres"
+                class="w-full bg-surface p-3.5 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold text-text-secondary uppercase tracking-widest block">Confirmar Password</label>
+              <input v-model="regConfirm" type="password" placeholder="Repete a password"
+                class="w-full bg-surface p-3.5 rounded-btn border border-white/10 outline-none focus:border-brand text-sm"
+                @keyup.enter="register" />
+            </div>
+
+            <div v-if="regError" class="bg-error/10 border border-error/20 text-error text-sm p-3 rounded-btn flex items-center gap-2">
+              <i class="pi pi-exclamation-circle"></i>
+              {{ regError }}
+            </div>
+
+            <button
+              @click="register"
+              :disabled="regLoading"
+              class="w-full bg-brand py-4 rounded-btn font-bold text-white hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <i v-if="regLoading" class="pi pi-spin pi-spinner"></i>
+              <span>{{ regLoading ? 'A processar...' : selectedRole === 'Student' ? 'Criar Conta' : 'Enviar Pedido' }}</span>
+            </button>
+          </template>
         </div>
 
       </div>
@@ -196,6 +260,7 @@ const rememberMe = ref(true);
 const loading = ref(false);
 const errorMessage = ref('');
 const showRegister = ref(false);
+const showVerify = ref(false);
 const regName = ref('');
 const regEmail = ref('');
 const regPassword = ref('');
@@ -203,11 +268,15 @@ const regConfirm = ref('');
 const regLoading = ref(false);
 const regError = ref('');
 const regSuccess = ref('');
+const verifyCode = ref('');
+const verifyLoading = ref(false);
+const verifyError = ref('');
 
 function openRegister(): void {
-  selectedRole.value = 'Professor';
   showRegister.value = true;
+  showVerify.value = false;
   regError.value = '';
+  verifyError.value = '';
 }
 
 async function login(): Promise<void> {
@@ -230,12 +299,15 @@ async function login(): Promise<void> {
       allowOfflineFallback: true,
     });
 
-    await router.replace(selectedRole.value === 'Admin' ? '/admin' : '/professor');
+    const redirectMap: Record<string, string> = { Admin: '/admin', Professor: '/professor', Student: '/aluno' };
+    await router.replace(redirectMap[selectedRole.value] ?? '/admin');
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Falha ao autenticar.';
     errorMessage.value =
       message === 'Account pending admin approval'
         ? 'Conta em análise. Aguarda aprovação do administrador.'
+        : message.includes('not verified')
+        ? 'Conta não verificada. Verifica o teu email.'
         : message;
   } finally {
     loading.value = false;
@@ -245,10 +317,6 @@ async function login(): Promise<void> {
 async function register(): Promise<void> {
   if (!regName.value.trim() || !regEmail.value.trim() || !regPassword.value.trim()) {
     regError.value = 'Preenche todos os campos.';
-    return;
-  }
-  if (!regEmail.value.toLowerCase().endsWith('@ua.pt')) {
-    regError.value = 'Usa o teu email institucional (@ua.pt).';
     return;
   }
   if (regPassword.value.length < 6) {
@@ -264,24 +332,58 @@ async function register(): Promise<void> {
   regLoading.value = true;
 
   try {
-    await authStore.registerProfessor({
-      name: regName.value.trim(),
-      email: regEmail.value.trim().toLowerCase(),
-      password: regPassword.value,
-      department: 'DETI',
-      shortBio: 'Conta criada a partir do login unificado',
-    });
+    if (selectedRole.value === 'Student') {
+      await authStore.registerStudent({
+        name: regName.value.trim(),
+        email: regEmail.value.trim().toLowerCase(),
+        password: regPassword.value,
+      });
+      showVerify.value = true;
+    } else {
+      await authStore.registerProfessor({
+        name: regName.value.trim(),
+        email: regEmail.value.trim().toLowerCase(),
+        password: regPassword.value,
+        department: 'DETI',
+        shortBio: 'Conta criada a partir do login unificado',
+      });
+      regSuccess.value = 'Pedido enviado. A tua conta ficará disponível após aprovação do administrador.';
+      showRegister.value = false;
+      regName.value = '';
+      regEmail.value = '';
+      regPassword.value = '';
+      regConfirm.value = '';
+    }
+  } catch (error) {
+    regError.value = error instanceof Error ? error.message : 'Falha ao registar.';
+  } finally {
+    regLoading.value = false;
+  }
+}
 
-    regSuccess.value = 'Pedido enviado. A tua conta ficará disponível após aprovação do administrador.';
+async function verifyEmail(): Promise<void> {
+  if (verifyCode.value.trim().length !== 6) {
+    verifyError.value = 'Introduz o código de 6 dígitos.';
+    return;
+  }
+
+  verifyError.value = '';
+  verifyLoading.value = true;
+
+  try {
+    await authStore.verifyStudentEmail(regEmail.value.trim().toLowerCase(), verifyCode.value.trim());
+    regSuccess.value = 'Email verificado! Podes fazer login agora.';
     showRegister.value = false;
+    showVerify.value = false;
     regName.value = '';
     regEmail.value = '';
     regPassword.value = '';
     regConfirm.value = '';
+    verifyCode.value = '';
   } catch (error) {
-    regError.value = error instanceof Error ? error.message : 'Falha ao registar conta docente.';
+    verifyError.value = error instanceof Error ? error.message : 'Código inválido ou expirado.';
   } finally {
-    regLoading.value = false;
+    verifyLoading.value = false;
   }
 }
 </script>

@@ -1,0 +1,55 @@
+services:
+
+  # ── Base de Dados ────────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: peci_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-PECI_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-12345678}
+      POSTGRES_DB: ${DB_NAME:-PECI_LOCAL}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-PECI_USER} -d ${DB_NAME:-PECI_LOCAL}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Backend (FastAPI + AI Engine) ────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: peci_backend
+    restart: unless-stopped
+    env_file:
+      - backend/backend/app/.env
+    environment:
+      DB_HOST: db          # sobrepõe o localhost do .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ai_uploads:/app/ai_engine/uploads
+      - ai_chroma:/app/ai_engine/chroma_db
+      - hf_cache:/root/.cache/huggingface   # modelos não são re-descarregados
+
+  # ── Frontend (Vue → nginx) ───────────────────────────────────────────────────
+  frontend:
+    build:
+      context: admin_docente
+      dockerfile: Dockerfile
+    container_name: peci_frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  ai_uploads:
+  ai_chroma:
+  hf_cache:

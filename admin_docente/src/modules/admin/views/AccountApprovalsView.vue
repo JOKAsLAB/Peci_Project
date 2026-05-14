@@ -1,11 +1,8 @@
 <template>
   <div class="space-y-8">
-    <div class="flex justify-between items-end">
+    <div class="page-header">
       <div>
-        <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">
-          Segurança & Acesso
-        </p>
-        <h3 class="text-3xl font-bold">Aprovação de Contas Docentes</h3>
+        <h3 class="text-3xl font-bold">Aprovações</h3>
         <p class="text-text-secondary mt-1">
           Analise pedidos de criação de conta de professor antes de permitir o
           acesso ao painel docente.
@@ -20,28 +17,28 @@
       <i class="pi pi-exclamation-triangle mr-2"></i> {{ userStore.error }}
     </div>
 
-    <div class="grid grid-cols-3 gap-6">
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">Pendentes</p>
-        <p class="text-3xl font-bold mt-2 text-warning">
+    <div class="grid grid-cols-3 sm:grid-cols-3 gap-3 sm:gap-6">
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">Pendentes</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2 text-warning">
           {{ pendingRequests.length }}
         </p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">Aprovados</p>
-        <p class="text-3xl font-bold mt-2 text-success">
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">Aprovados</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2 text-success">
           {{ approvedRequests.length }}
         </p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <p class="text-text-secondary text-sm">Rejeitados</p>
-        <p class="text-3xl font-bold mt-2 text-error">
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <p class="text-text-secondary text-xs sm:text-sm">Rejeitados</p>
+        <p class="text-2xl sm:text-3xl font-bold mt-2 text-error">
           {{ rejectedRequests.length }}
         </p>
       </div>
     </div>
 
-    <div class="flex items-center gap-3">
+    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
       <button
         v-for="f in ['Pendentes', 'Aprovados', 'Rejeitados', 'Todos']"
         :key="f"
@@ -51,19 +48,19 @@
             ? 'bg-brand text-white'
             : 'bg-surface text-text-secondary border border-white/10'
         "
-        class="px-5 py-2 rounded-chip text-sm font-bold transition-all"
+        class="px-4 sm:px-5 py-2 rounded-chip text-sm font-bold transition-all"
       >
         {{ f }}
       </button>
 
-      <div class="ml-auto relative">
+      <div class="sm:ml-auto relative w-full sm:w-auto mt-1 sm:mt-0">
         <i
           class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm"
         ></i>
         <input
           v-model="search"
           placeholder="Pesquisar por nome, NMec ou email..."
-          class="bg-surface border border-white/10 pl-10 pr-4 py-2 rounded-btn text-sm outline-none focus:border-brand w-80"
+          class="bg-surface border border-white/10 pl-10 pr-4 py-2 rounded-btn text-sm outline-none focus:border-brand w-full sm:w-72"
         />
       </div>
     </div>
@@ -75,7 +72,7 @@
         class="bg-surface p-6 rounded-card border border-white/5"
         :class="{ 'opacity-50 pointer-events-none': userStore.isLoading }"
       >
-        <div class="flex items-start justify-between gap-6">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
           <div class="space-y-3">
             <div class="flex items-center gap-3">
               <h4 class="text-lg font-bold">{{ request.name }}</h4>
@@ -103,7 +100,7 @@
 
           <div
             v-if="request.status === 'pending'"
-            class="flex flex-col gap-3 min-w-56"
+            class="flex flex-col gap-3 sm:min-w-48 shrink-0"
           >
             <button
               @click="approve(request)"

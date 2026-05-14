@@ -3,7 +3,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { getApiErrorMessage, http } from '../services/http';
 
-export type SupportedRole = 'Admin' | 'Professor';
+export type SupportedRole = 'Admin' | 'Professor' | 'Student';
 
 export interface AuthUser {
   id?: string;
@@ -29,7 +29,7 @@ const AUTH_LOCAL_KEY = 'peci_unified_auth_v1';
 const AUTH_SESSION_KEY = 'peci_unified_auth_session_v1';
 
 function isSupportedRole(role: unknown): role is SupportedRole {
-  return role === 'Admin' || role === 'Professor';
+  return role === 'Admin' || role === 'Professor' || role === 'Student';
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -96,9 +96,10 @@ export const useAuthStore = defineStore('auth', () => {
     role: SupportedRole,
     remember = true,
   ): AuthUser {
+    const nameMap = { Admin: 'Admin Local', Professor: 'Professor Local', Student: 'Aluno Local' };
     const offlineUser: AuthUser = {
       id: 'local-dev-user',
-      name: role === 'Admin' ? 'Admin Local' : 'Professor Local',
+      name: nameMap[role] || 'Utilizador Local',
       email: email || `${role.toLowerCase()}@local.dev`,
       role,
       status: 'Active',
@@ -140,7 +141,6 @@ export const useAuthStore = defineStore('auth', () => {
 
       setSession(loginData, remember);
 
-      // Se for professor, carregar as disciplinas atribuídas
       if (loginData.user.role === 'Professor') {
         await loadProfessorCourseUnits();
       }
@@ -199,7 +199,6 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = token.value || 'cookie-session';
       persistSession();
 
-      // Se for professor, carregar as disciplinas atribuídas
       if (user.value.role === 'Professor') {
         await loadProfessorCourseUnits();
       }
@@ -208,6 +207,23 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       await logout({ callApi: false });
       return false;
+    }
+  }
+
+  async function registerStudent(payload: {
+    name: string;
+    email: string;
+    password: string;
+  }): Promise<void> {
+    try {
+      await http.post('/api/v1/auth/register', {
+        name: payload.name,
+        email: payload.email,
+        password: payload.password,
+        role: 'Student',
+      });
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Falha ao registar conta de aluno.'));
     }
   }
 
@@ -236,6 +252,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function verifyStudentEmail(email: string, code: string): Promise<void> {
+    try {
+      await http.post('/api/v1/auth/verify-email', { email, code });
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Código inválido ou expirado.'));
+    }
+  }
+
   async function logout(options: { callApi?: boolean } = {}): Promise<void> {
     const callApi = options.callApi !== false;
     try {
@@ -261,7 +285,9 @@ export const useAuthStore = defineStore('auth', () => {
     hasCourseUnits,
     login,
     restoreSession,
+    registerStudent,
     registerProfessor,
+    verifyStudentEmail,
     loadProfessorCourseUnits,
     logout,
   };

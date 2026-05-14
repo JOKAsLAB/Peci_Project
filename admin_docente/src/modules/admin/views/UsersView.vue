@@ -1,10 +1,7 @@
 <template>
   <div class="space-y-8">
-    <div class="flex justify-between items-end">
+    <div class="page-header">
       <div>
-        <p class="text-brand font-bold text-sm uppercase tracking-widest mb-1">
-          Gestão
-        </p>
         <h3 class="text-3xl font-bold">Utilizadores</h3>
         <p class="text-text-secondary mt-1">
           Gestão completa de alunos e docentes da plataforma.
@@ -28,64 +25,64 @@
     </div>
 
     <!-- Métricas -->
-    <div class="grid grid-cols-4 gap-6">
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 rounded-btn bg-brand/10 flex items-center justify-center">
-            <i class="pi pi-users text-brand"></i>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-6">
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <div class="flex items-center gap-2 sm:gap-3 mb-3">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-btn bg-brand/10 flex items-center justify-center">
+            <i class="pi pi-users text-brand text-sm sm:text-base"></i>
           </div>
-          <p class="text-text-secondary text-sm">Total</p>
+          <p class="text-text-secondary text-xs sm:text-sm leading-tight">Total</p>
         </div>
-        <p class="text-3xl font-bold">{{ userStore.users.length }}</p>
+        <p class="text-2xl sm:text-3xl font-bold">{{ userStore.users.length }}</p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 rounded-btn bg-success/10 flex items-center justify-center">
-            <i class="pi pi-check-circle text-success"></i>
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <div class="flex items-center gap-2 sm:gap-3 mb-3">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-btn bg-success/10 flex items-center justify-center">
+            <i class="pi pi-check-circle text-success text-sm sm:text-base"></i>
           </div>
-          <p class="text-text-secondary text-sm">Ativos</p>
+          <p class="text-text-secondary text-xs sm:text-sm leading-tight">Ativos</p>
         </div>
-        <p class="text-3xl font-bold text-success">{{ userStore.activeUsers.length }}</p>
+        <p class="text-2xl sm:text-3xl font-bold text-success">{{ userStore.activeUsers.length }}</p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 rounded-btn bg-blue-500/10 flex items-center justify-center">
-            <i class="pi pi-graduation-cap text-blue-400"></i>
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <div class="flex items-center gap-2 sm:gap-3 mb-3">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-btn bg-blue-500/10 flex items-center justify-center">
+            <i class="pi pi-graduation-cap text-blue-400 text-sm sm:text-base"></i>
           </div>
-          <p class="text-text-secondary text-sm">Alunos</p>
+          <p class="text-text-secondary text-xs sm:text-sm leading-tight">Alunos</p>
         </div>
-        <p class="text-3xl font-bold text-blue-400">{{ userStore.students.length }}</p>
+        <p class="text-2xl sm:text-3xl font-bold text-blue-400">{{ userStore.students.length }}</p>
       </div>
-      <div class="bg-surface p-6 rounded-card border border-white/5">
-        <div class="flex items-center gap-3 mb-3">
-          <div class="w-10 h-10 rounded-btn bg-warning/10 flex items-center justify-center">
-            <i class="pi pi-briefcase text-warning"></i>
+      <div class="bg-surface p-4 sm:p-6 rounded-card border border-white/5">
+        <div class="flex items-center gap-2 sm:gap-3 mb-3">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-btn bg-warning/10 flex items-center justify-center">
+            <i class="pi pi-briefcase text-warning text-sm sm:text-base"></i>
           </div>
-          <p class="text-text-secondary text-sm">Docentes</p>
+          <p class="text-text-secondary text-xs sm:text-sm leading-tight">Docentes</p>
         </div>
-        <p class="text-3xl font-bold text-warning">{{ userStore.professors.length }}</p>
+        <p class="text-2xl sm:text-3xl font-bold text-warning">{{ userStore.professors.length }}</p>
       </div>
     </div>
 
     <!-- Filtros -->
-    <div class="flex items-center gap-3">
+    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
       <button
         v-for="f in ['Todos', 'Alunos', 'Docentes', 'Inativos']"
         :key="f"
         @click="roleFilter = f"
         :class="roleFilter === f ? 'bg-brand text-white' : 'bg-surface text-text-secondary border border-white/10'"
-        class="px-5 py-2 rounded-chip text-sm font-bold transition-all"
+        class="px-4 sm:px-5 py-2 rounded-chip text-sm font-bold transition-all"
       >
         {{ f }}
       </button>
 
-      <div class="ml-auto flex items-center gap-3">
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto sm:ml-auto">
         <div class="relative">
           <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary text-sm"></i>
           <input
             v-model="search"
             placeholder="Pesquisar por nome ou email..."
-            class="bg-surface border border-white/10 pl-10 pr-4 py-2 rounded-btn text-sm outline-none focus:border-brand w-80"
+            class="bg-surface border border-white/10 pl-10 pr-4 py-2 rounded-btn text-sm outline-none focus:border-brand w-full sm:w-72"
           />
         </div>
         <select
@@ -102,7 +99,8 @@
 
     <!-- Tabela -->
     <div class="bg-surface rounded-card border border-white/5 overflow-hidden">
-      <table class="w-full text-left">
+      <div class="overflow-x-auto">
+      <table class="w-full text-left min-w-[700px]">
         <thead class="bg-black/20 text-text-secondary uppercase text-[10px] tracking-widest">
           <tr>
             <th class="px-6 py-4 font-semibold">Utilizador</th>
@@ -179,6 +177,7 @@
           </tr>
         </tbody>
       </table>
+      </div>
       <div v-if="filteredUsers.length === 0" class="p-8 text-center text-text-secondary">
         Nenhum utilizador encontrado com os filtros atuais.
       </div>
