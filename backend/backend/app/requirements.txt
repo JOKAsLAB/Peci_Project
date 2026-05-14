@@ -1,6 +1,6 @@
 fastapi==0.115.12         # Framework principal da API
 uvicorn==0.34.0           # Servidor ASGI para correr o FastAPI
-sqlalchemy==2.0.40        # ORM — fala com a base de dados
+sqlalchemy>=2.0,<2.0.36   # ORM — fala com a base de dados (< 2.0.36 por compatibilidade com langchain-community)
 asyncpg==0.30.0           # Driver assíncrono para PostgreSQL
 pydantic==2.11.2          # Validação de dados (schemas)
 pydantic-settings==2.9.1  # Lê variáveis do ficheiro .env

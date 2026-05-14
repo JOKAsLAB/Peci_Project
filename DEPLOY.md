@@ -12,8 +12,9 @@ Só a porta 80 fica exposta. O backend e a BD ficam na rede interna do Docker.
 
 ---
 
-## Pré-requisitos no servidor
+## Pré-requisitos
 
+### Linux (servidor Ubuntu/Debian)
 ```bash
 # Docker + Docker Compose (uma linha)
 curl -fsSL https://get.docker.com | sh
@@ -23,19 +24,39 @@ docker --version
 docker compose version
 ```
 
+### Windows
+Instala o **Docker Desktop para Windows**:
+1. Descarrega em https://www.docker.com/products/docker-desktop/
+2. Instala e reinicia o PC
+3. Abre o Docker Desktop e aguarda até o ícone ficar verde ("Engine running")
+4. Verifica numa janela PowerShell:
+```powershell
+docker --version
+docker compose version
+```
+
+> Se usares WSL 2 (recomendado pelo Docker Desktop), os comandos Linux também funcionam dentro do WSL.
+
 ---
 
-## 1. Colocar o projeto no servidor
+## 1. Colocar o projeto no servidor/PC
 
+### Linux
 **Opção A — via Git (recomendado)**
 ```bash
 git clone https://github.com/JOKAsLAB/Peci_Project.git
 cd Peci_Project
 ```
 
-**Opção B — via SCP (do teu PC)**
-```bash
+**Opção B — via SCP (do teu PC Windows para o servidor)**
+```powershell
 scp -r "C:\Users\joaob\Documents\GitHub\Peci_Project" user@IP_SERVIDOR:~/peci
+```
+
+### Windows
+```powershell
+git clone https://github.com/JOKAsLAB/Peci_Project.git
+cd Peci_Project
 ```
 
 ---
@@ -44,18 +65,28 @@ scp -r "C:\Users\joaob\Documents\GitHub\Peci_Project" user@IP_SERVIDOR:~/peci
 
 Edita o ficheiro `backend/backend/app/.env`:
 
+### Linux
 ```bash
 nano backend/backend/app/.env
 ```
 
-Muda estas linhas:
+### Windows (PowerShell)
+```powershell
+notepad backend\backend\app\.env
+# ou, se tiveres VS Code:
+code backend\backend\app\.env
+```
+
+---
+
+Muda estas linhas no `.env`:
 
 ```env
 # Base de dados — usa uma password forte
 DB_PASSWORD=uma_password_segura_aqui
 
-# JWT — gera uma chave aleatória
-SECRET_KEY=corre_isto_no_terminal_e_cola_aqui
+# JWT — gera uma chave aleatória (ver comando abaixo)
+SECRET_KEY=cola_aqui_a_chave_gerada
 
 # CORS — adiciona o IP ou domínio do servidor
 CORS_ALLOW_ORIGINS=http://IP_DO_SERVIDOR,http://localhost
@@ -67,14 +98,21 @@ SMTP_USER=logicstreaksupport@gmail.com
 SMTP_PASSWORD=a_tua_app_password
 ```
 
-Para gerar uma `SECRET_KEY` segura:
+**Gerar uma `SECRET_KEY` segura:**
+
 ```bash
+# Linux / macOS
 python3 -c "import secrets; print(secrets.token_hex(32))"
+
+# Windows (PowerShell)
+python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
 ---
 
 ## 3. Arrancar
+
+O comando é igual em Linux e Windows:
 
 ```bash
 docker compose up -d --build
@@ -95,31 +133,49 @@ Deverá aparecer 3 serviços com estado `healthy` / `running`.
 
 ## 4. Aceder à aplicação
 
-Abre o browser em `http://IP_DO_SERVIDOR`
+Abre o browser em `http://IP_DO_SERVIDOR` (Linux) ou `http://localhost` (Windows local).
 
-A primeira conta Admin tem de ser criada diretamente na BD (uma única vez):
+A primeira conta Admin é criada automaticamente pelo backend ao arrancar (credenciais definidas no `.env` como `ADMIN_EMAIL` e `ADMIN_PASSWORD`).
 
+Se precisares de criar manualmente via BD:
+
+### Linux
 ```bash
 docker compose exec db psql -U PECI_USER -d PECI_LOCAL
 ```
 
+### Windows (PowerShell)
+```powershell
+docker compose exec db psql -U PECI_USER -d PECI_LOCAL
+```
+> O comando `docker compose exec` é igual — só muda como corres o Python abaixo.
+
 ```sql
--- Dentro do psql:
+-- Dentro do psql (igual em ambos os sistemas):
 INSERT INTO base_user (name, email, password_hash, role, status)
 VALUES ('Admin', 'admin@peci.pt', 'HASH_AQUI', 'Admin', 'Active');
 ```
 
-Para gerar o hash da password (corre no terminal do servidor):
+**Gerar o hash da password:**
+
 ```bash
+# Linux
 docker compose exec backend python3 -c "
 from app.security import hash_password
 print(hash_password('a_tua_password_aqui'))
 "
 ```
 
+```powershell
+# Windows (PowerShell) — aspas têm de ser escapadas
+docker compose exec backend python -c "from app.security import hash_password; print(hash_password('a_tua_password_aqui'))"
+```
+
 ---
 
 ## Comandos do dia-a-dia
+
+Iguais em Linux e Windows:
 
 ```bash
 # Ver logs em tempo real
@@ -129,7 +185,7 @@ docker compose logs -f frontend
 # Reiniciar um serviço (ex: depois de mudar o .env)
 docker compose restart backend
 
-# Parar tudo
+# Parar tudo (dados preservados)
 docker compose down
 
 # Atualizar o projeto (depois de git pull)

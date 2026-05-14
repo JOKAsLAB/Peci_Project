@@ -74,7 +74,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   keyboardType: TextInputType.emailAddress,
                   style: const TextStyle(color: AppTheme.textPrimary),
                   decoration: InputDecoration(
-                    hintText: 'Email institucional',
+                    hintText: 'Email',
                     prefixIcon: const Icon(Icons.email_outlined, color: AppTheme.textSecondary),
                     filled: true,
                     fillColor: AppTheme.surfaceSecondary,
