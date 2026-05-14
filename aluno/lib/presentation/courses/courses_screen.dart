@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/tutorial/onboarding_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/learning_path.dart';
 import '../../data/remote/student_repository.dart';
@@ -8,6 +8,9 @@ import '../../features/gamification/providers/feed_provider.dart';
 import '../../features/profile/providers/profile_provider.dart';
 import '../shared/tutor_chat_dialog.dart';
 import '../shared/xp_gain_overlay.dart';
+import '../shared/xp_widgets.dart';
+import '../shared/rule_item.dart';
+
 
 // ─── Ecrã principal: lista de UCs ────────────────────────────────────────────
 class CoursesScreen extends ConsumerStatefulWidget {
@@ -19,35 +22,12 @@ class CoursesScreen extends ConsumerStatefulWidget {
 
 class _CoursesScreenState extends ConsumerState<CoursesScreen> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowOnboarding());
-  }
-
-  Future<void> _maybeShowOnboarding() async {
-    final String userId;
-    try {
-      final profile = await ref.read(profileStateProvider.future);
-      userId = profile.id;
-    } catch (_) {
-      return;
-    }
-    if (!mounted) return;
-
-    final prefs = await SharedPreferences.getInstance();
-    final key = 'onboarding_shown_$userId';
-    final shown = prefs.getBool(key) ?? false;
-    if (shown || !mounted) return;
-
-    await prefs.setBool(key, true);
-    await prefs.setBool('courses_rules_shown', true);
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const _OnboardingDialog(),
-    );
-  }
+void initState() {
+  super.initState();
+  WidgetsBinding.instance.addPostFrameCallback(
+    (_) => OnboardingService.maybeShow(context, ref),
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +39,12 @@ class _CoursesScreenState extends ConsumerState<CoursesScreen> {
         title: const Text('Cursos', style: TextStyle(fontWeight: FontWeight.w600)),
         backgroundColor: AppTheme.surfaceSecondary,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.help_outline_rounded, color: AppTheme.textSecondary),
+            onPressed: () => OnboardingService.showForced(context, ref),
+          ),
+        ],
       ),
       body: pathsAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
@@ -278,290 +264,6 @@ class CoursePathScreen extends ConsumerWidget {
                 );
               },
             ),
-    );
-  }
-}
-
-// ─── Popup de onboarding ──────────────────────────────────────────────────────
-class _OnboardingDialog extends StatelessWidget {
-  const _OnboardingDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    // FIX: Dialog responsivo — usa fração do ecrã e SingleChildScrollView
-    // para não cortar conteúdo em ecrãs pequenos ou quando o teclado sobe.
-    return Dialog(
-      backgroundColor: AppTheme.surfaceSecondary,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.88,
-          maxWidth: 480,
-        ),
-        child: SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Andy avatar
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppTheme.backgroundPrimary,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: AppTheme.brandAccent.withValues(alpha: 0.4),
-                    width: 1.5,
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Image.asset(
-                    'assets/chatbot_photo.png',
-                    fit: BoxFit.contain,
-                    color: Colors.white,
-                    colorBlendMode: BlendMode.difference,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Olá! Sou o Andy 👋',
-                style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: 20),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'O teu companheiro de estudo com IA.\nAbre-me depois de qualquer exercício para esclarecer dúvidas e aprender melhor.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.textSecondary, fontSize: 13, height: 1.55),
-              ),
-              const SizedBox(height: 20),
-              Divider(color: Colors.grey.shade800, height: 1),
-              const SizedBox(height: 16),
-              _RuleItem(
-                icon: Icons.local_fire_department_rounded,
-                color: const Color(0xFFFB923C),
-                title: '5 exercícios diários = Bónus XP',
-                description: 'Os primeiros 5 por dia têm 1.5× XP de bónus + mantêm o streak:',
-                extra: const _XpTable(),
-              ),
-              const SizedBox(height: 14),
-              _RuleItem(
-                icon: Icons.trending_up_rounded,
-                color: AppTheme.successState,
-                title: 'Progressão por dificuldade',
-                description: 'Cada tópico segue Fácil → Médio → Difícil. Após os 5, podes continuar a praticar (XP normal).',
-              ),
-              const SizedBox(height: 22),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.brandAccent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-                    elevation: 0,
-                  ),
-                  child: const Text('Vamos começar!', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Popup de regras ─────────────────────────────────────────────────────────
-class _RulesDialog extends StatelessWidget {
-  const _RulesDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: AppTheme.surfaceSecondary,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.88,
-          maxWidth: 480,
-        ),
-        child: SingleChildScrollView(
-          physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.brandAccent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.local_fire_department_rounded, color: AppTheme.brandAccent, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Como funciona',
-                    style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w700, fontSize: 18),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              _RuleItem(
-                icon: Icons.trending_up_rounded,
-                color: AppTheme.successState,
-                title: 'Progressão por dificuldade',
-                description: 'Os exercícios de cada tópico seguem a ordem Fácil → Médio → Difícil.',
-              ),
-              const SizedBox(height: 14),
-              _RuleItem(
-                icon: Icons.local_fire_department_rounded,
-                color: const Color(0xFFFB923C),
-                title: '5 exercícios = Streak + Bónus XP',
-                description: 'Os primeiros 5 exercícios diários têm bónus de 1.5× XP:',
-                extra: const _XpTable(),
-              ),
-              const SizedBox(height: 14),
-              _RuleItem(
-                icon: Icons.play_circle_outline_rounded,
-                color: const Color(0xFF60A5FA),
-                title: 'Podes continuar depois',
-                description: 'Após os 5 diários, podes continuar a praticar (XP normal).',
-              ),
-              const SizedBox(height: 22),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.brandAccent,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-                    elevation: 0,
-                  ),
-                  child: const Text('Vamos lá!', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _RuleItem extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String description;
-  final Widget? extra;
-
-  const _RuleItem({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.description,
-    this.extra,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: color, size: 20),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 2),
-              Text(title, style: const TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13)),
-              const SizedBox(height: 3),
-              Text(description, style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12, height: 1.4)),
-              if (extra != null) ...[const SizedBox(height: 6), extra!],
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _XpTable extends StatelessWidget {
-  const _XpTable();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundPrimary.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          _XpRow(label: 'Fácil',   normal: 10, bonus: 15,  color: AppTheme.successState),
-          const SizedBox(height: 4),
-          _XpRow(label: 'Médio',   normal: 20, bonus: 30,  color: AppTheme.warningState),
-          const SizedBox(height: 4),
-          _XpRow(label: 'Difícil', normal: 35, bonus: 53,  color: AppTheme.errorState),
-        ],
-      ),
-    );
-  }
-}
-
-class _XpRow extends StatelessWidget {
-  final String label;
-  final int normal;
-  final int bonus;
-  final Color color;
-
-  const _XpRow({required this.label, required this.normal, required this.bonus, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 42,
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w600)),
-        ),
-        const SizedBox(width: 8),
-        Text('$normal XP', style: const TextStyle(color: AppTheme.textSecondary, fontSize: 11)),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 6),
-          child: Icon(Icons.arrow_forward_rounded, size: 10, color: AppTheme.textSecondary),
-        ),
-        Text('$bonus XP', style: const TextStyle(color: Color(0xFFFB923C), fontSize: 11, fontWeight: FontWeight.w700)),
-        const SizedBox(width: 4),
-        const Text('com bónus', style: TextStyle(color: AppTheme.textSecondary, fontSize: 10)),
-      ],
     );
   }
 }
@@ -1194,13 +896,13 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
                         style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
                       ),
                       const Spacer(),
-                      _XpBadge(difficulty: _ex.difficulty, bonus: !_localStreakMet),
+                      XpBadge(difficulty: _ex.difficulty, bonus: !_localStreakMet),
                       const SizedBox(width: 6),
                       _DiffBadge(_ex.difficulty),
                     ],
                   ),
                   const SizedBox(height: 10),
-                  _XpTableInline(bonus: !_localStreakMet),
+                  XpTableInline(bonus: !_localStreakMet),
                   const SizedBox(height: 12),
                   Text(
                     _ex.question,
@@ -1442,118 +1144,6 @@ class _ExerciseScreenState extends ConsumerState<ExerciseScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ─── Badges e tabela XP ──────────────────────────────────────────────────────
-class _XpBadge extends StatelessWidget {
-  final String difficulty;
-  final bool bonus;
-  const _XpBadge({required this.difficulty, required this.bonus});
-
-  @override
-  Widget build(BuildContext context) {
-    final (base, bonusXp) = switch (difficulty.toLowerCase()) {
-      'easy' => (10, 15),
-      'hard' => (35, 53),
-      _      => (20, 30),
-    };
-    final xp = bonus ? bonusXp : base;
-    final color = bonus ? const Color(0xFFFB923C) : AppTheme.textSecondary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: bonus ? 0.15 : 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (bonus) ...[
-            const Icon(Icons.local_fire_department_rounded, size: 10, color: Color(0xFFFB923C)),
-            const SizedBox(width: 2),
-          ],
-          Text(
-            '+$xp XP',
-            style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _XpTableInline extends StatelessWidget {
-  final bool bonus;
-  const _XpTableInline({required this.bonus});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceSecondary.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: bonus
-              ? const Color(0xFFFB923C).withValues(alpha: 0.25)
-              : Colors.grey.shade800,
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _XpChip(label: 'Fácil',   normal: 10, bonusXp: 15, bonusActive: bonus, color: AppTheme.successState),
-          _XpChip(label: 'Médio',   normal: 20, bonusXp: 30, bonusActive: bonus, color: AppTheme.warningState),
-          _XpChip(label: 'Difícil', normal: 35, bonusXp: 53, bonusActive: bonus, color: AppTheme.errorState),
-          if (bonus)
-            const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.local_fire_department_rounded, size: 11, color: Color(0xFFFB923C)),
-                SizedBox(width: 3),
-                Text('1.5×', style: TextStyle(color: Color(0xFFFB923C), fontSize: 10, fontWeight: FontWeight.w700)),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _XpChip extends StatelessWidget {
-  final String label;
-  final int normal;
-  final int bonusXp;
-  final bool bonusActive;
-  final Color color;
-  const _XpChip({required this.label, required this.normal, required this.bonusXp, required this.bonusActive, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final xp = bonusActive ? bonusXp : normal;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(label, style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w600)),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '$xp XP',
-          style: TextStyle(
-            color: bonusActive ? const Color(0xFFFB923C) : AppTheme.textSecondary,
-            fontSize: 11,
-            fontWeight: bonusActive ? FontWeight.w700 : FontWeight.w400,
-          ),
-        ),
-      ],
     );
   }
 }
