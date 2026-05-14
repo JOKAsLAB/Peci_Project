@@ -1,0 +1,15 @@
+.git
+aluno/
+website promocional/
+docs/
+scripts/
+logo/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+admin_docente/node_modules/
+admin_docente/dist/
+ai_engine/chroma_db/
+ai_engine/uploads/
+ai_engine/biblio/
+ai_engine/*.json

@@ -176,6 +176,15 @@ async def logout(response: Response):
 	return MessageResponse(message="Logout successful")
 
 
+@router.post("/refresh", response_model=AuthResponse)
+async def refresh(response: Response, current_user: Base_User = Depends(get_current_user)):
+	if current_user.Status != UserStatus.ACTIVE:
+		raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is not active")
+	token = create_access_token(subject=str(current_user.ID_User), role=current_user.Role)
+	_set_auth_cookie(response, token)
+	return AuthResponse(access_token=token, user=to_user_response(current_user))
+
+
 @router.post("/verify-email", response_model=MessageResponse)
 async def verify_email(payload: VerifyEmailRequest, db: AsyncSession = Depends(get_db)):
 	email_key = payload.email.lower()

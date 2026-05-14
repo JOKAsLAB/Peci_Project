@@ -7,7 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.database import engine, settings
+from app.database import Base, engine, settings
+import app.models  # noqa: F401 — necessário para registar os models antes do create_all
 from app.routers import admin, ai_tutor, auth, professors, students, learning_paths, learning_paths_student
 from app.routers import quiz_professor, quiz_student, quiz_ws
 from app.quiz_manager import quiz_manager
@@ -17,6 +18,34 @@ AI_ENGINE_PATH = os.path.abspath(
 )
 if AI_ENGINE_PATH not in sys.path:
     sys.path.insert(0, AI_ENGINE_PATH)
+
+
+async def _seed_admin() -> None:
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy import select
+    from app.models import Admin, Base_User
+    from app.models.enums import UserRole, UserStatus
+    from app.security import hash_password
+    from app.database import AsyncSessionLocal
+
+    admin_email = os.getenv("ADMIN_EMAIL", "admin@peci.pt")
+    admin_password = os.getenv("ADMIN_PASSWORD", "admin1234")
+
+    async with AsyncSessionLocal() as session:
+        existing = await session.scalar(select(Base_User).where(Base_User.Role == UserRole.ADMIN))
+        if existing:
+            return
+        session.add(Admin(
+            Name="Administrador",
+            Email=admin_email,
+            Password_Hash=hash_password(admin_password),
+            Role=UserRole.ADMIN,
+            Status=UserStatus.ACTIVE,
+            Privilege_Level=3,
+            Contact=admin_email,
+        ))
+        await session.commit()
+        print(f"[SEED] Admin criado: {admin_email} / {admin_password}")
 
 
 def parse_cors_origins(raw_value: str) -> list[str]:
@@ -48,6 +77,11 @@ async def lifespan(app: FastAPI):
                     f"Falha crítica: impossível ligar à BD após {max_retries} tentativas."
                 ) from e
             await asyncio.sleep(base_delay ** attempt)
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    await _seed_admin()
 
     try:
         from QuestionGeneratorTeacher import QuestionGeneratorTeacher  # type: ignore
