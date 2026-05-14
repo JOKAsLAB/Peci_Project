@@ -34,6 +34,13 @@ class AuthRepository {
     });
     return response.data as Map<String, dynamic>;
   }
+
+  Future<void> verifyEmail(String email, String code) async {
+    await _dio.post('/auth/verify-email', data: {
+      'email': email,
+      'code': code,
+    });
+  }
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

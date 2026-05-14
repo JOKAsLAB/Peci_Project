@@ -22,12 +22,9 @@ class CoursesScreen extends ConsumerStatefulWidget {
 
 class _CoursesScreenState extends ConsumerState<CoursesScreen> {
   @override
-void initState() {
-  super.initState();
-  WidgetsBinding.instance.addPostFrameCallback(
-    (_) => OnboardingService.maybeShow(context, ref),
-  );
-}
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {

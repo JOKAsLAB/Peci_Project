@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -237,8 +237,6 @@ async def my_profile(
 	db: AsyncSession = Depends(get_db),
 	current_student: Base_User = Depends(require_roles("Student", "Professor", "Admin")),
 ):
-	# with_polymorphic: "*" means current_student is already a Student instance.
-	# But we do a direct query to guarantee fresh data from the current session.
 	from sqlalchemy import text as raw_text
 	row = await db.execute(
 		raw_text(
@@ -251,13 +249,21 @@ async def my_profile(
 	if not data:
 		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student profile not found")
 
+	# Streak only counts if the student exercised today or yesterday
+	yesterday = date.today() - timedelta(days=1)
+	has_recent = await db.scalar(
+		raw_text("SELECT 1 FROM streak WHERE id_student = :uid AND log_date >= :d"),
+		{"uid": current_student.ID_User, "d": yesterday},
+	)
+	live_streak = (data.streak_days or 0) if has_recent else 0
+
 	total_xp = data.total_xp or 0
 	return StudentProfileResponse(
 		id_student=current_student.ID_User,
 		name=current_student.Name,
 		current_level=_level_for_xp(total_xp),
 		total_xp=total_xp,
-		streak_days=data.streak_days or 0,
+		streak_days=live_streak,
 		last_access=data.last_access,
 		xp_for_next_level=XP_PER_LEVEL,
 		xp_in_current_level=_xp_in_level(total_xp),

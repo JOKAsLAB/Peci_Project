@@ -68,6 +68,17 @@
         </nav>
       </div>
 
+      <!-- Help button (aluno only) -->
+      <div v-if="activeRole === 'Student'" class="px-6 pb-3 shrink-0">
+        <button
+          @click="showHelp = true; sidebarOpen = false"
+          class="w-full flex items-center gap-3 px-3 py-2.5 rounded-btn border border-white/10 text-text-secondary hover:border-brand/50 hover:text-brand transition-all text-sm"
+        >
+          <i class="pi pi-question-circle text-base"></i>
+          <span>Como funciona?</span>
+        </button>
+      </div>
+
       <!-- User footer -->
       <div class="p-6 border-t border-white/5 shrink-0">
         <div class="flex items-center gap-3">
@@ -134,6 +145,8 @@
           </transition>
         </router-view>
       </section>
+
+      <HelpModal v-model="showHelp" />
     </main>
   </div>
 </template>
@@ -144,6 +157,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './stores/authStore';
 import { setupAuthInterceptor } from './services/http';
+import HelpModal from './components/HelpModal.vue';
 
 interface NavItem {
   to: string;
@@ -183,6 +197,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const authChecking = ref(true);
 const sidebarOpen = ref(false);
+const showHelp = ref(false);
 
 const isAuthenticated = computed(() => authStore.isAuthenticated);
 const activeRole = computed(() => authStore.activeRole || 'Professor');
