@@ -188,7 +188,7 @@
 
     <!-- Modal Criar / Editar -->
     <Teleport to="body">
-      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center">
+      <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showModal = false"></div>
         <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-lg p-8 shadow-2xl z-10">
           <div class="flex justify-between items-center mb-6">
@@ -209,7 +209,7 @@
                 class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm"
               />
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Papel</label>
                 <select

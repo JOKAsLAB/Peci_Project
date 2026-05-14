@@ -102,16 +102,25 @@
             </button>
           </div>
 
-          <div v-if="selectedPath" class="grid grid-cols-12 gap-6">
+          <div v-if="selectedPath" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <!-- Coluna esquerda: checkpoints -->
-            <div class="col-span-5">
+            <div class="lg:col-span-5">
               <div class="bg-surface rounded-card border border-white/5 p-6">
-                <div class="mb-6">
-                  <h4 class="text-lg font-bold">{{ selectedPath.name }}</h4>
-                  <p class="text-text-secondary text-xs mt-0.5">
-                    {{ selectedPath.total_topics }} tópicos ·
-                    {{ selectedPath.total_exercises }} exercícios
-                  </p>
+                <div class="mb-6 flex items-start justify-between gap-2">
+                  <div>
+                    <h4 class="text-lg font-bold">{{ selectedPath.name }}</h4>
+                    <p class="text-text-secondary text-xs mt-0.5">
+                      {{ selectedPath.total_topics }} tópicos ·
+                      {{ selectedPath.total_exercises }} exercícios
+                    </p>
+                  </div>
+                  <button
+                    @click="openAddTopicModal"
+                    class="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-brand/10 text-brand rounded-btn hover:bg-brand/20 transition-all"
+                  >
+                    <i class="pi pi-plus text-[10px]"></i>
+                    Novo Tópico
+                  </button>
                 </div>
 
                 <div class="relative">
@@ -136,7 +145,7 @@
                         cancelEdit();
                       "
                       class="relative cursor-pointer group"
-                      :class="{ 'ml-12': idx % 2 !== 0 }"
+                      :class="{ 'lg:ml-12': idx % 2 !== 0 }"
                     >
                       <div
                         class="flex items-center gap-4 p-4 rounded-card border transition-all"
@@ -171,6 +180,24 @@
                           class="pi pi-exclamation-triangle text-warning text-xs"
                           title="Sem exercícios publicados"
                         ></i>
+                        <div class="flex items-center gap-1">
+                          <button
+                            @click.stop="openEditTopicModal(checkpoint)"
+                            class="p-1 rounded text-text-secondary/50 hover:text-brand hover:bg-brand/10 transition-all"
+                            title="Editar tópico"
+                          >
+                            <i class="pi pi-pencil text-[10px]"></i>
+                          </button>
+                          <button
+                            v-if="checkpoint.exercises.length === 0"
+                            @click.stop="confirmDeleteTopic(checkpoint.topic_name)"
+                            :disabled="deletingTopic === checkpoint.topic_name"
+                            class="p-1 rounded text-error/50 hover:text-error hover:bg-error/10 transition-all"
+                            title="Apagar tópico"
+                          >
+                            <i :class="deletingTopic === checkpoint.topic_name ? 'pi pi-spinner pi-spin' : 'pi pi-trash'" class="text-[10px]"></i>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -179,16 +206,19 @@
             </div>
 
             <!-- Coluna direita: exercícios -->
-            <div class="col-span-7 space-y-4">
+            <div class="lg:col-span-7 space-y-4">
               <div
                 v-if="!selectedCheckpoint"
                 class="bg-surface rounded-card border border-white/5 border-dashed p-12 text-center"
               >
                 <i
-                  class="pi pi-arrow-left text-4xl text-brand/30 mb-4 block"
+                  class="pi pi-arrow-left text-4xl text-brand/30 mb-4 block lg:block hidden"
+                ></i>
+                <i
+                  class="pi pi-arrow-up text-4xl text-brand/30 mb-4 block lg:hidden"
                 ></i>
                 <p class="text-text-secondary">
-                  Selecione um tópico à esquerda para ver os exercícios.
+                  Selecione um tópico <span class="lg:hidden">acima</span><span class="hidden lg:inline">à esquerda</span> para ver os exercícios.
                 </p>
               </div>
 
@@ -548,11 +578,123 @@
       </div>
     </template>
 
+    <!-- ─── Modal: Novo Tópico ───────────────────────────────────────────── -->
+    <Teleport to="body">
+      <div v-if="showAddTopicModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeAddTopicModal"></div>
+        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-md p-8 shadow-2xl z-10">
+          <div class="flex items-center justify-between mb-6">
+            <h4 class="text-xl font-bold">Novo Tópico</h4>
+            <button @click="closeAddTopicModal" class="text-text-secondary hover:text-white">
+              <i class="pi pi-times"></i>
+            </button>
+          </div>
+          <div class="space-y-4 mb-6">
+            <div>
+              <label class="block text-xs font-bold text-text-secondary mb-1.5">Nome do Tópico</label>
+              <input
+                v-model="newTopicName"
+                @keyup.enter="submitAddTopic"
+                class="w-full bg-background border border-white/10 rounded-btn px-3 py-2 text-sm text-white placeholder-text-secondary focus:outline-none focus:border-brand/50"
+                placeholder="Ex: Álgebra de Boole"
+                autofocus
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-text-secondary mb-1.5">
+                Posição na sequência
+                <span class="font-normal opacity-60">(1 = primeiro)</span>
+              </label>
+              <input
+                v-model.number="newTopicOrder"
+                type="number"
+                :min="1"
+                :max="(selectedPath?.checkpoints?.length ?? 0) + 1"
+                class="w-full bg-background border border-white/10 rounded-btn px-3 py-2 text-sm text-white focus:outline-none focus:border-brand/50"
+              />
+              <p class="text-text-secondary text-xs mt-1">
+                Existem {{ selectedPath?.checkpoints?.length ?? 0 }} tópicos. Posição sugerida: {{ (selectedPath?.checkpoints?.length ?? 0) + 1 }}.
+              </p>
+            </div>
+            <p v-if="addTopicError" class="text-error text-xs">{{ addTopicError }}</p>
+          </div>
+          <div class="flex justify-end gap-3">
+            <button @click="closeAddTopicModal" class="px-4 py-2 text-sm font-bold text-text-secondary border border-white/10 rounded-btn hover:text-white transition-all">
+              Cancelar
+            </button>
+            <button
+              @click="submitAddTopic"
+              :disabled="!newTopicName.trim() || addingTopic"
+              class="inline-flex items-center gap-2 px-5 py-2 text-sm font-bold bg-brand text-white rounded-btn hover:bg-brand/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <i :class="addingTopic ? 'pi pi-spinner pi-spin' : 'pi pi-check'" class="text-xs"></i>
+              {{ addingTopic ? 'A criar...' : 'Criar Tópico' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- ─── Modal: Editar Tópico ──────────────────────────────────────────── -->
+    <Teleport to="body">
+      <div v-if="showEditTopicModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeEditTopicModal"></div>
+        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-md p-8 shadow-2xl z-10">
+          <div class="flex items-center justify-between mb-6">
+            <h4 class="text-xl font-bold">Editar Tópico</h4>
+            <button @click="closeEditTopicModal" class="text-text-secondary hover:text-white">
+              <i class="pi pi-times"></i>
+            </button>
+          </div>
+          <div class="space-y-4 mb-6">
+            <div>
+              <label class="block text-xs font-bold text-text-secondary mb-1.5">Nome do Tópico</label>
+              <input
+                v-model="editTopicName"
+                @keyup.enter="submitEditTopic"
+                class="w-full bg-background border border-white/10 rounded-btn px-3 py-2 text-sm text-white placeholder-text-secondary focus:outline-none focus:border-brand/50"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-text-secondary mb-1.5">
+                Posição na sequência
+                <span class="font-normal opacity-60">(1 = primeiro)</span>
+              </label>
+              <input
+                v-model.number="editTopicOrder"
+                type="number"
+                :min="1"
+                :max="selectedPath?.checkpoints?.length ?? 1"
+                class="w-full bg-background border border-white/10 rounded-btn px-3 py-2 text-sm text-white focus:outline-none focus:border-brand/50"
+              />
+              <p class="text-text-secondary text-xs mt-1">
+                Total de tópicos: {{ selectedPath?.checkpoints?.length ?? 0 }}.
+              </p>
+            </div>
+            <p v-if="editTopicError" class="text-error text-xs">{{ editTopicError }}</p>
+          </div>
+          <div class="flex justify-end gap-3">
+            <button @click="closeEditTopicModal" class="px-4 py-2 text-sm font-bold text-text-secondary border border-white/10 rounded-btn hover:text-white transition-all">
+              Cancelar
+            </button>
+            <button
+              @click="submitEditTopic"
+              :disabled="!editTopicName.trim() || editingTopicLoading"
+              class="inline-flex items-center gap-2 px-5 py-2 text-sm font-bold bg-brand text-white rounded-btn hover:bg-brand/80 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <i :class="editingTopicLoading ? 'pi pi-spinner pi-spin' : 'pi pi-check'" class="text-xs"></i>
+              {{ editingTopicLoading ? 'A guardar...' : 'Guardar' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
     <!-- ─── Modal: Adicionar Exercício ─────────────────────────────────────── -->
     <Teleport to="body">
       <div
         v-if="showAddModal"
-        class="fixed inset-0 z-50 flex items-center justify-center"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
         <div
           class="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -1126,6 +1268,94 @@ async function createAndAddToPath() {
     closeAddModal();
   } finally {
     addingExercise.value = false;
+  }
+}
+
+// ─── Gestão de Tópicos ───────────────────────────────────────────────────────
+
+const showAddTopicModal = ref(false);
+const newTopicName = ref('');
+const newTopicOrder = ref(1);
+const addingTopic = ref(false);
+const addTopicError = ref('');
+const deletingTopic = ref(null);
+
+// Estado do modal de edição
+const showEditTopicModal = ref(false);
+const editingTopicOriginalName = ref('');
+const editTopicName = ref('');
+const editTopicOrder = ref(1);
+const editingTopicLoading = ref(false);
+const editTopicError = ref('');
+
+function openAddTopicModal() {
+  newTopicName.value = '';
+  newTopicOrder.value = (selectedPath.value?.checkpoints?.length ?? 0) + 1;
+  addTopicError.value = '';
+  showAddTopicModal.value = true;
+}
+
+function closeAddTopicModal() {
+  showAddTopicModal.value = false;
+}
+
+async function submitAddTopic() {
+  if (!newTopicName.value.trim() || addingTopic.value) return;
+  addingTopic.value = true;
+  addTopicError.value = '';
+  try {
+    await pathStore.addTopic(selectedPathId.value, newTopicName.value.trim(), newTopicOrder.value);
+    closeAddTopicModal();
+  } catch (e) {
+    addTopicError.value = e?.response?.data?.detail || 'Erro ao criar tópico.';
+  } finally {
+    addingTopic.value = false;
+  }
+}
+
+function openEditTopicModal(checkpoint) {
+  editingTopicOriginalName.value = checkpoint.topic_name;
+  editTopicName.value = checkpoint.topic_name;
+  editTopicOrder.value = checkpoint.topic_order;
+  editTopicError.value = '';
+  showEditTopicModal.value = true;
+}
+
+function closeEditTopicModal() {
+  showEditTopicModal.value = false;
+}
+
+async function submitEditTopic() {
+  if (!editTopicName.value.trim() || editingTopicLoading.value) return;
+  editingTopicLoading.value = true;
+  editTopicError.value = '';
+  try {
+    await pathStore.updateTopic(selectedPathId.value, editingTopicOriginalName.value, {
+      name: editTopicName.value.trim(),
+      order: editTopicOrder.value,
+    });
+    // Se o checkpoint selecionado era o que editámos, atualizar o nome
+    if (selectedCheckpointName.value === editingTopicOriginalName.value) {
+      selectedCheckpointName.value = editTopicName.value.trim();
+    }
+    closeEditTopicModal();
+  } catch (e) {
+    editTopicError.value = e?.response?.data?.detail || 'Erro ao editar tópico.';
+  } finally {
+    editingTopicLoading.value = false;
+  }
+}
+
+async function confirmDeleteTopic(topicName) {
+  if (!confirm(`Apagar o tópico "${topicName}"? Esta ação não pode ser desfeita.`)) return;
+  deletingTopic.value = topicName;
+  try {
+    await pathStore.deleteTopic(selectedPathId.value, topicName);
+    if (selectedCheckpointName.value === topicName) selectedCheckpointName.value = null;
+  } catch (e) {
+    alert(e?.response?.data?.detail || 'Erro ao apagar tópico.');
+  } finally {
+    deletingTopic.value = null;
   }
 }
 

@@ -134,6 +134,13 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       if (loginData.user?.role !== options.role) {
+        const actualRole = loginData.user?.role;
+        if (actualRole === 'Student') {
+          throw new Error('Esta conta é de aluno. Por favor utilize a aplicação móvel.');
+        }
+        if (options.role === 'Student') {
+          throw new Error('Esta conta é de docente. Por favor aceda ao portal de docentes.');
+        }
         throw new Error(
           `Esta conta não tem permissões de ${options.role === 'Admin' ? 'administrador' : 'docente'}.`,
         );
@@ -260,6 +267,22 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function forgotPassword(email: string): Promise<void> {
+    try {
+      await http.post('/api/v1/auth/forgot-password', { email });
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Erro ao solicitar recuperação de password.'));
+    }
+  }
+
+  async function resetPassword(email: string, code: string, newPassword: string): Promise<void> {
+    try {
+      await http.post('/api/v1/auth/reset-password', { email, code, new_password: newPassword });
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Código inválido ou expirado.'));
+    }
+  }
+
   async function logout(options: { callApi?: boolean } = {}): Promise<void> {
     const callApi = options.callApi !== false;
     try {
@@ -288,6 +311,8 @@ export const useAuthStore = defineStore('auth', () => {
     registerStudent,
     registerProfessor,
     verifyStudentEmail,
+    forgotPassword,
+    resetPassword,
     loadProfessorCourseUnits,
     logout,
   };

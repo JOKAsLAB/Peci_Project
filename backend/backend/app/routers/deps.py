@@ -19,7 +19,7 @@ async def get_current_user(
 ) -> Base_User:
     credentials_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Não foi possível validar as credenciais",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
@@ -45,7 +45,7 @@ async def get_current_user(
         raise credentials_error
 
     if user.Status != "Active":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User is not active")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Conta desativada")
 
     return user
 
@@ -53,7 +53,7 @@ async def get_current_user(
 def require_roles(*roles: str):
     async def role_checker(current_user: Base_User = Depends(get_current_user)) -> Base_User:
         if current_user.Role not in roles:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permissões insuficientes")
         return current_user
 
     return role_checker

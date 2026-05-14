@@ -13,13 +13,6 @@ from IAEduAPI import IAEduAPI
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class QuestionGeneratorTeacher:
-    TOPICOS_UC = {
-        40332: ["Introdução aos sistemas digitais", "Representação e codificação de informação", "Álgebra de Boole", "Lógica combinatória elementar", "Blocos combinatórios", "Circuitos aritméticos", "Sistemas sequenciais", "Estratégias de análise de circuitos sequenciais", "Blocos sequenciais fundamentais", "Síntese de máquinas de estado"],
-        40333: ["Introdução às FPGAs, ferramentas e kits de desenvolvimento", "Modelação em VHDL: Componentes combinatórios e aritméticos", "Modelação em VHDL: Circuitos sequenciais, registos e memórias", "Máquinas de Estados Finitos (FSM) em VHDL", "Testbenches e estratégias de depuração de circuitos", "Precauções de projeto: Reset, sincronização e restrições temporais"],
-        42545: ["Organização funcional e programação em assembly", "Tradução de linguagens de alto nível e assemblagem", "Aritmética de vírgula fixa e flutuante", "Estrutura interna do processador e etapas de execução", "Arquitecturas de processadores com pipeline"],
-        42548: ["Organização básica do sistema de entradas/saídas", "Dispositivos periféricos", "Organização de barramentos de dados", "Interfaces e barramentos paralelos e série", "Software para gestão de dispositivos de E/S", "Sistema de memória e análise de memória cache"],
-        42454: ["Clubes do Ronaldo","Vida do Ronaldo", "Idade do Ronaldo" ]
-    }
     DEFAULT_DB_PATH = os.path.join(_BASE_DIR, "chroma_db")
 
     def __init__(self, db_path: str = DEFAULT_DB_PATH, device="cuda", embeddings=None):
@@ -81,14 +74,13 @@ class QuestionGeneratorTeacher:
                 attempt += 1
         return raw
 
-    def _get_context_from_book(self, ficheiro_id: str, topic: str, k: int = 15):
+    def _get_context_from_book(self, ficheiro_id: str, topic: str, k: int = 15, topics_override: list = None):
         # 1. Obter metadados do livro (ID da UC)
         print(f"🔍 Procurando ficheiro: '{ficheiro_id}' em ChromaDB...")
         try:
             sample = self.db.get(where={"ficheiro_id": ficheiro_id}, limit=1)
             if not sample["metadatas"] or len(sample["metadatas"]) == 0:
                 print(f"⚠️ Ficheiro '{ficheiro_id}' não encontrado com 'ficheiro_id'. A tentar com outras chaves...")
-                # Fallback: tentar obter todas as coleções
                 all_items = self.db.get(limit=5)
                 if all_items["metadatas"]:
                     print(f"📋 Primeiros metadados em ChromaDB: {all_items['metadatas'][0]}")
@@ -96,15 +88,16 @@ class QuestionGeneratorTeacher:
         except Exception as e:
             print(f"❌ Erro ao obter metadados: {str(e)}")
             raise
-        
+
         metadata = sample["metadatas"][0]
         id_uc = metadata.get("uc_id") or metadata.get("id_uc")
         print(f"✅ Ficheiro encontrado com UC_ID: {id_uc}")
-        
-        topicos_permitidos = self.TOPICOS_UC.get(int(id_uc) if id_uc else 0, [])
-        if not topicos_permitidos:
-            print(f"⚠️ UC {id_uc} não tem tópicos definidos")
+
+        if not topics_override:
+            print(f"❌ Nenhum tópico fornecido para UC {id_uc}. Os tópicos devem ser definidos na base de dados.")
             return None, None, None, None
+
+        topicos_permitidos = topics_override
             
         topicos_str = "\n".join(f"- {t}" for t in topicos_permitidos)
 
@@ -260,11 +253,14 @@ class QuestionGeneratorTeacher:
         print(f"📊 Total de perguntas válidas: {len(perguntas)}/{len(lista_json)}")
         return perguntas
 
-    def generate_questions_by_topic(self, ficheiro_id: str, topic: str, n_perguntas: int, difficulty: str = "variada", question_type: str = "Escolha Múltipla"):
+    def generate_questions_by_topic(self, ficheiro_id: str, topic: str, n_perguntas: int, difficulty: str = "variada", question_type: str = "Escolha Múltipla", topics_override: list = None):
+        if not topics_override:
+            print("❌ topics_override é obrigatório. Define os tópicos da UC na base de dados.")
+            return []
 
         try:
             # Obter contexto relevante do livro
-            contexto, topicos_permitidos, topicos_str, id_uc = self._get_context_from_book(ficheiro_id, topic)
+            contexto, topicos_permitidos, topicos_str, id_uc = self._get_context_from_book(ficheiro_id, topic, topics_override=topics_override)
             
             if not contexto:
                 print(f"❌ Não foi possível encontrar contexto relevante para '{topic}' em '{ficheiro_id}'.")

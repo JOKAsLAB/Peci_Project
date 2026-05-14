@@ -281,10 +281,24 @@
                 </div>
 
                 <div class="flex items-center gap-2 mb-3">
-                  <span
-                    class="bg-brand/10 text-brand text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-chip"
-                    >{{ ex.topic }}</span
+                  <select
+                    v-model="ex.topic"
+                    class="bg-brand/10 text-brand text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-chip border-0 outline-none cursor-pointer hover:bg-brand/20 transition-colors"
+                    title="Alterar tópico"
                   >
+                    <option v-if="!ex.topic" value="">— tópico —</option>
+                    <option v-for="t in ucTopics" :key="t.name" :value="t.name">
+                      {{ t.name }}
+                    </option>
+                    <option
+                      v-if="
+                        ex.topic && !ucTopics.some((t) => t.name === ex.topic)
+                      "
+                      :value="ex.topic"
+                    >
+                      {{ ex.topic }}
+                    </option>
+                  </select>
                   <span
                     class="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-chip"
                     :class="
@@ -391,45 +405,6 @@ onMounted(async () => {
   await questionLabStore.loadDocuments();
 });
 
-const TOPICS_UC = {
-  40332: [
-    'Introdução aos sistemas digitais',
-    'Representação e codificação de informação',
-    'Álgebra de Boole',
-    'Lógica combinatória elementar',
-    'Blocos combinatórios',
-    'Circuitos aritméticos',
-    'Sistemas sequenciais',
-    'Estratégias de análise de circuitos sequenciais',
-    'Blocos sequenciais fundamentais',
-    'Síntese de máquinas de estado',
-  ],
-  40333: [
-    'Introdução às FPGAs, ferramentas e kits de desenvolvimento',
-    'Modelação em VHDL: Componentes combinatórios e aritméticos',
-    'Modelação em VHDL: Circuitos sequenciais, registos e memórias',
-    'Máquinas de Estados Finitos (FSM) em VHDL',
-    'Testbenches e estratégias de depuração de circuitos',
-    'Precauções de projeto: Reset, sincronização e restrições temporais',
-  ],
-  42545: [
-    'Organização funcional e programação em assembly',
-    'Tradução de linguagens de alto nível e assemblagem',
-    'Aritmética de vírgula fixa e flutuante',
-    'Estrutura interna do processador e etapas de execução',
-    'Arquitecturas de processadores com pipeline',
-  ],
-  42548: [
-    'Organização básica do sistema de entradas/saídas',
-    'Dispositivos periféricos',
-    'Organização de barramentos de dados',
-    'Interfaces e barramentos paralelos e série',
-    'Software para gestão de dispositivos de E/S',
-    'Sistema de memória e análise de memória cache',
-  ],
-  42454: ['Clubes do Ronaldo', 'Vida do Ronaldo', 'Idade do Ronaldo'],
-};
-
 const form = reactive({
   discipline: null,
   filename: '',
@@ -443,6 +418,22 @@ const form = reactive({
 const loading = ref(false);
 const generateError = ref(null);
 const generatedExercises = ref([]);
+const ucTopics = ref([]);
+
+async function loadTopics() {
+  if (!form.discipline) {
+    ucTopics.value = [];
+    return;
+  }
+  try {
+    const { data } = await http.get(
+      `/api/v1/professors/course-units/${form.discipline}/topics`,
+    );
+    ucTopics.value = Array.isArray(data) ? data : [];
+  } catch {
+    ucTopics.value = [];
+  }
+}
 
 const questionTypes = [
   { value: 'Escolha Múltipla', label: 'Escolha Múltipla' },
@@ -465,15 +456,11 @@ watch(
   (units) => {
     if (units?.length && form.discipline === null) {
       form.discipline = units[0].id;
+      loadTopics();
     }
   },
   { immediate: true },
 );
-
-const topicsForDiscipline = computed(() => {
-  if (!form.discipline) return [];
-  return TOPICS_UC[form.discipline] || [];
-});
 
 const filesForDiscipline = computed(() => {
   if (!form.discipline) return [];
@@ -489,6 +476,7 @@ watch(
     form.filename = '';
     form.topic = '';
     generateError.value = null;
+    loadTopics();
   },
 );
 

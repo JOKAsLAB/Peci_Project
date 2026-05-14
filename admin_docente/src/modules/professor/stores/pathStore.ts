@@ -35,6 +35,21 @@ export const usePathStore = defineStore('paths', () => {
     }
   }
 
+  async function addTopic(idUc: number, name: string, order?: number) {
+    await http.post(`/api/v1/professors/course-units/${idUc}/topics`, { name, order });
+    await loadPaths(true);
+  }
+
+  async function updateTopic(idUc: number, topicName: string, payload: { name?: string; order?: number }) {
+    await http.patch(`/api/v1/professors/course-units/${idUc}/topics/${encodeURIComponent(topicName)}`, payload);
+    await loadPaths(true);
+  }
+
+  async function deleteTopic(idUc: number, topicName: string) {
+    await http.delete(`/api/v1/professors/course-units/${idUc}/topics/${encodeURIComponent(topicName)}`);
+    await loadPaths(true);
+  }
+
   return {
     paths,
     isLoading,
@@ -43,5 +58,8 @@ export const usePathStore = defineStore('paths', () => {
     totalModules,
     totalExercisesInPaths,
     loadPaths,
+    addTopic,
+    updateTopic,
+    deleteTopic,
   };
 });

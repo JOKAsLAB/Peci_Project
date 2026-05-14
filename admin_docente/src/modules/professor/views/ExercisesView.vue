@@ -99,8 +99,8 @@
           >
             Filtros
           </h4>
-          <div class="flex flex-wrap items-center gap-4">
-            <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="flex items-center gap-2 flex-wrap">
               <button
                 v-for="f in ['Todos', 'Publicados', 'Rascunhos']"
                 :key="f"
@@ -116,7 +116,7 @@
               </button>
             </div>
 
-            <div class="w-px h-8 bg-white/10"></div>
+            <div class="hidden sm:block w-px h-8 bg-white/10"></div>
 
             <div class="flex items-center gap-2">
               <span class="text-text-secondary text-xs font-bold uppercase"
@@ -143,7 +143,7 @@
               >
               <select
                 v-model="topicFilter"
-                class="bg-background border border-white/10 px-3 py-2 rounded-btn text-xs outline-none focus:border-brand min-w-[180px]"
+                class="bg-background border border-white/10 px-3 py-2 rounded-btn text-xs outline-none focus:border-brand w-full sm:min-w-[180px] sm:w-auto"
               >
                 <option value="">Todos</option>
                 <option v-for="t in availableTopics" :key="t" :value="t">
@@ -371,7 +371,7 @@
         <Teleport to="body">
           <div
             v-if="detailExercise"
-            class="fixed inset-0 z-50 flex items-center justify-center"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
             <div
               class="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -523,7 +523,7 @@
         <Teleport to="body">
           <div
             v-if="editExercise"
-            class="fixed inset-0 z-50 flex items-center justify-center"
+            class="fixed inset-0 z-50 flex items-center justify-center p-4"
           >
             <div
               class="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -565,7 +565,7 @@
                   ></textarea>
                 </div>
 
-                <div class="grid grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <label
                       class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2"

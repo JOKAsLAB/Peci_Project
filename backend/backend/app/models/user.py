@@ -134,9 +134,7 @@ class Admin(Base_User):
     Contact         = Column("contact", String(150),  nullable=True)
 
     __table_args__ = (
-        # IMPORTANTE: A string do CheckConstraint deve coincidir EXACTAMENTE
-        # com o nome da variável da coluna definida acima.
-        CheckConstraint('"Privilege_Level" BETWEEN 1 AND 3', name="check_privilege_level"),
+        CheckConstraint('privilege_level BETWEEN 1 AND 3', name="check_privilege_level"),
     )
 
     __mapper_args__ = {

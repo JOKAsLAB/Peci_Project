@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status, UploadFile, File
-from sqlalchemy import and_, select, delete, func as sa_func
+from sqlalchemy import and_, select, delete, update, func as sa_func
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
 import glob
@@ -148,13 +148,13 @@ async def create_exercise(
         )
     )
     if not has_access:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está associado a esta unidade curricular")
 
     topic_exists = await db.scalar(
         select(Topic).where(and_(Topic.ID_UC == payload.id_uc, Topic.Name == payload.topic_name))
     )
     if not topic_exists:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Topic not found for this course unit")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tópico não encontrado nesta unidade curricular")
 
     item = Exercise(
         ID_UC=payload.id_uc,
@@ -181,11 +181,11 @@ async def update_exercise(
     try:
         ex_uuid = UUID(exercise_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid UUID format")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Formato de ID inválido")
 
     exercise = await db.scalar(select(Exercise).where(Exercise.ID_Exercise == ex_uuid))
     if not exercise:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercício não encontrado")
 
     has_access = await db.scalar(
         select(Professor_UC).where(
@@ -196,7 +196,7 @@ async def update_exercise(
         )
     )
     if not has_access:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está associado a esta unidade curricular")
 
     if payload.published is not None:
         exercise.Published = payload.published
@@ -207,7 +207,7 @@ async def update_exercise(
             select(Topic).where(and_(Topic.ID_UC == exercise.ID_UC, Topic.Name == payload.topic_name))
         )
         if not topic_exists:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Topic not found for this course unit")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tópico não encontrado nesta unidade curricular")
         exercise.Topic_Name = payload.topic_name
     if payload.type is not None:
         exercise.Type = payload.type
@@ -280,11 +280,11 @@ async def dismiss_exercise_reports(
     try:
         ex_uuid = UUID(exercise_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid UUID format")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Formato de ID inválido")
 
     exercise = await db.scalar(select(Exercise).where(Exercise.ID_Exercise == ex_uuid))
     if not exercise:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercício não encontrado")
 
     has_access = await db.scalar(
         select(Professor_UC).where(
@@ -295,7 +295,7 @@ async def dismiss_exercise_reports(
         )
     )
     if not has_access:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está associado a esta unidade curricular")
 
     await db.execute(
         delete(Exercise_Report).where(Exercise_Report.ID_Exercise == ex_uuid)
@@ -312,11 +312,11 @@ async def delete_exercise(
     try:
         ex_uuid = UUID(exercise_id)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid exercise ID format")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Formato de ID de exercício inválido")
 
     exercise = await db.scalar(select(Exercise).where(Exercise.ID_Exercise == ex_uuid))
     if not exercise:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercício não encontrado")
 
     has_access = await db.scalar(
         select(Professor_UC).where(
@@ -327,7 +327,7 @@ async def delete_exercise(
         )
     )
     if not has_access:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está associado a esta unidade curricular")
 
     await db.execute(delete(Exercise).where(Exercise.ID_Exercise == ex_uuid))
     await db.commit()
@@ -372,7 +372,7 @@ async def create_material(
         )
     )
     if not has_access:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está associado a esta unidade curricular")
 
     item = Teaching_Material(
         ID_UC=payload.id_uc,
@@ -519,7 +519,7 @@ async def generate_questions(
         )
     )
     if not has_access:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está associado a esta unidade curricular")
 
     gerador = request.app.state.question_generator
     if gerador is None:
@@ -528,12 +528,22 @@ async def generate_questions(
     try:
         print(f"📊 A chamar gerador com:\n  - filename: {payload.filename}\n  - topic: {payload.topic}\n  - n_perguntas: {payload.n_perguntas}\n  - difficulty: {payload.difficulty}\n  - question_type: {payload.question_type}")
 
+        db_topics = (
+            await db.scalars(
+                select(Topic).where(Topic.ID_UC == payload.id_uc).order_by(Topic.N_Order.asc())
+            )
+        ).all()
+        topics_list = [t.Name for t in db_topics]
+        if not topics_list:
+            raise HTTPException(status_code=400, detail="A UC não tem tópicos definidos. Adiciona tópicos antes de gerar perguntas.")
+
         perguntas = gerador.generate_questions_by_topic(
             ficheiro_id=payload.filename,
             topic=payload.topic,
             n_perguntas=payload.n_perguntas,
             difficulty=payload.difficulty,
             question_type=payload.question_type,
+            topics_override=topics_list,
         )
 
         print(f"Gerador retornou {len(perguntas)} perguntas")
@@ -588,6 +598,201 @@ async def generate_questions(
         raise HTTPException(status_code=500, detail=f"Erro ao gerar perguntas: {str(e)}")
 
 
+# ─── Topic management ─────────────────────────────────────────────────────────
+
+@router.get("/course-units/{id_uc}/topics", response_model=list[dict])
+async def list_topics(
+    id_uc: int,
+    db: AsyncSession = Depends(get_db),
+    current_professor: Base_User = Depends(require_roles("Professor")),
+):
+    has_access = await db.scalar(
+        select(Professor_UC).where(
+            and_(Professor_UC.ID_Professor == current_professor.ID_User, Professor_UC.ID_UC == id_uc)
+        )
+    )
+    if not has_access:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está associado a esta unidade curricular")
+
+    topics = (
+        await db.scalars(select(Topic).where(Topic.ID_UC == id_uc).order_by(Topic.N_Order.asc()))
+    ).all()
+    return [{"name": t.Name, "order": t.N_Order} for t in topics]
+
+
+@router.post("/course-units/{id_uc}/topics", status_code=status.HTTP_201_CREATED, response_model=dict)
+async def create_topic(
+    id_uc: int,
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    current_professor: Base_User = Depends(require_roles("Professor")),
+):
+    has_access = await db.scalar(
+        select(Professor_UC).where(
+            and_(Professor_UC.ID_Professor == current_professor.ID_User, Professor_UC.ID_UC == id_uc)
+        )
+    )
+    if not has_access:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está associado a esta unidade curricular")
+
+    name = (payload.get("name") or "").strip()
+    if not name:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="O nome do tópico é obrigatório")
+
+    existing = await db.scalar(select(Topic).where(and_(Topic.ID_UC == id_uc, Topic.Name == name)))
+    if existing:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Este tópico já existe")
+
+    max_order = await db.scalar(
+        select(sa_func.max(Topic.N_Order)).where(Topic.ID_UC == id_uc)
+    )
+    next_order = (max_order or 0) + 1
+
+    requested_order = payload.get("order")
+    if requested_order is not None:
+        try:
+            requested_order = int(requested_order)
+            if requested_order < 1:
+                raise ValueError
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A ordem deve ser um número inteiro positivo")
+
+        # Deslocar tópicos existentes >= requested_order para abrir espaço
+        topics_to_shift = (await db.scalars(
+            select(Topic).where(
+                and_(Topic.ID_UC == id_uc, Topic.N_Order >= requested_order)
+            ).order_by(Topic.N_Order.desc())
+        )).all()
+        for t in topics_to_shift:
+            t.N_Order = t.N_Order + 1
+        await db.flush()
+        final_order = requested_order
+    else:
+        final_order = next_order
+
+    topic = Topic(ID_UC=id_uc, Name=name, N_Order=final_order)
+    db.add(topic)
+    await db.flush()
+    await db.commit()
+    return {"name": topic.Name, "order": topic.N_Order}
+
+
+@router.patch("/course-units/{id_uc}/topics/{topic_name:path}", response_model=dict)
+async def update_topic(
+    id_uc: int,
+    topic_name: str,
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    current_professor: Base_User = Depends(require_roles("Professor")),
+):
+    has_access = await db.scalar(
+        select(Professor_UC).where(
+            and_(Professor_UC.ID_Professor == current_professor.ID_User, Professor_UC.ID_UC == id_uc)
+        )
+    )
+    if not has_access:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está associado a esta unidade curricular")
+
+    topic = await db.scalar(select(Topic).where(and_(Topic.ID_UC == id_uc, Topic.Name == topic_name)))
+    if not topic:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tópico não encontrado")
+
+    new_name = (payload.get("name") or "").strip() or None
+    new_order = payload.get("order")
+
+    if new_order is not None:
+        try:
+            new_order = int(new_order)
+            if new_order < 1:
+                raise ValueError
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A ordem deve ser um número inteiro positivo")
+
+    # Renomear
+    if new_name and new_name != topic.Name:
+        dup = await db.scalar(select(Topic).where(and_(Topic.ID_UC == id_uc, Topic.Name == new_name)))
+        if dup:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Já existe um tópico com esse nome")
+
+        # Criar novo tópico com o novo nome (mesmo order temporário)
+        new_topic = Topic(ID_UC=id_uc, Name=new_name, N_Order=topic.N_Order)
+        db.add(new_topic)
+        await db.flush()
+
+        # Atualizar exercícios que referenciam o nome antigo
+        await db.execute(
+            update(Exercise)
+            .where(and_(Exercise.ID_UC == id_uc, Exercise.Topic_Name == topic_name))
+            .values(Topic_Name=new_name)
+        )
+        await db.flush()
+
+        # Apagar tópico antigo
+        await db.delete(topic)
+        await db.flush()
+        topic = new_topic
+
+    # Reordenar
+    if new_order is not None and new_order != topic.N_Order:
+        old_order = topic.N_Order
+        # Deslocar os outros tópicos para preencher o buraco e abrir espaço
+        if new_order > old_order:
+            others = (await db.scalars(
+                select(Topic).where(
+                    and_(Topic.ID_UC == id_uc, Topic.N_Order > old_order, Topic.N_Order <= new_order, Topic.Name != topic.Name)
+                ).order_by(Topic.N_Order)
+            )).all()
+            for t in others:
+                t.N_Order = t.N_Order - 1
+        else:
+            others = (await db.scalars(
+                select(Topic).where(
+                    and_(Topic.ID_UC == id_uc, Topic.N_Order >= new_order, Topic.N_Order < old_order, Topic.Name != topic.Name)
+                ).order_by(Topic.N_Order.desc())
+            )).all()
+            for t in others:
+                t.N_Order = t.N_Order + 1
+        await db.flush()
+        topic.N_Order = new_order
+
+    await db.commit()
+    return {"name": topic.Name, "order": topic.N_Order}
+
+
+@router.delete("/course-units/{id_uc}/topics/{topic_name:path}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_topic(
+    id_uc: int,
+    topic_name: str,
+    db: AsyncSession = Depends(get_db),
+    current_professor: Base_User = Depends(require_roles("Professor")),
+):
+    has_access = await db.scalar(
+        select(Professor_UC).where(
+            and_(Professor_UC.ID_Professor == current_professor.ID_User, Professor_UC.ID_UC == id_uc)
+        )
+    )
+    if not has_access:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está associado a esta unidade curricular")
+
+    topic = await db.scalar(select(Topic).where(and_(Topic.ID_UC == id_uc, Topic.Name == topic_name)))
+    if not topic:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tópico não encontrado")
+
+    has_exercises = await db.scalar(
+        select(Exercise).where(and_(Exercise.ID_UC == id_uc, Exercise.Topic_Name == topic_name))
+    )
+    if has_exercises:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Não é possível eliminar tópico com exercícios. Remova ou reatribua os exercícios primeiro."
+        )
+
+    await db.delete(topic)
+    await db.commit()
+
+
+# ─── End topic management ──────────────────────────────────────────────────────
+
 @router.post("/index-material", response_model=IndexMaterialResponse, status_code=status.HTTP_201_CREATED)
 async def index_material(
     request: Request,
@@ -605,7 +810,7 @@ async def index_material(
         )
     )
     if not has_access:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está associado a esta unidade curricular")
 
     allowed_types = [
         'application/pdf',

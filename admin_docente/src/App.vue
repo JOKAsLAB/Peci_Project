@@ -130,7 +130,8 @@
           </span>
           <button
             @click="handleLogout"
-            class="bg-surface border border-white/10 px-3 py-2 rounded-btn text-xs lg:text-sm hover:border-brand/50 transition-all"
+            title="Terminar Sessão"
+            class="bg-surface border border-white/10 px-3 py-2 rounded-btn text-xs lg:text-sm hover:border-brand/50 transition-all min-w-[36px]"
           >
             <i class="pi pi-sign-out lg:hidden"></i>
             <span class="hidden lg:inline">Terminar Sessão</span>

@@ -247,7 +247,7 @@ async def my_profile(
 	)
 	data = row.fetchone()
 	if not data:
-		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Student profile not found")
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Perfil de aluno não encontrado")
 
 	# Streak only counts if the student exercised today or yesterday
 	yesterday = date.today() - timedelta(days=1)
@@ -350,12 +350,12 @@ async def report_exercise(
     try:
         ex_uuid = uuid.UUID(exercise_id)
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid UUID format")
+        raise HTTPException(status_code=400, detail="Formato de ID inválido")
 	
     # Verifica se o exercício existe
     exercise = await db.scalar(select(Exercise).where(Exercise.ID_Exercise == ex_uuid))
     if not exercise:
-        raise HTTPException(status_code=404, detail="Exercise not found")
+        raise HTTPException(status_code=404, detail="Exercício não encontrado")
 
     # Tenta inserir — se já existir (mesmo aluno, mesmo exercício), ignora
     existing = await db.scalar(
@@ -367,7 +367,7 @@ async def report_exercise(
         )
     )
     if existing:
-        raise HTTPException(status_code=409, detail="Already reported")
+        raise HTTPException(status_code=409, detail="Exercício já reportado")
 
     report = Exercise_Report(
         ID_Exercise=ex_uuid,
@@ -387,7 +387,7 @@ async def create_progress(
 ):
 	exercise = await db.scalar(select(Exercise).where(Exercise.ID_Exercise == payload.id_exercise))
 	if not exercise:
-		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercise not found")
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Exercício não encontrado")
 
 	# Same enrollment pattern as list_exercises: only restrict if student has enrollments
 	if await _student_uc_table_exists(db):
@@ -404,7 +404,7 @@ async def create_progress(
 				)
 			)
 			if not has_access:
-				raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Exercise is not available for this student")
+				raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Este exercício não está disponível para este aluno")
 
 	item = Progress(
 		ID_Student=current_student.ID_User,
@@ -658,7 +658,7 @@ async def get_learning_path(
 	"""
 	course = await db.scalar(select(Course_Unit).where(Course_Unit.ID_UC == id_uc))
 	if not course:
-		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course unit not found")
+		raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade curricular não encontrada")
 
 	checkpoints = await _build_checkpoints(id_uc, db, student_id=current_student.ID_User)
 

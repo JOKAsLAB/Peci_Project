@@ -142,14 +142,14 @@
         <div
           v-for="doc in filteredDocuments"
           :key="doc.id_material"
-          class="bg-surface rounded-card border border-white/5 p-6 flex items-center gap-6 group hover:border-brand/30 transition-all"
+          class="bg-surface rounded-card border border-white/5 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 group hover:border-brand/30 transition-all"
           :class="{
             'opacity-50 pointer-events-none': questionLabStore.isLoading,
           }"
         >
           <!-- Ícone -->
           <div
-            class="w-14 h-14 rounded-btn flex items-center justify-center shrink-0"
+            class="w-10 h-10 sm:w-14 sm:h-14 rounded-btn flex items-center justify-center shrink-0"
             :class="
               doc.fileType === 'pdf'
                 ? 'bg-red-500/10'
@@ -231,7 +231,7 @@
           </div>
 
           <!-- Ações -->
-          <div class="flex gap-3 shrink-0 w-[52px] justify-end">
+          <div class="flex gap-3 shrink-0 justify-end sm:w-[52px] self-end sm:self-auto">
             <template v-if="doc.is_mine">
               <button
                 @click="handleReindex(doc.id_material)"
@@ -274,7 +274,7 @@
       <Teleport to="body">
         <div
           v-if="showUpload"
-          class="fixed inset-0 z-50 flex items-center justify-center"
+          class="fixed inset-0 z-50 flex items-center justify-center p-4"
         >
           <div
             class="absolute inset-0 bg-black/60 backdrop-blur-sm"

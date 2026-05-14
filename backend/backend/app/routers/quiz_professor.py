@@ -98,7 +98,7 @@ async def create_quiz(
         )
     )
     if not has_access:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not assigned to this course unit")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está associado a esta unidade curricular")
 
     # Validate all exercises belong to this UC and are published
     exercises = (
@@ -157,7 +157,7 @@ async def get_quiz(
     )
     quiz = await db.scalar(stmt)
     if not quiz:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz não encontrado")
     return _to_quiz_detail(quiz)
 
 
@@ -172,7 +172,7 @@ async def update_quiz(
         select(Quiz).where(and_(Quiz.ID_Quiz == quiz_id, Quiz.ID_Professor == current_professor.ID_User))
     )
     if not quiz:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz não encontrado")
 
     if payload.title is not None:
         quiz.Title = payload.title
@@ -222,7 +222,7 @@ async def delete_quiz(
         select(Quiz).where(and_(Quiz.ID_Quiz == quiz_id, Quiz.ID_Professor == current_professor.ID_User))
     )
     if not quiz:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz não encontrado")
     await db.execute(delete(Quiz).where(Quiz.ID_Quiz == quiz_id))
     await db.commit()
 
@@ -243,9 +243,9 @@ async def open_session(
         .where(and_(Quiz.ID_Quiz == quiz_id, Quiz.ID_Professor == current_professor.ID_User))
     )
     if not quiz:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Quiz não encontrado")
     if not quiz.quiz_exercises:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Quiz has no exercises")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="O quiz não tem exercícios")
 
     # Generate unique room code
     for _ in range(10):
@@ -258,7 +258,7 @@ async def open_session(
         if not exists:
             break
     else:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Could not generate a unique room code")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Não foi possível gerar um código de sala único")
 
     session = Quiz_Session(
         ID_Quiz=quiz_id,
@@ -295,9 +295,9 @@ async def get_session_state(
     )
     session = await db.scalar(stmt)
     if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sessão não encontrada")
     if session.quiz.ID_Professor != current_professor.ID_User:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your session")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Esta sessão não é sua")
 
     participants = [
         ParticipantInfo(
@@ -338,9 +338,9 @@ async def get_leaderboard(
     )
     session = await db.scalar(stmt)
     if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sessão não encontrada")
     if session.quiz.ID_Professor != current_professor.ID_User:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not your session")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Esta sessão não é sua")
 
     sorted_participants = sorted(session.participants, key=lambda p: p.Score, reverse=True)
     entries = [

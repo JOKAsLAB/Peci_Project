@@ -20,7 +20,7 @@ class ProfileScreen extends ConsumerWidget {
       error: (e, stack) => Scaffold(
         backgroundColor: AppTheme.backgroundPrimary,
         appBar: AppBar(
-          title: const Text('Perfil'),
+          title: const Text('Estatísticas'),
           backgroundColor: AppTheme.surfaceSecondary,
           elevation: 0,
         ),
@@ -69,7 +69,7 @@ class _ProfileView extends StatelessWidget {
       return Scaffold(
         backgroundColor: AppTheme.backgroundPrimary,
         appBar: AppBar(
-          title: const Text('Perfil', style: TextStyle(fontWeight: FontWeight.w600)),
+          title: const Text('Estatísticas', style: TextStyle(fontWeight: FontWeight.w600)),
           backgroundColor: AppTheme.surfaceSecondary,
           elevation: 0,
           actions: [

@@ -46,9 +46,9 @@ async def join_session(
     )
     session = await db.scalar(stmt)
     if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sala não encontrada")
     if session.Status == QuizSessionStatus.FINISHED:
-        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Session has already ended")
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="A sessão já terminou")
 
     # Idempotent: re-joining is fine
     existing = await db.scalar(
@@ -106,9 +106,9 @@ async def get_current_question(
     )
     session = await db.scalar(stmt)
     if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sessão não encontrada")
     if session.Status != QuizSessionStatus.ACTIVE:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Session is not active")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A sessão não está ativa")
 
     # Confirm participant
     participant = await db.scalar(
@@ -120,12 +120,12 @@ async def get_current_question(
         )
     )
     if not participant:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not in this session")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está nesta sessão")
 
     exercises = sorted(session.quiz.quiz_exercises, key=lambda qe: qe.Question_Order)
     idx = session.Current_Question_Index
     if idx >= len(exercises):
-        raise HTTPException(status_code=status.HTTP_410_GONE, detail="No more questions")
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Não há mais perguntas")
 
     ex = exercises[idx].exercise
     options = ex.Solution.get("options") if ex.Solution else None
@@ -159,9 +159,9 @@ async def submit_answer(
     )
     session = await db.scalar(stmt)
     if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sessão não encontrada")
     if session.Status != QuizSessionStatus.ACTIVE:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Session is not active")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="A sessão não está ativa")
 
     participant = await db.scalar(
         select(Quiz_Participant).where(
@@ -172,12 +172,12 @@ async def submit_answer(
         )
     )
     if not participant:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not in this session")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está nesta sessão")
 
     exercises = sorted(session.quiz.quiz_exercises, key=lambda qe: qe.Question_Order)
     idx = session.Current_Question_Index
     if idx >= len(exercises):
-        raise HTTPException(status_code=status.HTTP_410_GONE, detail="No more questions")
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail="Não há mais perguntas")
 
     ex = exercises[idx].exercise
 
@@ -192,7 +192,7 @@ async def submit_answer(
         )
     )
     if already_answered:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Already answered this question")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Esta pergunta já foi respondida")
 
     correct_answer = ex.Solution.get("correct")
     is_correct = str(payload.answer).strip() == str(correct_answer).strip()
@@ -256,7 +256,7 @@ async def get_leaderboard(
         )
     )
     if not participant:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not in this session")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Não está nesta sessão")
 
     stmt = (
         select(Quiz_Session)

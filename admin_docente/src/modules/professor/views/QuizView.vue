@@ -22,7 +22,7 @@
         <!-- Room Code -->
         <div class="bg-surface rounded-card border border-white/5 p-8 flex flex-col items-center justify-center gap-4">
           <p class="text-text-secondary text-sm uppercase tracking-widest">Código da Sala</p>
-          <p class="text-6xl font-black tracking-widest text-brand font-mono">{{ quizStore.activeSession.room_code }}</p>
+          <p class="text-4xl sm:text-6xl font-black tracking-widest text-brand font-mono">{{ quizStore.activeSession.room_code }}</p>
           <button @click="copyCode" class="flex items-center gap-2 text-sm text-text-secondary hover:text-white transition">
             <i class="pi pi-copy"></i> {{ copied ? 'Copiado!' : 'Copiar código' }}
           </button>
@@ -249,31 +249,31 @@
       <div class="bg-surface rounded-card border border-white/10 w-full max-w-4xl flex flex-col" style="max-height: 90vh">
 
         <!-- Header -->
-        <div class="flex items-center justify-between px-6 py-5 border-b border-white/8 shrink-0">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 sm:px-6 py-4 sm:py-5 border-b border-white/8 shrink-0 gap-2">
           <div>
             <h4 class="font-bold text-lg">Selecionar Exercícios</h4>
             <p class="text-text-secondary text-xs mt-0.5">{{ ucName(form.id_uc) }}</p>
           </div>
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2 sm:gap-4">
             <button v-if="visibleExercises.length > 0" @click="toggleSelectAll"
               class="text-sm text-text-secondary hover:text-brand transition font-medium">
-              {{ allVisibleSelected ? 'Desselecionar todos' : 'Selecionar todos' }}
+              {{ allVisibleSelected ? 'Desselecionar' : 'Selecionar todos' }}
             </button>
-            <span class="h-4 w-px bg-white/10"></span>
+            <span class="h-4 w-px bg-white/10 hidden sm:block"></span>
             <span class="text-brand text-sm font-semibold tabular-nums">
-              {{ form.exercise_ids.length }} selecionado{{ form.exercise_ids.length !== 1 ? 's' : '' }}
+              {{ form.exercise_ids.length }} sel.
             </span>
-            <button @click="showPicker = false" class="text-text-secondary hover:text-white transition ml-2">
+            <button @click="showPicker = false" class="text-text-secondary hover:text-white transition ml-1">
               <i class="pi pi-times text-xl"></i>
             </button>
           </div>
         </div>
 
         <!-- Dropdowns filter bar -->
-        <div class="px-6 py-3 border-b border-white/8 shrink-0 flex items-center gap-3 flex-wrap">
+        <div class="px-4 sm:px-6 py-3 border-b border-white/8 shrink-0 flex items-center gap-3 flex-wrap">
           <!-- Topic dropdown -->
           <select v-model="filterTopic"
-            class="bg-background border border-white/10 rounded-btn px-3 py-2 text-sm text-white focus:border-brand/50 outline-none transition min-w-[180px]">
+            class="bg-background border border-white/10 rounded-btn px-3 py-2 text-sm text-white focus:border-brand/50 outline-none transition w-full sm:w-auto sm:min-w-[180px]">
             <option :value="null">Todos os tópicos</option>
             <option v-for="t in availableTopics" :key="t" :value="t">{{ t }}</option>
           </select>
@@ -363,7 +363,7 @@
         </div>
 
         <!-- Footer -->
-        <div class="px-6 py-4 border-t border-white/8 shrink-0 flex items-center justify-between gap-3">
+        <div class="px-4 sm:px-6 py-4 border-t border-white/8 shrink-0 flex items-center justify-between gap-3">
           <button @click="form.exercise_ids = []"
             class="px-4 py-2 rounded-btn border border-white/10 hover:border-error/40 hover:text-error text-text-secondary transition text-sm">
             Limpar seleção

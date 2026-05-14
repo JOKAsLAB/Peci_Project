@@ -76,7 +76,7 @@ class _MainShellState extends State<MainShell> {
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
-            label: 'Perfil',
+            label: 'Estatísticas',
           ),
         ],
       ),

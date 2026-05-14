@@ -80,7 +80,7 @@ async def _sync_course_unit_professors(
         if missing_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid professor IDs: {', '.join(missing_ids)}",
+                detail=f"IDs de professor inválidos: {', '.join(missing_ids)}",
             )
 
     await db.execute(delete(Professor_UC).where(Professor_UC.ID_UC == id_uc))
@@ -155,10 +155,10 @@ async def update_user(
 ):
     user = await db.scalar(select(Base_User).where(Base_User.ID_User == user_id))
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilizador não encontrado")
 
     if payload.name is None and payload.status is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nothing to update")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhuma alteração a efetuar")
 
     if payload.name is not None:
         user.Name = payload.name
@@ -185,10 +185,10 @@ async def delete_user(
 ):
     user = await db.scalar(select(Base_User).where(Base_User.ID_User == user_id))
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilizador não encontrado")
 
     if user.ID_User == current_admin.ID_User:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot delete your own admin account")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Não é possível eliminar a sua própria conta de administrador")
 
     db.add(
         Admin_Audit_Log(
@@ -224,7 +224,7 @@ async def create_course_unit(
 ):
     exists = await db.scalar(select(Course_Unit).where(Course_Unit.ID_UC == payload.id_uc))
     if exists:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Course unit already exists")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Unidade curricular já existe")
 
     item = Course_Unit(
         ID_UC=payload.id_uc,
@@ -263,10 +263,10 @@ async def update_course_unit(
 ):
     item = await db.scalar(select(Course_Unit).where(Course_Unit.ID_UC == id_uc))
     if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course unit not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade curricular não encontrada")
 
     if payload.name is None and payload.semester is None and payload.curricular_year is None and payload.professor_ids is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nothing to update")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhuma alteração a efetuar")
 
     if payload.name is not None:
         item.Name = payload.name
@@ -303,7 +303,7 @@ async def delete_course_unit(
 ):
     item = await db.scalar(select(Course_Unit).where(Course_Unit.ID_UC == id_uc))
     if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course unit not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unidade curricular não encontrada")
 
     db.add(
         Admin_Audit_Log(
@@ -368,10 +368,10 @@ async def decide_request(
     item = await db.scalar(stmt)
 
     if not item:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Request not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido não encontrado")
 
     if item.Status != RequestStatus.PENDING:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Request already decided")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Este pedido já foi decidido")
 
     item.Status = payload.status
     item.AdminComment = payload.admin_comment
