@@ -190,7 +190,7 @@
   <div v-if="showOnboarding" class="fixed inset-0 z-50 flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
     <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-sm shadow-2xl z-10 overflow-hidden">
-      <div class="p-7 space-y-5 max-h-[90vh] overflow-y-auto">
+      <div class="p-4 sm:p-7 space-y-5 max-h-[90vh] overflow-y-auto">
 
         <!-- Andy avatar + título -->
         <div class="flex flex-col items-center text-center gap-3">

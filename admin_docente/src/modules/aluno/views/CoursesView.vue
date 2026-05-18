@@ -21,7 +21,7 @@
     <div v-else class="grid grid-cols-12 gap-4 sm:gap-6">
 
       <!-- ─── Left: path tabs + checkpoint list ──────────────────────────── -->
-      <div class="col-span-12 lg:col-span-5">
+      <div class="col-span-12 sm:col-span-5" :class="mobileView === 'exercise' ? 'hidden sm:block' : ''">
 
         <!-- Path tabs -->
         <div class="flex gap-2 flex-wrap mb-4">
@@ -105,15 +105,24 @@
       </div>
 
       <!-- ─── Right: exercise solver ──────────────────────────────────────── -->
-      <div class="col-span-12 lg:col-span-7">
+      <div class="col-span-12 sm:col-span-7" :class="mobileView === 'list' ? 'hidden sm:block' : ''" ref="exercisePanel">
+
+        <!-- Back button (mobile only) -->
+        <button
+          v-if="mobileView === 'exercise'"
+          @click="mobileView = 'list'"
+          class="sm:hidden flex items-center gap-2 text-sm text-text-secondary hover:text-white transition-colors mb-4"
+        >
+          <i class="pi pi-arrow-left"></i> Voltar aos tópicos
+        </button>
 
         <!-- No checkpoint selected -->
         <div v-if="!selectedCheckpointName"
           class="bg-surface rounded-card border border-white/5 border-dashed p-12 text-center"
         >
-          <i class="pi pi-arrow-left text-3xl text-brand/30 mb-3 block lg:hidden"></i>
-          <i class="pi pi-arrow-circle-left text-3xl text-brand/30 mb-3 hidden lg:block"></i>
-          <p class="text-text-secondary text-sm">Seleciona um tópico para começar.</p>
+          <i class="pi pi-arrow-up text-3xl text-brand/30 mb-3 block sm:hidden"></i>
+          <i class="pi pi-arrow-circle-left text-3xl text-brand/30 mb-3 hidden sm:block"></i>
+          <p class="text-text-secondary text-sm">Seleciona um tópico <span class="sm:hidden">acima</span><span class="hidden sm:inline">à esquerda</span> para começar.</p>
         </div>
 
         <!-- Checkpoint completed -->
@@ -150,7 +159,7 @@
               Próximo Tópico <i class="pi pi-arrow-right ml-2"></i>
             </button>
             <button
-              @click="selectedCheckpointName = null; checkpointComplete = false"
+              @click="selectedCheckpointName = null; checkpointComplete = false; mobileView = 'list'"
               class="px-6 py-3 border border-white/10 rounded-btn font-semibold hover:border-white/30 transition-all text-sm"
             >
               Ver Percurso
@@ -170,8 +179,7 @@
         <div v-else class="space-y-4">
           <!-- Header -->
           <div class="flex items-center justify-between">
-            <span class="font-semibold text-sm truncate pr-4">{{ selectedCheckpointName }}</span>
-            <span class="text-sm text-text-secondary shrink-0">{{ exerciseIndex + 1 }}/{{ checkpointExercises.length }}</span>
+            <span class="font-semibold text-sm">Exercício {{ exerciseIndex + 1 }} de {{ checkpointExercises.length }}</span>
           </div>
 
           <!-- Progress bar + bonus badge -->
@@ -192,16 +200,6 @@
 
           <transition name="slide-fade" mode="out-in">
             <div :key="currentExercise?.id_exercise || exerciseIndex" class="space-y-4">
-              <!-- Tags -->
-              <div class="flex flex-wrap gap-2">
-                <span
-                  class="text-xs px-3 py-1 rounded-chip border font-medium"
-                  :class="difficultyBadgeClass(currentExercise?.difficulty)"
-                >{{ difficultyBadgeLabel(currentExercise?.difficulty) }}</span>
-                <span class="text-xs px-3 py-1 rounded-chip bg-surface border border-white/10 text-text-secondary">
-                  {{ currentExercise?.type === 'True/False' ? 'V / F' : 'Escolha Múltipla' }}
-                </span>
-              </div>
 
               <!-- Question -->
               <div class="bg-surface rounded-card border border-white/5 p-6 sm:p-8">
@@ -409,6 +407,7 @@ const selectedPathId = ref(null)
 const selectedCheckpointName = ref(null)
 const loadingPath = ref(false)
 const reportState = ref('idle') // idle | loading | done | already
+const mobileView = ref('list') // 'list' | 'exercise' — mobile only
 
 const currentCheckpoints = computed(() => pathStore.selectedPath?.checkpoints || [])
 
@@ -440,6 +439,7 @@ async function selectPath(id_uc) {
   selectedPathId.value = id_uc
   selectedCheckpointName.value = null
   checkpointComplete.value = false
+  mobileView.value = 'list'
   loadingPath.value = true
   await Promise.all([
     pathStore.loadPath(id_uc),
@@ -451,6 +451,7 @@ async function selectPath(id_uc) {
 function selectCheckpoint(cp) {
   if (cp.is_locked) return
   selectedCheckpointName.value = cp.topic_name
+  mobileView.value = 'exercise'
   exerciseIndex.value = 0
   selectedOption.value = null
   answered.value = false
@@ -554,6 +555,7 @@ function nextExercise() {
 
 // ─── Andy tutor ──────────────────────────────────────────────────────────
 
+const exercisePanel = ref(null)
 const showTutor = ref(false)
 const tutorLoading = ref(false)
 const tutorInput = ref('')

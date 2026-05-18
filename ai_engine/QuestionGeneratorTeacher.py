@@ -118,7 +118,17 @@ class QuestionGeneratorTeacher:
         query_formatada = f"task: search result | query: {query_para_busca}"
         print(f"DEBUG - Query Formatada para Busca: '{query_formatada}'")
 
-        resultados_teste = self.vectorstore.similarity_search_with_relevance_scores(query_formatada, k=5)
+        resultados_teste = self.vectorstore.similarity_search_with_relevance_scores(
+            query_formatada, k=5, filter={"ficheiro_id": ficheiro_id}
+        )
+        if not resultados_teste:
+            print(f"⚠️ Sem resultados com keywords expandidos, a tentar com tópico original...")
+            query_formatada = f"task: search result | query: {topic}"
+            resultados_teste = self.vectorstore.similarity_search_with_relevance_scores(
+                query_formatada, k=5, filter={"ficheiro_id": ficheiro_id}
+            )
+        if not resultados_teste:
+            return None, None, None, None
         best_score = max(resultados_teste, key=lambda x: x[1])[1]
         print(f"DEBUG - '{topic}' | Score Gemma: {best_score:.4f}")
 

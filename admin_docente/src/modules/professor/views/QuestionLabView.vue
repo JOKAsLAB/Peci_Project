@@ -58,12 +58,21 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <!-- Sidebar -->
+        <!-- Sidebar — aparece depois dos resultados em mobile -->
         <aside
-          class="lg:col-span-4 space-y-5"
+          class="lg:col-span-4 space-y-5 order-2 lg:order-1"
           :class="{ 'opacity-50 pointer-events-none': loading }"
         >
+          <!-- Toggle de configuração em mobile -->
+          <button
+            class="lg:hidden w-full flex items-center justify-between px-4 py-3 bg-surface rounded-card border border-white/10 text-sm font-bold"
+            @click="configOpen = !configOpen"
+          >
+            <span><i class="pi pi-sliders-h mr-2 text-brand"></i>Configuração</span>
+            <i :class="configOpen ? 'pi pi-chevron-up' : 'pi pi-chevron-down'" class="text-text-secondary text-xs"></i>
+          </button>
           <section
+            :class="[!configOpen ? 'hidden lg:block' : '']"
             class="bg-surface p-6 rounded-card border border-white/5 space-y-4"
           >
             <h4 class="font-bold">Contexto da Geração</h4>
@@ -180,19 +189,18 @@
           </section>
 
           <div
+            :class="[!configOpen ? 'hidden lg:block' : '']"
             v-if="generatedExercises.length > 0"
             class="bg-info/10 border border-info/30 p-4 rounded-btn text-sm text-text-secondary"
           >
             <i class="pi pi-info-circle text-info mr-2"></i>
-            <strong
-              >{{ generatedExercises.length }} exercício(s) em rascunho.</strong
-            >
+            <strong>{{ generatedExercises.length }} exercício(s) em rascunho.</strong>
             Edita e clica "Publicar" para confirmar.
           </div>
         </aside>
 
-        <!-- Área principal -->
-        <section class="lg:col-span-8 space-y-5">
+        <!-- Área principal — primeiro em mobile -->
+        <section class="lg:col-span-8 space-y-5 order-1 lg:order-2">
           <!-- Prompt -->
           <article
             class="bg-surface p-6 rounded-card border border-white/5"
@@ -418,6 +426,7 @@ const form = reactive({
 const loading = ref(false);
 const generateError = ref(null);
 const generatedExercises = ref([]);
+const configOpen = ref(false);
 const ucTopics = ref([]);
 
 async function loadTopics() {

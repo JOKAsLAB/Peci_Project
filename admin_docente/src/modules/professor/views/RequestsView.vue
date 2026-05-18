@@ -57,8 +57,8 @@
         :key="req.id"
         class="bg-surface rounded-card border border-white/5 p-6 hover:border-brand/30 transition-all"
       >
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-3">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
             <span
               class="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-chip"
               :class="

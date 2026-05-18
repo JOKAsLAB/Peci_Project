@@ -104,7 +104,7 @@
 
           <div v-if="selectedPath" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <!-- Coluna esquerda: checkpoints -->
-            <div class="lg:col-span-5">
+            <div class="lg:col-span-5" :class="mobileView === 'exercises' ? 'hidden lg:block' : ''">
               <div class="bg-surface rounded-card border border-white/5 p-6">
                 <div class="mb-6 flex items-start justify-between gap-2">
                   <div>
@@ -140,10 +140,7 @@
                       ></div>
                     </div>
                     <div
-                      @click="
-                        selectedCheckpointName = checkpoint.topic_name;
-                        cancelEdit();
-                      "
+                      @click="selectCheckpoint(checkpoint.topic_name)"
                       class="relative cursor-pointer group"
                       :class="{ 'lg:ml-12': idx % 2 !== 0 }"
                     >
@@ -158,7 +155,7 @@
                         "
                       >
                         <div
-                          class="w-14 h-14 rounded-full flex items-center justify-center text-xl font-bold shrink-0 shadow-lg"
+                          class="w-10 h-10 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-base sm:text-xl font-bold shrink-0 shadow-lg"
                           :class="
                             checkpoint.exercises.length > 0
                               ? 'bg-brand text-white'
@@ -206,19 +203,23 @@
             </div>
 
             <!-- Coluna direita: exercícios -->
-            <div class="lg:col-span-7 space-y-4">
+            <div class="lg:col-span-7 space-y-4" :class="mobileView === 'list' ? 'hidden lg:block' : ''">
+
+              <!-- Back button (mobile only) -->
+              <button
+                @click="mobileView = 'list'"
+                class="lg:hidden flex items-center gap-2 text-sm text-text-secondary hover:text-white transition-colors mb-2"
+              >
+                <i class="pi pi-arrow-left"></i> Voltar aos tópicos
+              </button>
+
               <div
                 v-if="!selectedCheckpoint"
                 class="bg-surface rounded-card border border-white/5 border-dashed p-12 text-center"
               >
-                <i
-                  class="pi pi-arrow-left text-4xl text-brand/30 mb-4 block lg:block hidden"
-                ></i>
-                <i
-                  class="pi pi-arrow-up text-4xl text-brand/30 mb-4 block lg:hidden"
-                ></i>
+                <i class="pi pi-arrow-left text-4xl text-brand/30 mb-4 block"></i>
                 <p class="text-text-secondary">
-                  Selecione um tópico <span class="lg:hidden">acima</span><span class="hidden lg:inline">à esquerda</span> para ver os exercícios.
+                  Selecione um tópico à esquerda para ver os exercícios.
                 </p>
               </div>
 
@@ -283,7 +284,7 @@
 
                 <!-- Lista de exercícios -->
                 <div
-                  v-for="(ex, eIdx) in selectedCheckpoint.exercises"
+                  v-for="(ex, eIdx) in paginatedExercises"
                   :key="ex.id_exercise"
                   class="bg-surface rounded-card border overflow-hidden transition-all"
                   :class="
@@ -295,9 +296,7 @@
                   <!-- Vista normal -->
                   <div v-if="editingId !== ex.id_exercise" class="p-5">
                     <div class="flex items-center gap-2 mb-3">
-                      <span class="text-brand text-xs font-bold"
-                        >Q{{ eIdx + 1 }}</span
-                      >
+                      <span class="text-brand text-xs font-bold">Q{{ (exercisePage - 1) * EXERCISES_PER_PAGE + eIdx + 1 }}</span>
                       <span
                         class="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-chip"
                         :class="
@@ -563,6 +562,28 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- Paginação -->
+                <div v-if="totalExercisePages > 1" class="flex items-center justify-between pt-2">
+                  <button
+                    @click="exercisePage--"
+                    :disabled="exercisePage === 1"
+                    class="px-4 py-2 rounded-btn border border-white/10 text-sm hover:border-brand/30 transition-all disabled:opacity-30"
+                  >
+                    <i class="pi pi-arrow-left mr-1"></i> Anterior
+                  </button>
+                  <span class="text-text-secondary text-sm">
+                    {{ exercisePage }} / {{ totalExercisePages }}
+                    <span class="text-xs opacity-60 ml-1">({{ selectedCheckpoint.exercises.length }} total)</span>
+                  </span>
+                  <button
+                    @click="exercisePage++"
+                    :disabled="exercisePage === totalExercisePages"
+                    class="px-4 py-2 rounded-btn border border-white/10 text-sm hover:border-brand/30 transition-all disabled:opacity-30"
+                  >
+                    Próximo <i class="pi pi-arrow-right ml-1"></i>
+                  </button>
+                </div>
               </template>
             </div>
           </div>
@@ -582,7 +603,7 @@
     <Teleport to="body">
       <div v-if="showAddTopicModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeAddTopicModal"></div>
-        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-md p-8 shadow-2xl z-10">
+        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-md p-4 sm:p-8 shadow-2xl z-10">
           <div class="flex items-center justify-between mb-6">
             <h4 class="text-xl font-bold">Novo Tópico</h4>
             <button @click="closeAddTopicModal" class="text-text-secondary hover:text-white">
@@ -639,7 +660,7 @@
     <Teleport to="body">
       <div v-if="showEditTopicModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="closeEditTopicModal"></div>
-        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-md p-8 shadow-2xl z-10">
+        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-md p-4 sm:p-8 shadow-2xl z-10">
           <div class="flex items-center justify-between mb-6">
             <h4 class="text-xl font-bold">Editar Tópico</h4>
             <button @click="closeEditTopicModal" class="text-text-secondary hover:text-white">
@@ -701,7 +722,7 @@
           @click="closeAddModal"
         ></div>
         <div
-          class="relative bg-surface border border-white/10 rounded-card w-full max-w-2xl p-8 shadow-2xl z-10 max-h-[90vh] flex flex-col"
+          class="relative bg-surface border border-white/10 rounded-card w-full max-w-2xl p-4 sm:p-8 shadow-2xl z-10 max-h-[90vh] flex flex-col"
         >
           <div class="flex items-center justify-between mb-6 shrink-0">
             <div>
@@ -1028,7 +1049,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, reactive } from 'vue';
+import { ref, computed, onMounted, reactive, watch } from 'vue';
 import { useAuthStore } from '../../../stores/authStore';
 import { usePathStore } from '../stores/pathStore';
 import { useExerciseStore } from '../stores/exerciseStore';
@@ -1048,6 +1069,9 @@ onMounted(async () => {
 
 const selectedPathId = ref(null);
 const selectedCheckpointName = ref(null);
+const mobileView = ref('list'); // 'list' | 'exercises' — mobile only
+const EXERCISES_PER_PAGE = 15;
+const exercisePage = ref(1);
 
 const selectedPath = computed(() =>
   pathStore.paths.find((p) => p.id_uc === selectedPathId.value),
@@ -1059,9 +1083,28 @@ const selectedCheckpoint = computed(() =>
   ),
 );
 
+const paginatedExercises = computed(() => {
+  const exs = selectedCheckpoint.value?.exercises || [];
+  const start = (exercisePage.value - 1) * EXERCISES_PER_PAGE;
+  return exs.slice(start, start + EXERCISES_PER_PAGE);
+});
+
+const totalExercisePages = computed(() =>
+  Math.ceil((selectedCheckpoint.value?.exercises.length || 0) / EXERCISES_PER_PAGE),
+);
+
+watch(selectedCheckpointName, () => { exercisePage.value = 1; });
+
+function selectCheckpoint(name) {
+  selectedCheckpointName.value = name;
+  cancelEdit();
+  mobileView.value = 'exercises';
+}
+
 function selectPath(idUc) {
   selectedPathId.value = idUc;
   selectedCheckpointName.value = null;
+  mobileView.value = 'list';
   cancelEdit();
 }
 

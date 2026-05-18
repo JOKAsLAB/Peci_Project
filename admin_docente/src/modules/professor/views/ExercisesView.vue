@@ -93,110 +93,99 @@
         </div>
 
         <!-- Filtros -->
-        <div class="bg-surface rounded-card border border-white/5 p-6">
-          <h4
-            class="text-sm font-bold text-text-secondary uppercase tracking-widest mb-4"
-          >
-            Filtros
-          </h4>
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="flex items-center gap-2 flex-wrap">
-              <button
-                v-for="f in ['Todos', 'Publicados', 'Rascunhos']"
-                :key="f"
-                @click="statusFilter = f"
-                :class="
-                  statusFilter === f
-                    ? 'bg-brand text-white'
-                    : 'bg-background text-text-secondary border border-white/10'
-                "
-                class="px-4 py-2 rounded-chip text-xs font-bold transition-all"
-              >
-                {{ f }}
-              </button>
-            </div>
-
-            <div class="hidden sm:block w-px h-8 bg-white/10"></div>
-
-            <div class="flex items-center gap-2">
-              <span class="text-text-secondary text-xs font-bold uppercase"
-                >Disciplina:</span
-              >
-              <select
-                v-model="disciplineFilter"
-                class="bg-background border border-white/10 px-3 py-2 rounded-btn text-xs outline-none focus:border-brand"
-              >
+        <div class="bg-surface rounded-card border border-white/5 p-4 sm:p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h4 class="text-sm font-bold text-text-secondary uppercase tracking-widest">Filtros</h4>
+            <button v-if="hasActiveFilters" @click="clearFilters" class="text-error text-xs font-bold hover:text-error/80">
+              <i class="pi pi-filter-slash mr-1"></i> Limpar
+            </button>
+          </div>
+          <!-- Status chips -->
+          <div class="flex items-center gap-2 flex-wrap mb-3">
+            <button
+              v-for="f in ['Todos', 'Publicados', 'Rascunhos']"
+              :key="f"
+              @click="statusFilter = f"
+              :class="statusFilter === f ? 'bg-brand text-white' : 'bg-background text-text-secondary border border-white/10'"
+              class="px-4 py-2 rounded-chip text-xs font-bold transition-all"
+            >{{ f }}</button>
+          </div>
+          <!-- Selects — 2 colunas em mobile, linha em desktop -->
+          <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3 sm:items-center">
+            <div class="flex flex-col gap-1">
+              <span class="text-text-secondary text-[10px] font-bold uppercase">Disciplina</span>
+              <select v-model="disciplineFilter" class="bg-background border border-white/10 px-3 py-2 rounded-btn text-xs outline-none focus:border-brand w-full">
                 <option value="">Todas</option>
-                <option
-                  v-for="uc in authStore.user?.course_units || []"
-                  :key="uc.id"
-                  :value="uc.id"
-                >
-                  {{ uc.name }}
-                </option>
+                <option v-for="uc in authStore.user?.course_units || []" :key="uc.id" :value="uc.id">{{ uc.name }}</option>
               </select>
             </div>
-
-            <div class="flex items-center gap-2">
-              <span class="text-text-secondary text-xs font-bold uppercase"
-                >Tópico:</span
-              >
-              <select
-                v-model="topicFilter"
-                class="bg-background border border-white/10 px-3 py-2 rounded-btn text-xs outline-none focus:border-brand w-full sm:min-w-[180px] sm:w-auto"
-              >
+            <div class="flex flex-col gap-1">
+              <span class="text-text-secondary text-[10px] font-bold uppercase">Tópico</span>
+              <select v-model="topicFilter" class="bg-background border border-white/10 px-3 py-2 rounded-btn text-xs outline-none focus:border-brand w-full sm:min-w-[160px]">
                 <option value="">Todos</option>
-                <option v-for="t in availableTopics" :key="t" :value="t">
-                  {{ t }}
-                </option>
+                <option v-for="t in availableTopics" :key="t" :value="t">{{ t }}</option>
               </select>
             </div>
-
-            <div class="flex items-center gap-2">
-              <span class="text-text-secondary text-xs font-bold uppercase"
-                >Dificuldade:</span
-              >
-              <select
-                v-model="difficultyFilter"
-                class="bg-background border border-white/10 px-3 py-2 rounded-btn text-xs outline-none focus:border-brand"
-              >
+            <div class="flex flex-col gap-1">
+              <span class="text-text-secondary text-[10px] font-bold uppercase">Dificuldade</span>
+              <select v-model="difficultyFilter" class="bg-background border border-white/10 px-3 py-2 rounded-btn text-xs outline-none focus:border-brand w-full">
                 <option value="">Todas</option>
                 <option value="Easy">Fácil</option>
                 <option value="Medium">Médio</option>
                 <option value="Hard">Difícil</option>
               </select>
             </div>
-
-            <div class="flex items-center gap-2">
-              <span class="text-text-secondary text-xs font-bold uppercase"
-                >Tipo:</span
-              >
-              <select
-                v-model="typeFilter"
-                class="bg-background border border-white/10 px-3 py-2 rounded-btn text-xs outline-none focus:border-brand"
-              >
+            <div class="flex flex-col gap-1">
+              <span class="text-text-secondary text-[10px] font-bold uppercase">Tipo</span>
+              <select v-model="typeFilter" class="bg-background border border-white/10 px-3 py-2 rounded-btn text-xs outline-none focus:border-brand w-full">
                 <option value="">Todos</option>
                 <option value="Multiple Choice">Escolha Múltipla</option>
                 <option value="True/False">V/F</option>
               </select>
             </div>
-
-            <button
-              v-if="hasActiveFilters"
-              @click="clearFilters"
-              class="text-error text-xs font-bold hover:text-error/80 ml-auto"
-            >
-              <i class="pi pi-filter-slash mr-1"></i> Limpar Filtros
-            </button>
           </div>
-          <p class="text-text-secondary text-xs mt-3">
-            {{ filteredExercises.length }} exercício(s) encontrado(s)
-          </p>
+          <p class="text-text-secondary text-xs mt-3">{{ filteredExercises.length }} exercício(s) encontrado(s)</p>
         </div>
 
-        <!-- Tabela -->
+        <!-- Cards mobile -->
+        <div class="sm:hidden space-y-3">
+          <div
+            v-for="(ex, idx) in paginatedExercises"
+            :key="ex.id"
+            class="bg-surface rounded-card border border-white/5 p-4"
+          >
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <p class="font-medium text-sm leading-snug flex-1 min-w-0">{{ ex.title }}</p>
+              <div class="flex gap-1.5 shrink-0">
+                <button @click="showDetail(ex)" title="Ver" class="w-8 h-8 flex items-center justify-center rounded-btn border border-white/10 text-text-secondary hover:text-brand hover:border-brand/50 transition-all"><i class="pi pi-eye text-xs"></i></button>
+                <button @click="openEdit(ex)" title="Editar" class="w-8 h-8 flex items-center justify-center rounded-btn border border-white/10 text-text-secondary hover:text-white hover:border-brand/50 transition-all"><i class="pi pi-pencil text-xs"></i></button>
+                <button @click="removeExercise(ex.id)" title="Eliminar" class="w-8 h-8 flex items-center justify-center rounded-btn border border-white/10 text-text-secondary hover:text-error hover:border-error/50 transition-all"><i class="pi pi-trash text-xs"></i></button>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-1.5 items-center">
+              <span class="text-xs font-bold px-2 py-0.5 rounded-chip" :class="typeClass(ex.type)">{{ typeLabel(ex.type) }}</span>
+              <span class="text-xs font-bold px-2 py-0.5 rounded-chip" :class="ex.difficulty === 'Easy' ? 'bg-success/10 text-success' : ex.difficulty === 'Medium' ? 'bg-warning/10 text-warning' : 'bg-error/10 text-error'">{{ difficultyFromApi[ex.difficulty] || ex.difficulty }}</span>
+              <div @click="togglePublished(ex.id)" class="cursor-pointer inline-flex items-center gap-1 px-2 py-0.5 rounded-full" :class="ex.published ? 'bg-success/10' : 'bg-warning/10'">
+                <div class="w-1.5 h-1.5 rounded-full" :class="ex.published ? 'bg-success' : 'bg-warning'"></div>
+                <span class="text-xs" :class="ex.published ? 'text-success' : 'text-warning'">{{ ex.published ? 'Publicado' : 'Rascunho' }}</span>
+              </div>
+              <span class="bg-brand/10 text-brand text-xs px-2 py-0.5 rounded-chip truncate max-w-[120px]" :title="ex.discipline">{{ ex.discipline }}</span>
+            </div>
+            <p class="text-text-secondary text-xs mt-1.5 truncate" :title="ex.topic_name">{{ ex.topic_name }}</p>
+          </div>
+          <div v-if="filteredExercises.length === 0" class="py-8 text-center text-text-secondary text-sm">Nenhum exercício encontrado.</div>
+          <div v-if="totalPages > 1" class="flex items-center justify-between py-2">
+            <p class="text-text-secondary text-xs">Página {{ currentPage }} de {{ totalPages }}</p>
+            <div class="flex gap-2">
+              <button @click="currentPage--" :disabled="currentPage === 1" class="px-3 py-1.5 rounded-btn text-xs font-bold bg-surface border border-white/10 disabled:opacity-30">Anterior</button>
+              <button @click="currentPage++" :disabled="currentPage === totalPages" class="px-3 py-1.5 rounded-btn text-xs font-bold bg-surface border border-white/10 disabled:opacity-30">Seguinte</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela desktop -->
         <div
-          class="bg-surface rounded-card border border-white/5 overflow-x-auto relative"
+          class="hidden sm:block bg-surface rounded-card border border-white/5 overflow-x-auto relative"
         >
           <div
             v-if="exerciseStore.isLoading"
@@ -366,6 +355,7 @@
             </div>
           </div>
         </div>
+        <!-- fim tabela desktop -->
 
         <!-- ─── Modal de Detalhe ─────────────────────────────────────────── -->
         <Teleport to="body">
@@ -378,7 +368,7 @@
               @click="detailExercise = null"
             ></div>
             <div
-              class="relative bg-surface border border-white/10 rounded-card w-full max-w-lg p-8 shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
+              class="relative bg-surface border border-white/10 rounded-card w-full max-w-lg p-4 sm:p-8 shadow-2xl z-10 max-h-[90vh] overflow-y-auto"
             >
               <div class="flex justify-between items-center mb-4">
                 <div class="flex items-center gap-2 flex-wrap">
@@ -533,7 +523,7 @@
               class="relative bg-surface border border-white/10 rounded-card w-full max-w-2xl shadow-2xl z-10 max-h-[92vh] overflow-y-auto"
             >
               <div
-                class="flex justify-between items-center px-8 py-6 border-b border-white/5"
+                class="flex justify-between items-center px-4 sm:px-8 py-4 sm:py-6 border-b border-white/5"
               >
                 <div>
                   <p
@@ -551,7 +541,7 @@
                 </button>
               </div>
 
-              <div class="px-8 py-6 space-y-6">
+              <div class="px-4 sm:px-8 py-4 sm:py-6 space-y-6">
                 <div>
                   <label
                     class="block text-xs font-bold text-text-secondary uppercase tracking-widest mb-2"
@@ -754,7 +744,7 @@
               </div>
 
               <div
-                class="flex justify-end gap-3 px-8 py-5 border-t border-white/5"
+                class="flex justify-end gap-3 px-4 sm:px-8 py-4 sm:py-5 border-t border-white/5"
               >
                 <button
                   @click="closeEdit"

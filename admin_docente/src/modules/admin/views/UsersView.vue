@@ -97,8 +97,67 @@
       </div>
     </div>
 
-    <!-- Tabela -->
-    <div class="bg-surface rounded-card border border-white/5 overflow-hidden">
+    <!-- Cards mobile -->
+    <div class="sm:hidden space-y-3">
+      <div
+        v-for="u in filteredUsers"
+        :key="u.id"
+        class="bg-surface rounded-card border border-white/5 p-4"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <div
+              class="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+              :class="u.role === 'professor' ? 'bg-warning/20 text-warning' : 'bg-brand/20 text-brand'"
+            >
+              {{ u.name.split(' ').map((n: string) => n[0]).slice(0, 2).join('') }}
+            </div>
+            <div class="min-w-0">
+              <p class="font-medium text-sm truncate">{{ u.name }}</p>
+              <p class="text-text-secondary text-xs truncate">{{ u.email }}</p>
+            </div>
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <button
+              @click="openEdit(u)"
+              title="Editar"
+              class="w-9 h-9 flex items-center justify-center rounded-btn border border-white/10 text-text-secondary hover:text-white hover:border-brand/50 transition-all"
+            ><i class="pi pi-pencil text-xs"></i></button>
+            <button
+              @click="onRemoveUser(u)"
+              title="Remover"
+              class="w-9 h-9 flex items-center justify-center rounded-btn border border-white/10 text-text-secondary hover:text-error hover:border-error/50 transition-all"
+            ><i class="pi pi-trash text-xs"></i></button>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-3 items-center">
+          <span
+            class="text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-chip"
+            :class="u.role === 'professor' ? 'bg-warning/10 text-warning' : u.role === 'admin' ? 'bg-error/10 text-error' : 'bg-brand/10 text-brand'"
+          >{{ u.role === 'professor' ? 'Docente' : u.role === 'admin' ? 'Admin' : 'Aluno' }}</span>
+          <div
+            @click="onToggleStatus(u)"
+            class="cursor-pointer inline-flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors"
+            :class="u.active ? 'bg-success/10 hover:bg-success/20' : 'bg-error/10 hover:bg-error/20'"
+          >
+            <div class="w-1.5 h-1.5 rounded-full" :class="u.active ? 'bg-success' : 'bg-error'"></div>
+            <span class="text-xs font-medium" :class="u.active ? 'text-success' : 'text-error'">{{ u.active ? 'Ativo' : 'Inativo' }}</span>
+          </div>
+          <span
+            v-for="d in u.disciplines"
+            :key="d"
+            class="bg-gray-800 text-text-secondary text-[10px] px-2 py-0.5 rounded-full"
+          >{{ d }}</span>
+        </div>
+      </div>
+      <div v-if="filteredUsers.length === 0" class="py-8 text-center text-text-secondary text-sm">
+        Nenhum utilizador encontrado.
+      </div>
+      <p class="text-text-secondary text-xs text-right">{{ filteredUsers.length }} de {{ userStore.users.length }} utilizadores</p>
+    </div>
+
+    <!-- Tabela desktop -->
+    <div class="hidden sm:block bg-surface rounded-card border border-white/5 overflow-hidden">
       <div class="overflow-x-auto">
       <table class="w-full text-left min-w-[700px]">
         <thead class="bg-black/20 text-text-secondary uppercase text-[10px] tracking-widest">
@@ -113,11 +172,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-white/5">
-          <tr
-            v-for="u in filteredUsers"
-            :key="u.id"
-            class="hover:bg-white/2 transition-colors group"
-          >
+          <tr v-for="u in filteredUsers" :key="u.id" class="hover:bg-white/2 transition-colors group">
             <td class="px-6 py-4">
               <div class="flex items-center gap-3">
                 <div
@@ -133,22 +188,12 @@
             <td class="px-6 py-4 text-center">
               <span
                 class="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-chip"
-                :class="
-                  u.role === 'professor' ? 'bg-warning/10 text-warning'
-                  : u.role === 'admin' ? 'bg-error/10 text-error'
-                  : 'bg-brand/10 text-brand'
-                "
-              >
-                {{ u.role === 'professor' ? 'Docente' : u.role === 'admin' ? 'Admin' : 'Aluno' }}
-              </span>
+                :class="u.role === 'professor' ? 'bg-warning/10 text-warning' : u.role === 'admin' ? 'bg-error/10 text-error' : 'bg-brand/10 text-brand'"
+              >{{ u.role === 'professor' ? 'Docente' : u.role === 'admin' ? 'Admin' : 'Aluno' }}</span>
             </td>
             <td class="px-6 py-4 text-center">
               <div class="flex flex-wrap justify-center gap-1">
-                <span
-                  v-for="d in u.disciplines"
-                  :key="d"
-                  class="bg-gray-800 text-text-secondary text-[10px] px-2 py-0.5 rounded-full"
-                >{{ d }}</span>
+                <span v-for="d in u.disciplines" :key="d" class="bg-gray-800 text-text-secondary text-[10px] px-2 py-0.5 rounded-full">{{ d }}</span>
               </div>
             </td>
             <td class="px-6 py-4 text-center">
@@ -158,20 +203,14 @@
                 :class="u.active ? 'bg-success/10 hover:bg-success/20' : 'bg-error/10 hover:bg-error/20'"
               >
                 <div class="w-1.5 h-1.5 rounded-full" :class="u.active ? 'bg-success' : 'bg-error'"></div>
-                <span class="text-xs font-medium" :class="u.active ? 'text-success' : 'text-error'">
-                  {{ u.active ? 'Ativo' : 'Inativo' }}
-                </span>
+                <span class="text-xs font-medium" :class="u.active ? 'text-success' : 'text-error'">{{ u.active ? 'Ativo' : 'Inativo' }}</span>
               </div>
             </td>
             <td class="px-6 py-4 text-center text-text-secondary text-sm">{{ u.lastLogin }}</td>
             <td class="px-6 py-4 text-right">
               <div class="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button @click="openEdit(u)" class="text-text-secondary hover:text-white" title="Editar">
-                  <i class="pi pi-pencil"></i>
-                </button>
-                <button @click="onRemoveUser(u)" class="text-text-secondary hover:text-error" title="Remover">
-                  <i class="pi pi-trash"></i>
-                </button>
+                <button @click="openEdit(u)" class="text-text-secondary hover:text-white" title="Editar"><i class="pi pi-pencil"></i></button>
+                <button @click="onRemoveUser(u)" class="text-text-secondary hover:text-error" title="Remover"><i class="pi pi-trash"></i></button>
               </div>
             </td>
           </tr>
@@ -190,7 +229,7 @@
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showModal = false"></div>
-        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-lg p-8 shadow-2xl z-10">
+        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-lg p-4 sm:p-8 shadow-2xl z-10">
           <div class="flex justify-between items-center mb-6">
             <h4 class="text-xl font-bold">
               {{ editingId ? 'Editar Utilizador' : 'Adicionar Utilizador' }}

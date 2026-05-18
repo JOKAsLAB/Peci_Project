@@ -35,7 +35,46 @@
       </div>
     </div>
 
-    <div class="bg-surface rounded-card border border-white/5 overflow-hidden">
+    <!-- Cards mobile -->
+    <div class="sm:hidden space-y-3">
+      <div v-for="d in store.disciplines" :key="d.id" class="bg-surface rounded-card border border-white/5 p-4">
+        <div class="flex items-start justify-between gap-3">
+          <div class="min-w-0">
+            <span class="font-mono text-brand text-xs block">{{ d.code }}</span>
+            <p class="font-bold text-sm">{{ d.acronym }} — {{ d.name }}</p>
+          </div>
+          <div class="flex gap-2 shrink-0">
+            <button
+              @click="openEdit(d)"
+              class="w-9 h-9 flex items-center justify-center rounded-btn border border-white/10 text-text-secondary hover:text-white hover:border-brand/50 transition-all"
+            ><i class="pi pi-pencil text-xs"></i></button>
+            <button
+              @click="removeDiscipline(d.id)"
+              class="w-9 h-9 flex items-center justify-center rounded-btn border border-white/10 text-text-secondary hover:text-error hover:border-error/50 transition-all"
+            ><i class="pi pi-trash text-xs"></i></button>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-2 mt-3 items-center">
+          <span class="bg-gray-800 px-2 py-0.5 rounded-full text-xs">{{ d.semester }}</span>
+          <div
+            @click="store.supportsStatus ? store.toggleStatus(d.id) : null"
+            :class="store.supportsStatus ? 'cursor-pointer' : 'cursor-not-allowed opacity-70'"
+            class="inline-flex items-center gap-1.5"
+          >
+            <div class="w-1.5 h-1.5 rounded-full" :class="d.active ? 'bg-success' : 'bg-error'"></div>
+            <span class="text-xs" :class="d.active ? 'text-success' : 'text-error'">{{ d.active ? 'Ativa' : 'Inativa' }}</span>
+          </div>
+          <span class="text-brand font-bold text-xs">{{ d.students }} alunos</span>
+        </div>
+        <div class="flex flex-wrap gap-1 mt-2">
+          <span v-for="prof in d.professors" :key="prof" class="bg-gray-800 px-2 py-0.5 rounded-full text-xs text-text-secondary">{{ prof }}</span>
+          <span v-if="!d.professors || d.professors.length === 0" class="text-xs text-text-secondary/70">Sem docentes</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela desktop -->
+    <div class="hidden sm:block bg-surface rounded-card border border-white/5 overflow-hidden">
       <div class="overflow-x-auto">
       <table class="w-full text-left min-w-[700px]">
         <thead class="bg-black/20 text-text-secondary uppercase text-[10px] tracking-widest">
@@ -94,7 +133,7 @@
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showModal = false"></div>
-        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-lg p-8 shadow-2xl z-10">
+        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-lg p-4 sm:p-8 shadow-2xl z-10">
           <div class="flex justify-between items-center mb-6">
             <h4 class="text-xl font-bold">{{ editingId ? 'Editar Disciplina' : 'Criar Disciplina' }}</h4>
             <button @click="showModal = false" class="text-text-secondary hover:text-white"><i class="pi pi-times"></i></button>

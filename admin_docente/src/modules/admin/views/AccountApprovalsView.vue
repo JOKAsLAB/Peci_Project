@@ -85,7 +85,7 @@
             </div>
 
             <div
-              class="grid grid-cols-2 gap-x-8 gap-y-2 text-sm text-text-secondary"
+              class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1 text-sm text-text-secondary"
             >
               <p>
                 <strong class="text-text-primary">Email:</strong>

@@ -33,8 +33,8 @@
 
     <div class="space-y-3">
       <div v-for="req in filteredRequests" :key="req.id" class="bg-surface rounded-card border border-white/5 p-6 hover:border-brand/30 transition-all">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-3">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-2">
             <span class="text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-chip"
               :class="req.type === 'access' ? 'bg-brand/10 text-brand' : req.type === 'platform' ? 'bg-blue-500/10 text-blue-400' : req.type === 'operations' ? 'bg-cyan-500/10 text-cyan-300' : 'bg-warning/10 text-warning'">
               {{ typeLabel(req.type) }}
@@ -49,15 +49,17 @@
         <h4 class="font-bold text-sm mb-1">{{ req.title }}</h4>
         <p class="text-text-secondary text-sm">{{ req.description }}</p>
 
-        <div v-if="req.status === 'pending'" class="flex items-center gap-3 mt-4">
+        <div v-if="req.status === 'pending'" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mt-4">
           <input v-model="adminNotes[req.id]" type="text" placeholder="Nota administrativa (opcional)"
             class="flex-1 bg-background p-2.5 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
-          <button @click="approve(req.id)" class="bg-success/10 text-success px-4 py-2 rounded-btn text-xs font-bold hover:bg-success/20 transition-all">
-            <i class="pi pi-check mr-1"></i> Aprovar
-          </button>
-          <button @click="reject(req.id)" class="bg-error/10 text-error px-4 py-2 rounded-btn text-xs font-bold hover:bg-error/20 transition-all">
-            <i class="pi pi-times mr-1"></i> Rejeitar
-          </button>
+          <div class="flex gap-2">
+            <button @click="approve(req.id)" class="flex-1 sm:flex-none bg-success/10 text-success px-4 py-2.5 rounded-btn text-xs font-bold hover:bg-success/20 transition-all">
+              <i class="pi pi-check mr-1"></i> Aprovar
+            </button>
+            <button @click="reject(req.id)" class="flex-1 sm:flex-none bg-error/10 text-error px-4 py-2.5 rounded-btn text-xs font-bold hover:bg-error/20 transition-all">
+              <i class="pi pi-times mr-1"></i> Rejeitar
+            </button>
+          </div>
         </div>
 
         <p v-if="req.adminNote && req.status !== 'pending'" class="text-xs mt-2 text-brand italic">Nota: {{ req.adminNote }}</p>

@@ -15,7 +15,7 @@
         </div>
 
         <!-- Content -->
-        <div class="overflow-y-auto flex-1 px-6 pb-4">
+        <div class="overflow-y-auto flex-1 px-4 sm:px-6 pb-4">
 
           <!-- Página 1: Andy -->
           <template v-if="active === 0">
@@ -77,11 +77,11 @@
                   <p class="font-semibold text-sm mb-0.5">5 exercícios diários = Bónus XP</p>
                   <p class="text-text-secondary text-sm leading-relaxed mb-3">Os primeiros 5 por dia têm 1.5× XP e mantêm o streak. Depois continuas com XP normal:</p>
                   <div class="bg-background rounded-btn border border-white/5 p-3 space-y-2">
-                    <div v-for="row in xpTable" :key="row.diff" class="flex items-center justify-between text-sm">
-                      <span class="px-2 py-0.5 rounded text-xs font-semibold" :class="row.cls">{{ row.diff }}</span>
-                      <span class="text-text-secondary text-xs">{{ row.base }} XP</span>
-                      <i class="pi pi-arrow-right text-text-secondary text-xs"></i>
-                      <span class="font-bold text-brand text-xs">{{ row.bonus }} XP</span>
+                    <div v-for="row in xpTable" :key="row.diff" class="flex items-center gap-2">
+                      <span class="px-2 py-0.5 rounded text-xs font-semibold min-w-[52px] text-center" :class="row.cls">{{ row.diff }}</span>
+                      <span class="text-text-secondary text-xs w-12 text-right">{{ row.base }} XP</span>
+                      <i class="pi pi-arrow-right text-text-secondary text-xs mx-auto"></i>
+                      <span class="font-bold text-brand text-xs w-12 text-right">{{ row.bonus }} XP</span>
                     </div>
                   </div>
                 </div>
@@ -122,7 +122,7 @@
         </div>
 
         <!-- Footer nav -->
-        <div class="flex items-center justify-between px-6 py-4 border-t border-white/5 shrink-0">
+        <div class="flex items-center justify-between px-4 sm:px-6 py-4 border-t border-white/5 shrink-0">
           <button
             @click="active = Math.max(0, active - 1)"
             :disabled="active === 0"

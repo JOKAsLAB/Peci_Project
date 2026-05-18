@@ -8,7 +8,7 @@
           conteúdo.
         </p>
       </div>
-      <div class="bg-surface rounded-card border border-white/5 p-8">
+      <div class="bg-surface rounded-card border border-white/5 p-4 sm:p-8">
         <div class="max-w-lg">
           <div class="flex items-center gap-4 mb-6">
             <div
