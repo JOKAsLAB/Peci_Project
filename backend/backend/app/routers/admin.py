@@ -278,7 +278,10 @@ async def create_course_unit(
 
     created = await db.scalar(
         select(Course_Unit)
-        .options(joinedload(Course_Unit.professor_ucs).joinedload(Professor_UC.professor))
+        .options(
+            joinedload(Course_Unit.professor_ucs).joinedload(Professor_UC.professor),
+            joinedload(Course_Unit.student_ucs),
+        )
         .where(Course_Unit.ID_UC == item.ID_UC)
     )
     return to_course_unit_response(created)
@@ -319,7 +322,10 @@ async def update_course_unit(
 
     updated = await db.scalar(
         select(Course_Unit)
-        .options(joinedload(Course_Unit.professor_ucs).joinedload(Professor_UC.professor))
+        .options(
+            joinedload(Course_Unit.professor_ucs).joinedload(Professor_UC.professor),
+            joinedload(Course_Unit.student_ucs),
+        )
         .where(Course_Unit.ID_UC == id_uc)
     )
     return to_course_unit_response(updated)
