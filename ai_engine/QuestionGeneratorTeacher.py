@@ -101,22 +101,9 @@ class QuestionGeneratorTeacher:
             
         topicos_str = "\n".join(f"- {t}" for t in topicos_permitidos)
 
-        # 2. Traduzir tópico para termos de busca em inglês
-        prompt_prep = f"""Identifica os termos técnicos desta pergunta em Português e escreve-os em Inglês.
-    Pergunta: "{topic}"
-    Responde apenas com os termos técnicos em Inglês e algo que esteja relacionado.
-    Exemplo: Vírgula Flutuante, Floating Point, IEEE 754 single/double precision.
-    DEVOLVE NO FORMATO: "termo1, termo2, termo3"
-    """
-        try:
-            termos_en = self.llm_groq.invoke(prompt_prep).content.strip()
-            query_para_busca = f"{topic} {termos_en}"
-            print(f"🔎 Tópico Original: '{topic}' | Termos para busca: '{query_para_busca}'")
-        except Exception as e:
-            query_para_busca = topic
-            print(f"⚠️ Falha na tradução de termos: {e}")
+        # 2. Fazer a busca no ChromaDB
+        query_para_busca = topic
         query_formatada = f"task: search result | query: {query_para_busca}"
-        print(f"DEBUG - Query Formatada para Busca: '{query_formatada}'")
 
         resultados_teste = self.vectorstore.similarity_search_with_relevance_scores(
             query_formatada, k=5, filter={"ficheiro_id": ficheiro_id}

@@ -35,6 +35,7 @@ class AuthResponse(BaseModel):
 class UserUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=2, max_length=100)
     status: UserStatus | None = None
+    role: UserRole | None = None
 
 class MessageResponse(BaseModel):
     message: str

@@ -65,6 +65,17 @@
       </div>
     </div>
 
+    <ActionDialog
+      :visible="dialogVisible"
+      :title="dialogConfig.title"
+      :message="dialogConfig.message"
+      :confirm-text="dialogConfig.confirmText"
+      :variant="dialogConfig.variant"
+      :loading="userStore.isLoading"
+      @update:visible="dialogVisible = $event"
+      @confirm="handleConfirm"
+    />
+
     <div class="space-y-4">
       <article
         v-for="request in filteredRequests"
@@ -135,12 +146,17 @@
 <script setup>
 import { computed, reactive, ref, onMounted } from 'vue';
 import { useUserStore } from '../stores/userStore';
+import ActionDialog from '../../../components/ActionDialog.vue';
 
 const userStore = useUserStore();
 
 const statusFilter = ref('Pendentes');
 const search = ref('');
 const reviewNotes = reactive({});
+
+const dialogVisible = ref(false);
+const dialogConfig = ref({ title: '', message: '', confirmText: '', variant: 'primary' });
+const confirmedAction = ref(null);
 
 const pendingRequests = computed(() =>
   userStore.pendingProfessorRequests.filter((r) => r.status === 'pending'),
@@ -190,26 +206,40 @@ function statusClass(status) {
   return 'bg-warning/10 text-warning border border-warning/20';
 }
 
-async function approve(request) {
-  const confirmed = window.confirm(`Aprovar a conta docente de ${request.name}?`)
-  if (!confirmed) return
-
-  const note = reviewNotes[request.id] || '';
-  await userStore.approveProfessorRequest(request.id, note);
-  if (!userStore.error) {
-    delete reviewNotes[request.id]; // Limpa a memória para chaves antigas
-  }
+function approve(request) {
+  dialogConfig.value = {
+    title: 'Aprovar conta',
+    message: `Confirma a aprovação da conta docente de ${request.name}?`,
+    confirmText: 'Aprovar',
+    variant: 'success',
+  };
+  confirmedAction.value = async () => {
+    const note = reviewNotes[request.id] || '';
+    await userStore.approveProfessorRequest(request.id, note);
+    if (!userStore.error) delete reviewNotes[request.id];
+  };
+  dialogVisible.value = true;
 }
 
-async function reject(request) {
-  const confirmed = window.confirm(`Rejeitar o pedido de conta docente de ${request.name}?`)
-  if (!confirmed) return
+function reject(request) {
+  dialogConfig.value = {
+    title: 'Rejeitar pedido',
+    message: `Confirma a rejeição do pedido de conta docente de ${request.name}?`,
+    confirmText: 'Rejeitar',
+    variant: 'danger',
+  };
+  confirmedAction.value = async () => {
+    const note = reviewNotes[request.id] || '';
+    await userStore.rejectProfessorRequest(request.id, note);
+    if (!userStore.error) delete reviewNotes[request.id];
+  };
+  dialogVisible.value = true;
+}
 
-  const note = reviewNotes[request.id] || '';
-  await userStore.rejectProfessorRequest(request.id, note);
-  if (!userStore.error) {
-    delete reviewNotes[request.id];
-  }
+async function handleConfirm() {
+  if (confirmedAction.value) await confirmedAction.value();
+  dialogVisible.value = false;
+  confirmedAction.value = null;
 }
 
 onMounted(async () => {

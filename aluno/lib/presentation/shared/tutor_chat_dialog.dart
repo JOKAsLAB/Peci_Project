@@ -232,8 +232,6 @@ class _TutorChatDialogState extends ConsumerState<TutorChatDialog> {
                         child: Image.asset(
                           'assets/chatbot_photo.png',
                           fit: BoxFit.contain,
-                          color: Colors.white,
-                          colorBlendMode: BlendMode.difference,
                         ),
                       ),
                     ),

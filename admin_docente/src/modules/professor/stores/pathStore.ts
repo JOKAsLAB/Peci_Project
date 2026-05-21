@@ -45,8 +45,9 @@ export const usePathStore = defineStore('paths', () => {
     await loadPaths(true);
   }
 
-  async function deleteTopic(idUc: number, topicName: string) {
-    await http.delete(`/api/v1/professors/course-units/${idUc}/topics/${encodeURIComponent(topicName)}`);
+  async function deleteTopic(idUc: number, topicName: string, force = false) {
+    const params = force ? '?force=true' : '';
+    await http.delete(`/api/v1/professors/course-units/${idUc}/topics/${encodeURIComponent(topicName)}${params}`);
     await loadPaths(true);
   }
 

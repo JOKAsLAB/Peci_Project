@@ -84,6 +84,11 @@
             Criar Conta
           </button>
         </template>
+
+        <div v-if="regSuccess" class="bg-green-500/10 border border-green-500/20 text-green-300 text-sm p-3 rounded-btn flex items-center gap-2">
+          <i class="pi pi-check-circle"></i>
+          {{ regSuccess }}
+        </div>
       </div>
 
       <!-- Register Form (professor only) -->
@@ -153,7 +158,51 @@
         <button @click="register" :disabled="regLoading"
                 class="w-full bg-brand py-4 rounded-btn font-bold text-white hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
           <i v-if="regLoading" class="pi pi-spin pi-spinner"></i>
-          <span>{{ regLoading ? 'A processar...' : (regRole === 'professor' ? 'Enviar Pedido' : 'Criar Conta') }}</span>
+          <span>{{ regLoading ? 'A processar...' : 'Criar Conta' }}</span>
+        </button>
+      </div>
+
+      <!-- Verify Email (professor registration) -->
+      <div v-else-if="currentView === 'verify'" class="space-y-5">
+        <div>
+          <h2 class="text-xl font-bold">Verifica o teu email</h2>
+          <p class="text-text-secondary text-sm mt-1">
+            Enviámos um código de 6 dígitos para <span class="text-white">{{ regEmail }}</span>. Introduz-o para enviar o pedido de acesso.
+          </p>
+        </div>
+
+        <div>
+          <label class="text-xs font-bold text-text-secondary uppercase tracking-widest mb-2 block">Código de Verificação</label>
+          <input
+            v-model="verifyCode"
+            type="text"
+            placeholder="000000"
+            maxlength="6"
+            class="w-full bg-surface p-4 rounded-btn border border-white/10 outline-none focus:border-brand text-sm text-center tracking-widest transition-colors"
+            @keyup.enter="submitVerify"
+          />
+        </div>
+
+        <div v-if="verifyError" class="bg-error/10 border border-error/20 text-error text-sm p-3 rounded-btn flex items-center gap-2">
+          <i class="pi pi-exclamation-circle"></i>
+          {{ verifyError }}
+        </div>
+
+        <button
+          @click="submitVerify"
+          :disabled="verifyLoading"
+          class="w-full bg-brand py-4 rounded-btn font-bold text-white hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          <i v-if="verifyLoading" class="pi pi-spin pi-spinner"></i>
+          <span>{{ verifyLoading ? 'A verificar...' : 'Confirmar e Enviar Pedido' }}</span>
+        </button>
+
+        <button
+          @click="resendVerify"
+          :disabled="verifyLoading"
+          class="w-full text-text-secondary text-sm hover:text-white transition-colors py-2"
+        >
+          Não recebi o código — reenviar
         </button>
       </div>
 
@@ -319,6 +368,12 @@ const regConfirm = ref('')
 const regRole = ref('professor')
 const regLoading = ref(false)
 const regError = ref('')
+const regSuccess = ref('')
+
+// Verify state
+const verifyCode = ref('')
+const verifyLoading = ref(false)
+const verifyError = ref('')
 
 // Forgot password state
 const forgotEmail = ref('')
@@ -382,16 +437,49 @@ const register = async () => {
       office: `NMEC-${regNmec.value}`,
       shortBio: 'Conta criada a partir do painel docente',
     })
-    currentView.value = 'login'
+    verifyCode.value = ''
+    verifyError.value = ''
+    currentView.value = 'verify'
   } catch (error) {
     regError.value = error?.message || 'Falha ao registar conta.'
   } finally {
     regLoading.value = false
     regName.value = ''
     regNmec.value = ''
-    regEmail.value = ''
     regPassword.value = ''
     regConfirm.value = ''
+  }
+}
+
+const submitVerify = async () => {
+  if (!verifyCode.value || verifyCode.value.length !== 6) {
+    verifyError.value = 'Insere o código de 6 dígitos.'
+    return
+  }
+  verifyError.value = ''
+  verifyLoading.value = true
+  try {
+    await authStore.verifyStudentEmail(regEmail.value, verifyCode.value)
+    regSuccess.value = 'Pedido enviado com sucesso. A tua conta ficará disponível após aprovação do administrador.'
+    regEmail.value = ''
+    currentView.value = 'login'
+  } catch (error) {
+    verifyError.value = error?.message || 'Código inválido ou expirado.'
+  } finally {
+    verifyLoading.value = false
+  }
+}
+
+const resendVerify = async () => {
+  verifyError.value = ''
+  verifyLoading.value = true
+  try {
+    await authStore.resendVerification(regEmail.value)
+    verifyError.value = 'Novo código enviado para o teu email.'
+  } catch {
+    // silent
+  } finally {
+    verifyLoading.value = false
   }
 }
 

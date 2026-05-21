@@ -7,10 +7,11 @@ import 'package:go_router/go_router.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../data/remote/api_client.dart';
 import '../../data/remote/auth_storage.dart';
 import '../../data/remote/quiz_repository.dart';
 
-const _apiBaseUrl = 'https://unwishfully-oversorrowful-clarissa.ngrok-free.dev/api/v1';
+const _apiBaseUrl = apiBaseUrl;
 
 enum _GamePhase { lobby, question, answered, finished }
 

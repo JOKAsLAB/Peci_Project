@@ -87,8 +87,8 @@ export const useQuizStore = defineStore('quiz', () => {
 
   function connectWs(sessionId: string) {
     const authStore = useAuthStore()
-    const rawBase = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '')
-    const wsBase = rawBase.replace(/^https/, 'wss').replace(/^http/, 'ws')
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsBase = `${wsProtocol}//${window.location.host}`
     const url = `${wsBase}/api/v1/quizzes/ws/professor/${sessionId}?token=${authStore.token || ''}`
 
     _ws = new WebSocket(url)

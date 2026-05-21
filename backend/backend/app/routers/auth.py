@@ -145,19 +145,7 @@ async def register(payload: RegisterRequest, response: Response, db: AsyncSessio
     db.add(new_user)
     await db.flush()
 
-    if is_professor_registration:
-        db.add(
-            Request(
-                ID_Professor=new_user.ID_User,
-                Request_Type=RequestType.ACCESS,
-                Title="Pedido de acesso ao painel docente",
-                Description="Registo de conta docente pendente de aprovacao administrativa.",
-                Status=RequestStatus.PENDING,
-            )
-        )
-        await db.flush()
-
-    if is_student_registration:
+    if is_professor_registration or is_student_registration:
         code = _generate_code()
         _verification_codes[payload.email.lower()] = (code, datetime.utcnow() + timedelta(minutes=15))
         try:
@@ -230,9 +218,37 @@ async def verify_email(payload: VerifyEmailRequest, db: AsyncSession = Depends(g
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilizador não encontrado")
 
-    user.Status = UserStatus.ACTIVE
     del _verification_codes[email_key]
+
+    if user.Role == UserRole.PROFESSOR:
+        db.add(
+            Request(
+                ID_Professor=user.ID_User,
+                Request_Type=RequestType.ACCESS,
+                Title="Pedido de acesso ao painel docente",
+                Description="Registo de conta docente pendente de aprovação administrativa.",
+                Status=RequestStatus.PENDING,
+            )
+        )
+    else:
+        user.Status = UserStatus.ACTIVE
+
     return MessageResponse(message="Email verificado com sucesso")
+
+
+@router.post("/resend-verification", response_model=MessageResponse)
+async def resend_verification(payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)):
+    user = await db.scalar(select(Base_User).where(Base_User.Email == payload.email))
+    if user and user.Status == UserStatus.SUSPENDED:
+        code = _generate_code()
+        _verification_codes[payload.email.lower()] = (code, datetime.utcnow() + timedelta(minutes=15))
+        try:
+            await _send_verification_email(payload.email, code)
+        except Exception as e:
+            import traceback
+            print(f"[EMAIL ERROR] {e}")
+            traceback.print_exc()
+    return MessageResponse(message="Se existir uma verificação pendente, receberás um novo código.")
 
 
 @router.post("/forgot-password", response_model=MessageResponse)

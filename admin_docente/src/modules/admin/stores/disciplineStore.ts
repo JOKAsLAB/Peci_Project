@@ -71,7 +71,7 @@ function _toFrontendDiscipline(item) {
     name: item.name,
     acronym: _makeAcronym(item.name, item.id_uc),
     semester: item.semester || '-',
-    students: 0,
+    students: item.student_count ?? 0,
     active: true,
     year: item.curricular_year
       ? `${item.curricular_year}/${item.curricular_year + 1}`

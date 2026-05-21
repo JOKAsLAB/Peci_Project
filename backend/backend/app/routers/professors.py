@@ -763,6 +763,7 @@ async def update_topic(
 async def delete_topic(
     id_uc: int,
     topic_name: str,
+    force: bool = Query(False),
     db: AsyncSession = Depends(get_db),
     current_professor: Base_User = Depends(require_roles("Professor")),
 ):
@@ -782,9 +783,13 @@ async def delete_topic(
         select(Exercise).where(and_(Exercise.ID_UC == id_uc, Exercise.Topic_Name == topic_name))
     )
     if has_exercises:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Não é possível eliminar tópico com exercícios. Remova ou reatribua os exercícios primeiro."
+        if not force:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Não é possível eliminar tópico com exercícios. Remova ou reatribua os exercícios primeiro."
+            )
+        await db.execute(
+            delete(Exercise).where(and_(Exercise.ID_UC == id_uc, Exercise.Topic_Name == topic_name))
         )
 
     await db.delete(topic)

@@ -27,6 +27,7 @@ class CourseUnitResponse(BaseModel):
     semester: str | None = None
     curricular_year: int | None = None
     professors: list[CourseUnitProfessorInfo] = Field(default_factory=list)
+    student_count: int = 0
 
     class Config:
         from_attributes = True

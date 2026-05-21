@@ -140,14 +140,15 @@ export const useUserStore = defineStore('users', () => {
       if (typeof data.name === 'string' && data.name.trim()) {
         payload.name = data.name.trim()
       }
-
       if (typeof data.active === 'boolean') {
         payload.status = _activeToStatus(data.active)
       } else if (typeof data.status === 'string') {
         payload.status = data.status
       }
-
-      if (!payload.name && !payload.status) {
+      if (typeof data.role === 'string' && data.role.trim()) {
+        payload.role = data.role.trim()
+      }
+      if (!payload.name && !payload.status && !payload.role) {
         return
       }
 

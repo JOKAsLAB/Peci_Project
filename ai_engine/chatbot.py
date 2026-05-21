@@ -47,10 +47,9 @@ class Chatbot:
             endpoint=os.getenv("ENDPOINT_GPT"),
             channel_id=os.getenv("CANAL_ID"),
         )
-        self.llm_groq = ChatGroq(model_name="openai/gpt-oss-120b", temperature=0.2)
+        self.llm_groq = ChatGroq(model_name="llama-3.3-70b-versatile", temperature=0.2)
 
     def responder_pergunta(self, query, k=10):
-        
         prompt_prep = f"""
         Identifica os termos técnicos desta pergunta em Português e escreve-os em Inglês.
         Pergunta: "{query}"
@@ -58,17 +57,12 @@ class Chatbot:
         Exemplo: Vírgula Flutuante , Floating Point, IEEE 754 single/double precision ou seja decompôes o termo técnico em partes e traduz cada parte.
         DEVOLVE NO FORMATO: "termo1, termo2, termo3"
         """
-
         try:
             termos_en = self.llm_groq.invoke(prompt_prep).content.strip()
             query_para_busca = f"{query} {termos_en}"
-            print(f"DEBUG - Query Original: '{query}' | Termos Técnicos (EN): '{termos_en}'")
-        except Exception as e:
+        except Exception:
             query_para_busca = query
-            print(f"DEBUG - Falha no request de tradução técnica: {e}")
-
         query_formatada = f"task: search result | query: {query_para_busca}"
-        print(f"DEBUG - Query Formatada para Busca: '{query_formatada}'")
 
         resultados_teste = self.vectorstore.similarity_search_with_relevance_scores(query_formatada, k=5)
 

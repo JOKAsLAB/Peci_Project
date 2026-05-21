@@ -185,111 +185,16 @@
       </div>
     </template>
   </div>
-
-  <!-- ─── Onboarding Modal ──────────────────────────────────────────────────── -->
-  <div v-if="showOnboarding" class="fixed inset-0 z-50 flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
-    <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-sm shadow-2xl z-10 overflow-hidden">
-      <div class="p-4 sm:p-7 space-y-5 max-h-[90vh] overflow-y-auto">
-
-        <!-- Andy avatar + título -->
-        <div class="flex flex-col items-center text-center gap-3">
-          <div class="w-20 h-20 rounded-2xl bg-background border border-brand/40 p-2.5 flex items-center justify-center">
-            <img src="/chatbot.png" alt="Andy" class="w-full h-full object-contain" />
-          </div>
-          <div>
-            <h4 class="text-xl font-bold">Olá! Sou o Andy 👋</h4>
-            <p class="text-text-secondary text-sm mt-1 leading-relaxed">
-              O teu companheiro de estudo com IA.<br>
-              Abre-me depois de qualquer exercício para esclarecer dúvidas e aprender melhor.
-            </p>
-          </div>
-        </div>
-
-        <div class="border-t border-white/10"></div>
-
-        <!-- Regra 1: bónus XP -->
-        <div class="space-y-2.5">
-          <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-btn bg-orange-500/15 flex items-center justify-center shrink-0">
-              <i class="pi pi-fire text-orange-400 text-sm"></i>
-            </div>
-            <p class="font-bold text-sm">5 exercícios diários = Bónus XP</p>
-          </div>
-          <p class="text-text-secondary text-xs leading-relaxed pl-9">
-            Os primeiros 5 por dia têm <span class="text-orange-400 font-semibold">1.5× XP de bónus</span> e mantêm o streak:
-          </p>
-          <!-- Tabela XP -->
-          <div class="bg-background rounded-btn p-3 space-y-2 ml-9">
-            <div class="flex items-center gap-2 text-xs">
-              <span class="w-12 text-center py-0.5 rounded bg-success/15 text-success font-semibold">Fácil</span>
-              <span class="text-text-secondary">10 XP</span>
-              <i class="pi pi-arrow-right text-text-secondary" style="font-size:9px"></i>
-              <span class="text-orange-400 font-bold">15 XP</span>
-              <span class="text-text-secondary">com bónus</span>
-            </div>
-            <div class="flex items-center gap-2 text-xs">
-              <span class="w-12 text-center py-0.5 rounded bg-warning/15 text-warning font-semibold">Médio</span>
-              <span class="text-text-secondary">20 XP</span>
-              <i class="pi pi-arrow-right text-text-secondary" style="font-size:9px"></i>
-              <span class="text-orange-400 font-bold">30 XP</span>
-              <span class="text-text-secondary">com bónus</span>
-            </div>
-            <div class="flex items-center gap-2 text-xs">
-              <span class="w-12 text-center py-0.5 rounded bg-error/15 text-error font-semibold">Difícil</span>
-              <span class="text-text-secondary">35 XP</span>
-              <i class="pi pi-arrow-right text-text-secondary" style="font-size:9px"></i>
-              <span class="text-orange-400 font-bold">53 XP</span>
-              <span class="text-text-secondary">com bónus</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Regra 2: progressão -->
-        <div class="flex items-start gap-2.5">
-          <div class="w-7 h-7 rounded-btn bg-success/15 flex items-center justify-center shrink-0 mt-0.5">
-            <i class="pi pi-chart-line text-success text-sm"></i>
-          </div>
-          <div>
-            <p class="font-bold text-sm">Progressão por dificuldade</p>
-            <p class="text-text-secondary text-xs mt-0.5 leading-relaxed">
-              Cada tópico segue Fácil → Médio → Difícil. Após os 5, podes continuar a praticar com XP normal.
-            </p>
-          </div>
-        </div>
-
-        <!-- CTA -->
-        <button
-          @click="showOnboarding = false"
-          class="w-full py-3.5 bg-brand text-white rounded-btn font-bold hover:bg-brand/80 transition-all"
-        >
-          Vamos começar!
-        </button>
-      </div>
-    </div>
-  </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useStudentStore } from '../stores/studentStore'
 import { useAuthStore } from '../../../stores/authStore'
 
 const studentStore = useStudentStore()
 const authStore = useAuthStore()
-
-const showOnboarding = ref(false)
-
-function checkOnboarding() {
-  const userId = authStore.user?.id
-  if (!userId) return
-  const key = `onboarding_shown_${userId}`
-  if (!localStorage.getItem(key)) {
-    localStorage.setItem(key, '1')
-    showOnboarding.value = true
-  }
-}
 
 const firstName = computed(() =>
   (authStore.user?.name || 'Aluno').split(' ')[0]
@@ -323,6 +228,6 @@ onMounted(async () => {
     studentStore.loadDailyStatus(),
     studentStore.loadTopicStats(),
   ])
-  checkOnboarding()
+
 })
 </script>

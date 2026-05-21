@@ -8,13 +8,6 @@
         </p>
       </div>
 
-      <button
-        @click="openCreate"
-        class="bg-brand text-white px-6 py-3 rounded-btn font-bold hover:brightness-110 transition-all flex items-center gap-2"
-      >
-        <i class="pi pi-plus"></i>
-        Adicionar Utilizador
-      </button>
     </div>
 
     <div
@@ -120,9 +113,9 @@
           <div class="flex gap-2 shrink-0">
             <button
               @click="openEdit(u)"
-              title="Editar"
+              title="Alterar role"
               class="w-9 h-9 flex items-center justify-center rounded-btn border border-white/10 text-text-secondary hover:text-white hover:border-brand/50 transition-all"
-            ><i class="pi pi-pencil text-xs"></i></button>
+            ><i class="pi pi-user-edit text-xs"></i></button>
             <button
               @click="onRemoveUser(u)"
               title="Remover"
@@ -209,7 +202,7 @@
             <td class="px-6 py-4 text-center text-text-secondary text-sm">{{ u.lastLogin }}</td>
             <td class="px-6 py-4 text-right">
               <div class="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button @click="openEdit(u)" class="text-text-secondary hover:text-white" title="Editar"><i class="pi pi-pencil"></i></button>
+                <button @click="openEdit(u)" class="text-text-secondary hover:text-white" title="Alterar role"><i class="pi pi-user-edit"></i></button>
                 <button @click="onRemoveUser(u)" class="text-text-secondary hover:text-error" title="Remover"><i class="pi pi-trash"></i></button>
               </div>
             </td>
@@ -225,72 +218,31 @@
       </div>
     </div>
 
-    <!-- Modal Criar / Editar -->
+    <!-- Modal Alterar Role -->
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="showModal = false"></div>
-        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-lg p-4 sm:p-8 shadow-2xl z-10">
+        <div class="relative bg-surface border border-white/10 rounded-card w-full max-w-sm p-6 shadow-2xl z-10">
           <div class="flex justify-between items-center mb-6">
-            <h4 class="text-xl font-bold">
-              {{ editingId ? 'Editar Utilizador' : 'Adicionar Utilizador' }}
-            </h4>
+            <h4 class="text-xl font-bold">Alterar Papel</h4>
             <button @click="showModal = false" class="text-text-secondary hover:text-white">
               <i class="pi pi-times"></i>
             </button>
           </div>
-          <div class="space-y-4">
-            <div>
-              <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Nome Completo</label>
-              <input
-                v-model="form.name"
-                type="text"
-                placeholder="Nome do utilizador"
-                class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm"
-              />
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Papel</label>
-                <select
-                  v-model="form.role"
-                  class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm"
-                >
-                  <option value="aluno">Aluno</option>
-                  <option value="professor">Docente</option>
-                </select>
-              </div>
-            </div>
-            <div>
-              <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Email</label>
-              <input
-                v-model="form.email"
-                type="email"
-                placeholder="email@ua.pt"
-                class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm"
-              />
-            </div>
-            <div v-if="!editingId">
-              <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Password</label>
-              <input
-                v-model="form.password"
-                type="text"
-                placeholder="Password inicial"
-                class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm"
-              />
-            </div>
+          <p class="text-text-secondary text-sm mb-4">{{ form.name }} — {{ form.email }}</p>
+          <div>
+            <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Papel</label>
+            <select v-model="form.role" class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm">
+              <option value="Student">Aluno</option>
+              <option value="Professor">Docente</option>
+            </select>
           </div>
-          <div class="flex justify-end gap-3 mt-8">
-            <button
-              @click="showModal = false"
-              class="px-6 py-3 rounded-btn text-text-secondary hover:text-white border border-white/10 text-sm font-bold transition-all"
-            >
+          <div class="flex justify-end gap-3 mt-6">
+            <button @click="showModal = false" class="px-6 py-3 rounded-btn text-text-secondary hover:text-white border border-white/10 text-sm font-bold transition-all">
               Cancelar
             </button>
-            <button
-              @click="save"
-              class="bg-brand px-6 py-3 rounded-btn text-white font-bold hover:brightness-110 transition-all text-sm"
-            >
-              {{ editingId ? 'Guardar' : 'Adicionar' }}
+            <button @click="save" class="bg-brand px-6 py-3 rounded-btn text-white font-bold hover:brightness-110 transition-all text-sm">
+              Guardar
             </button>
           </div>
         </div>
@@ -324,12 +276,7 @@ const disciplineFilter = ref('')
 
 const showModal = ref(false)
 const editingId = ref<string | null>(null)
-const form = reactive({
-  name: '',
-  email: '',
-  password: '',
-  role: 'aluno' as 'aluno' | 'professor',
-})
+const form = reactive({ name: '', email: '', role: 'Student' as string })
 
 const showConfirmDialog = ref(false)
 const confirmDialog = reactive({ title: '', message: '', confirmText: 'Confirmar' })
@@ -348,25 +295,11 @@ const filteredUsers = computed(() => {
   return list
 })
 
-function resetForm() {
-  form.name = ''
-  form.email = ''
-  form.password = ''
-  form.role = 'aluno'
-}
-
-function openCreate() {
-  editingId.value = null
-  resetForm()
-  showModal.value = true
-}
-
 function openEdit(u: any) {
   editingId.value = u.id
   form.name = u.name
   form.email = u.email
-  form.password = ''
-  form.role = u.role
+  form.role = u.role === 'professor' ? 'Professor' : 'Student'
   showModal.value = true
 }
 
@@ -385,11 +318,8 @@ async function runConfirmedAction() {
 }
 
 async function save() {
-  if (editingId.value) {
-    await userStore.updateUser(editingId.value, { name: form.name })
-  } else {
-    await userStore.addUser({ name: form.name, email: form.email, password: form.password, role: form.role })
-  }
+  if (!editingId.value) return
+  await userStore.updateUser(editingId.value, { role: form.role })
   if (!userStore.error) showModal.value = false
 }
 

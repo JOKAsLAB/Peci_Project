@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import delete, func, or_, select
+from sqlalchemy import delete, func, or_, select, text
 from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -53,6 +53,7 @@ def to_course_unit_response(item: Course_Unit) -> CourseUnitResponse:
         semester=item.Semester,
         curricular_year=item.Curricular_Year,
         professors=professors,
+        student_count=len(item.student_ucs) if item.student_ucs else 0,
     )
 
 
@@ -157,13 +158,32 @@ async def update_user(
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Utilizador não encontrado")
 
-    if payload.name is None and payload.status is None:
+    if payload.name is None and payload.status is None and payload.role is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Nenhuma alteração a efetuar")
 
     if payload.name is not None:
         user.Name = payload.name
     if payload.status is not None:
         user.Status = payload.status
+
+    if payload.role is not None and payload.role != user.Role:
+        if user.Role == UserRole.ADMIN:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Não é possível alterar o role de um administrador")
+        if payload.role == UserRole.ADMIN:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Não é possível promover a administrador")
+
+        if user.Role == UserRole.STUDENT:
+            await db.execute(text("DELETE FROM student WHERE id_student = :id"), {"id": user.ID_User})
+        elif user.Role == UserRole.PROFESSOR:
+            await db.execute(text("DELETE FROM professor WHERE id_professor = :id"), {"id": user.ID_User})
+
+        if payload.role == UserRole.STUDENT:
+            await db.execute(text("INSERT INTO student (id_student, current_level, total_xp, streak_days) VALUES (:id, 1, 0, 0)"), {"id": user.ID_User})
+        elif payload.role == UserRole.PROFESSOR:
+            await db.execute(text("INSERT INTO professor (id_professor) VALUES (:id)"), {"id": user.ID_User})
+
+        await db.execute(text("UPDATE base_user SET role = :role WHERE id_user = :id"), {"role": payload.role.value, "id": user.ID_User})
+        user.Role = payload.role
 
     db.add(
         Admin_Audit_Log(
@@ -174,7 +194,14 @@ async def update_user(
         )
     )
     await db.flush()
-    return to_user_response(user)
+    return UserResponse(
+        id=user.ID_User,
+        name=user.Name,
+        email=user.Email,
+        role=user.Role,
+        status=user.Status,
+        registration_date=user.Registration_Date,
+    )
 
 
 @router.delete("/users/{user_id}", response_model=MessageResponse)
@@ -209,7 +236,10 @@ async def list_course_units(
 ):
     result = await db.execute(
         select(Course_Unit)
-        .options(joinedload(Course_Unit.professor_ucs).joinedload(Professor_UC.professor))
+        .options(
+            joinedload(Course_Unit.professor_ucs).joinedload(Professor_UC.professor),
+            joinedload(Course_Unit.student_ucs),
+        )
         .order_by(Course_Unit.Name.asc())
     )
     items = result.unique().scalars().all()

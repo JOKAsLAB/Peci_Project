@@ -64,7 +64,6 @@
             <div class="w-1.5 h-1.5 rounded-full" :class="d.active ? 'bg-success' : 'bg-error'"></div>
             <span class="text-xs" :class="d.active ? 'text-success' : 'text-error'">{{ d.active ? 'Ativa' : 'Inativa' }}</span>
           </div>
-          <span class="text-brand font-bold text-xs">{{ d.students }} alunos</span>
         </div>
         <div class="flex flex-wrap gap-1 mt-2">
           <span v-for="prof in d.professors" :key="prof" class="bg-gray-800 px-2 py-0.5 rounded-full text-xs text-text-secondary">{{ prof }}</span>
@@ -83,7 +82,6 @@
             <th class="px-8 py-5 font-semibold">Designação</th>
             <th class="px-8 py-5 font-semibold text-center">Semestre</th>
             <th class="px-8 py-5 font-semibold text-center">Docente</th>
-            <th class="px-8 py-5 font-semibold text-center">Alunos</th>
             <th class="px-8 py-5 font-semibold">Estado</th>
             <th class="px-8 py-5 font-semibold text-right">Operações</th>
           </tr>
@@ -103,9 +101,6 @@
                 <span v-for="prof in d.professors" :key="prof" class="bg-gray-800 px-2 py-0.5 rounded-full text-xs">{{ prof }}</span>
                 <span v-if="!d.professors || d.professors.length === 0" class="text-xs text-text-secondary/70">Sem docentes</span>
               </div>
-            </td>
-            <td class="px-8 py-5 text-center">
-              <span class="text-brand font-bold">{{ d.students }}</span>
             </td>
             <td class="px-8 py-5">
               <div
@@ -145,17 +140,10 @@
               <input v-model="form.code" type="text" placeholder="Ex: 41000"
                      class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Nome Completo</label>
-                <input v-model="form.name" type="text" placeholder="Ex: Sistemas Digitais"
-                       class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
-              </div>
-              <div>
-                <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Acrónimo</label>
-                <input v-model="form.acronym" type="text" placeholder="Ex: SD"
-                       class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
-              </div>
+            <div>
+              <label class="text-xs font-bold text-text-secondary uppercase tracking-widest">Nome Completo</label>
+              <input v-model="form.name" type="text" placeholder="Ex: Sistemas Digitais"
+                     class="w-full bg-background mt-2 p-3 rounded-btn border border-white/10 outline-none focus:border-brand text-sm" />
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -186,7 +174,6 @@
                     <span class="font-medium text-text-primary">{{ p.name }}</span>
                     <span class="text-text-secondary text-xs ml-2">{{ p.email }}</span>
                   </div>
-                  <span class="text-text-secondary text-xs">NMec {{ p.nmec }}</span>
                 </div>
               </div>
               <!-- Selected professors tags -->
@@ -212,6 +199,16 @@
         </div>
       </div>
     </Teleport>
+
+    <ActionDialog
+      :visible="showConfirmDialog"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      :confirm-text="confirmDialog.confirmText"
+      variant="danger"
+      @update:visible="showConfirmDialog = $event"
+      @confirm="runConfirmedAction"
+    />
   </div>
 </template>
 
@@ -219,13 +216,32 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useDisciplineStore } from '../stores/disciplineStore'
 import { useUserStore } from '../stores/userStore'
+import ActionDialog from '../../../components/ActionDialog.vue'
 
 const store = useDisciplineStore()
 const userStore = useUserStore()
 
+const showConfirmDialog = ref(false)
+const confirmDialog = reactive({ title: '', message: '', confirmText: 'Confirmar' })
+const confirmedAction = ref(null)
+
+function ask(title, message, confirmText, action) {
+  confirmDialog.title = title
+  confirmDialog.message = message
+  confirmDialog.confirmText = confirmText
+  confirmedAction.value = action
+  showConfirmDialog.value = true
+}
+
+async function runConfirmedAction() {
+  await confirmedAction.value?.()
+  showConfirmDialog.value = false
+  confirmedAction.value = null
+}
+
 const showModal = ref(false)
 const editingId = ref(null)
-const form = reactive({ code: '', name: '', acronym: '', semester: 'S1', year: '2025/2026' })
+const form = reactive({ code: '', name: '', semester: 'S1', year: '2025/2026' })
 const profSearch = ref('')
 const profSuggestions = ref([])
 const selectedProfessors = ref([])
@@ -236,7 +252,7 @@ function onProfSearch() {
   const selectedProfessorIds = new Set(selectedProfessors.value.map((p) => p.id))
   profSuggestions.value = userStore.professors
     .filter((p) => !selectedProfessorIds.has(p.id))
-    .filter(p => p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q) || p.nmec.toLowerCase().includes(q))
+    .filter(p => p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q))
     .slice(0, 5)
 }
 
@@ -246,7 +262,6 @@ function addProfessor(p) {
       id: p.id,
       name: p.name,
       email: p.email,
-      nmec: p.nmec,
     })
   }
   profSearch.value = ''
@@ -258,7 +273,7 @@ function removeProfessor(professorId) {
 }
 
 function resetForm() {
-  form.code = ''; form.name = ''; form.acronym = ''; form.semester = 'S1'; form.year = '2025/2026'
+  form.code = ''; form.name = ''; form.semester = 'S1'; form.year = '2025/2026'
   profSearch.value = ''; profSuggestions.value = []; selectedProfessors.value = []
 }
 
@@ -270,7 +285,7 @@ function openCreate() {
 
 function openEdit(d) {
   editingId.value = d.id
-  form.code = d.code; form.name = d.name; form.acronym = d.acronym; form.semester = d.semester; form.year = d.year || '2025/2026'
+  form.code = d.code; form.name = d.name; form.semester = d.semester; form.year = d.year || '2025/2026'
   selectedProfessors.value = (d.professorItems || []).map((professor) => {
     const match = userStore.professors.find((candidate) => candidate.id === professor.id)
     if (match) {
@@ -278,7 +293,6 @@ function openEdit(d) {
         id: match.id,
         name: match.name,
         email: match.email,
-        nmec: match.nmec,
       }
     }
 
@@ -286,7 +300,6 @@ function openEdit(d) {
       id: professor.id,
       name: professor.name,
       email: professor.email,
-      nmec: String(professor.id).slice(0, 6).toUpperCase(),
     }
   })
   profSearch.value = ''; profSuggestions.value = []
@@ -297,7 +310,6 @@ async function save() {
   const data = {
     code: form.code,
     name: form.name,
-    acronym: form.acronym,
     semester: form.semester,
     year: form.year,
     professorIds: selectedProfessors.value.map((professor) => professor.id),
@@ -315,10 +327,13 @@ async function save() {
   }
 }
 
-async function removeDiscipline(id) {
-  const confirmed = window.confirm('Tem a certeza que pretende remover esta disciplina?')
-  if (!confirmed) return
-  await store.removeDiscipline(id)
+function removeDiscipline(id) {
+  ask(
+    'Remover disciplina',
+    'Tens a certeza? Esta ação é irreversível e remove todos os tópicos, exercícios e materiais associados.',
+    'Remover',
+    () => store.removeDiscipline(id),
+  )
 }
 
 onMounted(async () => {

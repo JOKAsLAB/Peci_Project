@@ -72,12 +72,7 @@
                 {{ (d.professors || []).join(', ') }} · {{ d.semester }}
               </p>
             </div>
-            <div class="text-right">
-              <p class="text-brand font-bold text-sm">
-                {{ d.students }} alunos
-              </p>
-              <p class="text-text-secondary text-xs">{{ d.code }}</p>
-            </div>
+            <p class="text-text-secondary text-xs shrink-0">{{ d.code }}</p>
           </div>
         </div>
       </div>

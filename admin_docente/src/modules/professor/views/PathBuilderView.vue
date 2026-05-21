@@ -186,8 +186,7 @@
                             <i class="pi pi-pencil text-[10px]"></i>
                           </button>
                           <button
-                            v-if="checkpoint.exercises.length === 0"
-                            @click.stop="confirmDeleteTopic(checkpoint.topic_name)"
+                            @click.stop="confirmDeleteTopic(checkpoint.topic_name, checkpoint.exercises.length)"
                             :disabled="deletingTopic === checkpoint.topic_name"
                             class="p-1 rounded text-error/50 hover:text-error hover:bg-error/10 transition-all"
                             title="Apagar tópico"
@@ -1045,6 +1044,17 @@
         </div>
       </div>
     </Teleport>
+
+    <!-- ─── Confirmar Apagar Tópico ──────────────────────────────────────── -->
+    <ActionDialog
+      :visible="deleteTopicDialog.visible"
+      :title="deleteTopicDialog.exerciseCount > 0 ? 'Apagar tópico com exercícios' : 'Apagar tópico'"
+      :message="deleteTopicMessage"
+      confirm-text="Apagar"
+      variant="danger"
+      @update:visible="deleteTopicDialog.visible = $event"
+      @confirm="executeDeleteTopic"
+    />
   </div>
 </template>
 
@@ -1053,6 +1063,7 @@ import { ref, computed, onMounted, reactive, watch } from 'vue';
 import { useAuthStore } from '../../../stores/authStore';
 import { usePathStore } from '../stores/pathStore';
 import { useExerciseStore } from '../stores/exerciseStore';
+import ActionDialog from '../../../components/ActionDialog.vue';
 
 const authStore = useAuthStore();
 const pathStore = usePathStore();
@@ -1322,6 +1333,12 @@ const newTopicOrder = ref(1);
 const addingTopic = ref(false);
 const addTopicError = ref('');
 const deletingTopic = ref(null);
+const deleteTopicDialog = reactive({ visible: false, topicName: '', exerciseCount: 0 });
+const deleteTopicMessage = computed(() =>
+  deleteTopicDialog.exerciseCount > 0
+    ? `O tópico "${deleteTopicDialog.topicName}" tem ${deleteTopicDialog.exerciseCount} exercício(s) associado(s).\n\nApagar este tópico irá eliminar permanentemente todos os seus exercícios. Esta ação não pode ser desfeita.`
+    : `Tem a certeza que pretende apagar o tópico "${deleteTopicDialog.topicName}"? Esta ação não pode ser desfeita.`
+);
 
 // Estado do modal de edição
 const showEditTopicModal = ref(false);
@@ -1389,11 +1406,18 @@ async function submitEditTopic() {
   }
 }
 
-async function confirmDeleteTopic(topicName) {
-  if (!confirm(`Apagar o tópico "${topicName}"? Esta ação não pode ser desfeita.`)) return;
+function confirmDeleteTopic(topicName, exerciseCount = 0) {
+  deleteTopicDialog.topicName = topicName;
+  deleteTopicDialog.exerciseCount = exerciseCount;
+  deleteTopicDialog.visible = true;
+}
+
+async function executeDeleteTopic() {
+  const { topicName, exerciseCount } = deleteTopicDialog;
+  deleteTopicDialog.visible = false;
   deletingTopic.value = topicName;
   try {
-    await pathStore.deleteTopic(selectedPathId.value, topicName);
+    await pathStore.deleteTopic(selectedPathId.value, topicName, exerciseCount > 0);
     if (selectedCheckpointName.value === topicName) selectedCheckpointName.value = null;
   } catch (e) {
     alert(e?.response?.data?.detail || 'Erro ao apagar tópico.');

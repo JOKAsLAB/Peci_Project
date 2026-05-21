@@ -155,7 +155,8 @@
 
             <h2 class="text-xl font-bold">Verificar Email</h2>
             <p class="text-text-secondary text-sm">
-              Enviámos um código de 6 dígitos para <strong class="text-white">{{ regEmail }}</strong>. Introduz o código para ativar a tua conta.
+              Enviámos um código de 6 dígitos para <strong class="text-white">{{ regEmail }}</strong>.
+              {{ selectedRole === 'Professor' ? 'Introduz o código para enviar o pedido de acesso.' : 'Introduz o código para ativar a tua conta.' }}
             </p>
 
             <div class="space-y-1.5">
@@ -451,12 +452,7 @@ async function register(): Promise<void> {
         department: 'DETI',
         shortBio: 'Conta criada a partir do login unificado',
       });
-      regSuccess.value = 'Pedido enviado. A tua conta ficará disponível após aprovação do administrador.';
-      currentView.value = 'login';
-      regName.value = '';
-      regEmail.value = '';
-      regPassword.value = '';
-      regConfirm.value = '';
+      showVerify.value = true;
     }
   } catch (error) {
     regError.value = error instanceof Error ? error.message : 'Falha ao registar.';
@@ -476,7 +472,9 @@ async function verifyEmail(): Promise<void> {
 
   try {
     await authStore.verifyStudentEmail(regEmail.value.trim().toLowerCase(), verifyCode.value.trim());
-    regSuccess.value = 'Email verificado! Podes fazer login agora.';
+    regSuccess.value = selectedRole.value === 'Professor'
+      ? 'Pedido enviado! A tua conta ficará disponível após aprovação do administrador.'
+      : 'Email verificado! Podes fazer login agora.';
     currentView.value = 'login';
     showVerify.value = false;
     regName.value = '';

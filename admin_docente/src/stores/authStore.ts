@@ -134,16 +134,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       if (loginData.user?.role !== options.role) {
-        const actualRole = loginData.user?.role;
-        if (actualRole === 'Student') {
-          throw new Error('Esta conta é de aluno. Por favor utilize a aplicação móvel.');
-        }
-        if (options.role === 'Student') {
-          throw new Error('Esta conta é de docente. Por favor aceda ao portal de docentes.');
-        }
-        throw new Error(
-          `Esta conta não tem permissões de ${options.role === 'Admin' ? 'administrador' : 'docente'}.`,
-        );
+        throw new Error('Sem permissões de acesso.');
       }
 
       setSession(loginData, remember);
@@ -267,6 +258,14 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  async function resendVerification(email: string): Promise<void> {
+    try {
+      await http.post('/api/v1/auth/resend-verification', { email });
+    } catch (error) {
+      throw new Error(getApiErrorMessage(error, 'Erro ao reenviar código.'));
+    }
+  }
+
   async function forgotPassword(email: string): Promise<void> {
     try {
       await http.post('/api/v1/auth/forgot-password', { email });
@@ -311,6 +310,7 @@ export const useAuthStore = defineStore('auth', () => {
     registerStudent,
     registerProfessor,
     verifyStudentEmail,
+    resendVerification,
     forgotPassword,
     resetPassword,
     loadProfessorCourseUnits,

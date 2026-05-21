@@ -18,9 +18,7 @@ RUN pip install --no-cache-dir \
     -r /tmp/backend-requirements.txt \
     -r /tmp/ai-requirements.txt
 
-# Copiar código — mantém a estrutura de paths que o main.py espera:
-#   /app/ai_engine/  ← ai_engine/
-#   /app/backend/    ← backend/backend/
+
 COPY ai_engine/  ./ai_engine/
 COPY backend/backend/ ./backend/
 

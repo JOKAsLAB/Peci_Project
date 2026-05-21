@@ -46,25 +46,7 @@ class Chatbot:
         self.llm = ChatGroq(model_name="llama-3.3-70b-versatile", temperature=0.2)
 
     def responder_pergunta(self, query, k=10):
-
-        prompt_prep = f"""
-        Identifica os termos técnicos desta pergunta em Português e escreve-os em Inglês.
-        Pergunta: "{query}"
-        Responde apenas com os termos técnicos em Inglês e algo que esteja relacionado.
-        Exemplo: Vírgula Flutuante , Floating Point, IEEE 754 single/double precision ou seja decompôes o termo técnico em partes e traduz cada parte.
-        DEVOLVE NO FORMATO: "termo1, termo2, termo3"
-        """
-
-        try:
-            termos_en = self.llm.invoke(prompt_prep).content.strip()
-            query_para_busca = f"{query} {termos_en}"
-            print(f"DEBUG - Query Original: '{query}' | Termos Técnicos (EN): '{termos_en}'")
-        except Exception as e:
-            query_para_busca = query
-            print(f"DEBUG - Falha no request de tradução técnica: {e}")
-
-        query_formatada = f"task: search result | query: {query_para_busca}"
-        print(f"DEBUG - Query Formatada para Busca: '{query_formatada}'")
+        query_formatada = f"task: search result | query: {query}"
 
         resultados_teste = self.vectorstore.similarity_search_with_relevance_scores(query_formatada, k=5)
 
