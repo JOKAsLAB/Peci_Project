@@ -3,14 +3,16 @@ import re
 import json
 import time
 import uuid
-from typing import List, Dict, Tuple
+from typing import List, Dict
 from dotenv import load_dotenv
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 import torch
 from langchain_groq import ChatGroq
 from IAEduAPI import IAEduAPI
+
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 
 class QuestionGeneratorTeacher:
     DEFAULT_DB_PATH = os.path.join(_BASE_DIR, "chroma_db")
@@ -18,7 +20,7 @@ class QuestionGeneratorTeacher:
     def __init__(self, db_path: str = DEFAULT_DB_PATH, device="cuda", embeddings=None):
         _dir = os.path.dirname(os.path.abspath(__file__))
         load_dotenv(os.path.join(_dir, "keys.env"), override=True)
-        
+
         gemma_token = os.getenv("TOKEN_GEMMA")
         groq_key = os.getenv("GROQ_API_KEY")
         if not gemma_token or not groq_key:
@@ -26,8 +28,6 @@ class QuestionGeneratorTeacher:
 
         os.environ["HF_TOKEN"] = gemma_token
         os.environ["GROQ_API_KEY"] = groq_key
-
-        
 
         if embeddings is not None:
             self.embeddings = embeddings
@@ -43,6 +43,7 @@ class QuestionGeneratorTeacher:
             persist_directory=db_path,
             embedding_function=self.embeddings,
             collection_name="conhecimento_geral",
+            collection_metadata={"hnsw:space": "cosine"},
             relevance_score_fn=lambda distance: 1 - distance
         )
 
@@ -50,6 +51,7 @@ class QuestionGeneratorTeacher:
             persist_directory=db_path,
             embedding_function=self.embeddings,
             collection_name="conhecimento_geral",
+            collection_metadata={"hnsw:space": "cosine"},
             relevance_score_fn=lambda distance: 1 - distance
         )
 
@@ -59,7 +61,7 @@ class QuestionGeneratorTeacher:
             channel_id=os.getenv("CANAL_ID"),
         )
         self.llm_groq = ChatGroq(model_name="openai/gpt-oss-120b", temperature=0.2)
-    # Chamar API IAEdu, se falhar, tentar novamente com backoff exponencial
+
     def _invoke_llm_qg(self, prompt: str) -> str:
         self.llm_qg.thread_id = str(uuid.uuid4())
         raw = None
@@ -75,54 +77,61 @@ class QuestionGeneratorTeacher:
         return raw
 
     def _get_context_from_book(self, ficheiro_id: str, topic: str, k: int = 15, topics_override: list = None):
-        # 1. Obter metadados do livro (ID da UC)
-        print(f"🔍 Procurando ficheiro: '{ficheiro_id}' em ChromaDB...")
+        print(f"Procurando ficheiro: '{ficheiro_id}' em ChromaDB...")
         try:
             sample = self.db.get(where={"ficheiro_id": ficheiro_id}, limit=1)
             if not sample["metadatas"] or len(sample["metadatas"]) == 0:
-                print(f"⚠️ Ficheiro '{ficheiro_id}' não encontrado com 'ficheiro_id'. A tentar com outras chaves...")
+                print(f"Ficheiro '{ficheiro_id}' não encontrado.")
                 all_items = self.db.get(limit=5)
                 if all_items["metadatas"]:
-                    print(f"📋 Primeiros metadados em ChromaDB: {all_items['metadatas'][0]}")
+                    print(f"Primeiros metadados em ChromaDB: {all_items['metadatas'][0]}")
                 raise FileNotFoundError(f"Ficheiro '{ficheiro_id}' não encontrado na base de dados.")
         except Exception as e:
-            print(f"❌ Erro ao obter metadados: {str(e)}")
+            print(f"Erro ao obter metadados: {str(e)}")
             raise
 
         metadata = sample["metadatas"][0]
         id_uc = metadata.get("uc_id") or metadata.get("id_uc")
-        print(f"✅ Ficheiro encontrado com UC_ID: {id_uc}")
+        print(f"Ficheiro encontrado com UC_ID: {id_uc}")
 
         if not topics_override:
-            print(f"❌ Nenhum tópico fornecido para UC {id_uc}. Os tópicos devem ser definidos na base de dados.")
+            print(f"Nenhum tópico fornecido para UC {id_uc}.")
             return None, None, None, None
 
         topicos_permitidos = topics_override
-            
         topicos_str = "\n".join(f"- {t}" for t in topicos_permitidos)
 
-        # 2. Fazer a busca no ChromaDB
-        query_para_busca = topic
+        try:
+            prompt_decomp = (
+                f"Identifica os termos técnicos deste tópico em Português e traduz-os para Inglês.\n"
+                f"Tópico: \"{topic}\"\n"
+                f"Responde apenas com os termos técnicos em Inglês separados por vírgulas."
+            )
+            termos_en = self.llm_groq.invoke(prompt_decomp).content.strip()
+            query_para_busca = f"{topic} {termos_en}"
+        except Exception:
+            query_para_busca = topic
         query_formatada = f"task: search result | query: {query_para_busca}"
 
         resultados_teste = self.vectorstore.similarity_search_with_relevance_scores(
             query_formatada, k=5, filter={"ficheiro_id": ficheiro_id}
         )
         if not resultados_teste:
-            print(f"⚠️ Sem resultados com keywords expandidos, a tentar com tópico original...")
             query_formatada = f"task: search result | query: {topic}"
             resultados_teste = self.vectorstore.similarity_search_with_relevance_scores(
                 query_formatada, k=5, filter={"ficheiro_id": ficheiro_id}
             )
         if not resultados_teste:
             return None, None, None, None
-        best_score = max(resultados_teste, key=lambda x: x[1])[1]
-        print(f"DEBUG - '{topic}' | Score Gemma: {best_score:.4f}")
 
-        if best_score < 0.40:
+        best_score = max(resultados_teste, key=lambda x: x[1])[1]
+        print(f"DEBUG - '{topic}' | Score: {best_score:.4f}")
+
+        if best_score < 0.05:
+            print(f"Contexto insuficiente para '{topic}' em '{ficheiro_id}'.")
             return None, None, None, None
-        # 3. Fazer a busca no ChromaDB filtrando pelo livro
-        print(f"🔄 A procurar contexto relevante com '{query_para_busca}'...")
+
+        print(f"A procurar contexto relevante com '{query_para_busca}'...")
         try:
             retriever = self.db.as_retriever(
                 search_type="mmr",
@@ -130,8 +139,7 @@ class QuestionGeneratorTeacher:
             )
             docs = retriever.invoke(query_para_busca)
         except Exception as e:
-            print(f"⚠️ Erro na busca: {e}. A tentar sem filtro...")
-            # Fallback sem filtro
+            print(f"Erro na busca: {e}. A tentar sem filtro...")
             retriever = self.db.as_retriever(
                 search_type="mmr",
                 search_kwargs={"k": k, "fetch_k": 30}
@@ -139,21 +147,19 @@ class QuestionGeneratorTeacher:
             docs = retriever.invoke(query_para_busca)
 
         if not docs or len(docs) == 0:
-            print(f"❌ Nenhum documento encontrado para '{query_para_busca}'")
+            print(f"Nenhum documento encontrado para '{query_para_busca}'")
             return None, None, None, None
 
-        print(f"✅ Encontrados {len(docs)} documentos relevantes")
+        print(f"Encontrados {len(docs)} documentos relevantes")
 
-        # 4. Construir o contexto
         contexto_str = ""
-        for i, d in enumerate(docs):
+        for d in docs:
             conteudo = d.page_content
             if " | text: " in conteudo:
                 conteudo = conteudo.split(" | text: ", 1)[1]
             pagina = d.metadata.get('pagina') or d.metadata.get('page') or '?'
-            contexto_str += f"\n--- [Pág {pagina}] ---\n{conteudo}\n"
-        
-        print(f"📚 Contexto compilado com {len(contexto_str)} caracteres")
+            contexto_str += f"\n--- [Pag {pagina}] ---\n{conteudo}\n"
+
         return contexto_str, topicos_permitidos, topicos_str, id_uc
 
     def generate_questions(self, context: str, topicos_str: str, n_perguntas: int, id_uc: str, topicos_permitidos: List[str], difficulty: str, question_type: str) -> List[Dict]:
@@ -180,56 +186,47 @@ class QuestionGeneratorTeacher:
         FORMATO DA LISTA DE JSONs:
         [{{"question": "...", "type": "{question_type}", "options": ["A) ...", "B) ...", "C) ...", "D) ..."], "correct": "A", "difficulty": "{difficulty}", "explanation": "...", "topic": "..."}}]"""
 
-        print(f"📤 A chamar LLM para gerar {n_perguntas} perguntas ({question_type}, {difficulty})...")
+        print(f"A chamar LLM para gerar {n_perguntas} perguntas ({question_type}, {difficulty})...")
         try:
-            raw = self.llm_groq.invoke(prompt).content.strip()
-            print(f"📥 Resposta do LLM recebida: {len(raw)} caracteres")
+            self.llm.thread_id = str(uuid.uuid4())
+            raw = self.llm.invoke(prompt).content.strip()
+            print(f"Resposta do LLM recebida: {len(raw)} caracteres")
         except Exception as e:
-            print(f"❌ Erro ao chamar LLM: {str(e)}")
+            print(f"Erro ao chamar LLM: {str(e)}")
             raise
-        
+
         perguntas = []
-        
+
         try:
-            # O LLM deve devolver uma lista de JSONs
-            print(f"🔍 A fazer parse JSON da resposta...")
             lista_json = json.loads(raw)
             if not isinstance(lista_json, list):
-                # Fallback se não for uma lista
-                print(f"⚠️ Resposta não é lista, a extrair JSONs individuais...")
                 raw_blocks = re.findall(r'\{[^{}]+\}', raw, re.DOTALL)
                 lista_json = [json.loads(b) for b in raw_blocks]
-
         except json.JSONDecodeError as e:
-            # Fallback para extrair JSONs individuais se o parsing da lista falhar
-            print(f"⚠️ Parse JSON falhou: {e}. A extrair blocos individuais...")
+            print(f"Parse JSON falhou: {e}. A extrair blocos individuais...")
             raw_blocks = re.findall(r'\{[^{}]+\}', raw, re.DOTALL)
             if not raw_blocks:
-                print(f"❌ Nenhum bloco JSON encontrado na resposta: {raw[:200]}")
+                print(f"Nenhum bloco JSON encontrado na resposta: {raw[:200]}")
                 return []
             lista_json = []
             for b in raw_blocks:
                 try:
                     lista_json.append(json.loads(b))
-                except json.JSONDecodeError as je:
-                    print(f"⚠️ Erro ao fazer parse de bloco: {je}")
+                except json.JSONDecodeError:
                     continue
-        
-     
-        
+
         for i, ex in enumerate(lista_json):
             try:
                 question = ex.get("question", "").strip()
                 if not question or len(question) < 20:
-                    print(f"⚠️ Pergunta {i+1} muito curta, ignorada")
+                    print(f"Pergunta {i+1} muito curta, ignorada")
                     continue
 
                 topic = ex.get("topic", "").strip()
                 if topic not in topicos_permitidos:
-                    # Tentar encontrar match aproximado
                     topic = next((t for t in topicos_permitidos if topic.lower() in t.lower() or t.lower() in topic.lower()), None)
                     if topic is None:
-                        print(f"⚠️ Pergunta {i+1} tem tópico não permitido: '{ex.get('topic')}'")
+                        print(f"Pergunta {i+1} tem tópico não permitido: '{ex.get('topic')}'")
                         continue
 
                 perguntas.append({
@@ -242,35 +239,28 @@ class QuestionGeneratorTeacher:
                     "topic": topic,
                     "id_uc": id_uc
                 })
-                print(f"✅ Pergunta {i+1} adicionada: '{question[:50]}...'")
             except Exception as e:
-                print(f"❌ Erro ao processar pergunta {i+1}: {e}")
+                print(f"Erro ao processar pergunta {i+1}: {e}")
                 continue
 
-        print(f"📊 Total de perguntas válidas: {len(perguntas)}/{len(lista_json)}")
+        print(f"Total de perguntas válidas: {len(perguntas)}/{len(lista_json)}")
         return perguntas
 
     def generate_questions_by_topic(self, ficheiro_id: str, topic: str, n_perguntas: int, difficulty: str = "variada", question_type: str = "Escolha Múltipla", topics_override: list = None):
         if not topics_override:
-            print("❌ topics_override é obrigatório. Define os tópicos da UC na base de dados.")
+            print("topics_override é obrigatório.")
             return []
 
         try:
-            # Obter contexto relevante do livro
             contexto, topicos_permitidos, topicos_str, id_uc = self._get_context_from_book(ficheiro_id, topic, topics_override=topics_override)
-            
+
             if not contexto:
-                print(f"❌ Não foi possível encontrar contexto relevante para '{topic}' em '{ficheiro_id}'.")
+                print(f"Não foi possível encontrar contexto relevante para '{topic}' em '{ficheiro_id}'.")
                 return []
 
-            # Gerar perguntas com base no contexto
-            perguntas = self.generate_questions(contexto, topicos_str, n_perguntas, id_uc, topicos_permitidos, difficulty, question_type)
-            
+            return self.generate_questions(contexto, topicos_str, n_perguntas, id_uc, topicos_permitidos, difficulty, question_type)
 
-            return perguntas
-        
         except Exception as e:
-        
             import traceback
             traceback.print_exc()
             print(f"{'='*70}\n")
@@ -280,26 +270,3 @@ class QuestionGeneratorTeacher:
         with open(nome_arquivo, 'w', encoding='utf-8') as f:
             json.dump(perguntas, f, indent=2, ensure_ascii=False)
         print(f"Guardado: {nome_arquivo}")
-
-'''
-if __name__ == "__main__":
-    gerador = QuestionGeneratorTeacher()
-    
-
-    nome_livro = "patterson_book.pdf"
-    topico_interesse = "endereçamento de memória e instruções"
-    num_perguntas_desejadas = 7
-    dificuldade_desejada = "hard"  # easy, medium, hard, variada
-    tipo_pergunta_desejado = "True/False" # Escolha Múltipla, True/False
-    
-    Questions = gerador.generate_questions_by_topic(
-        ficheiro_id=nome_livro,
-        topic=topico_interesse,
-        n_perguntas=num_perguntas_desejadas,
-        difficulty=dificuldade_desejada,
-        question_type=tipo_pergunta_desejado
-    )
-    
-    if Questions:
-        gerador.export_json(Questions, f"perguntas_{topico_interesse.replace(' ', '_')}.json")
-'''

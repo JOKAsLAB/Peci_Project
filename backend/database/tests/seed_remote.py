@@ -13,7 +13,7 @@ SERVER_IP = "localhost"
 DB_USER   = "PECI_USER"
 DB_PASS   = "12345678"
 DB_NAME   = "PECI_LOCAL"
-DB_PORT   = 5432
+DB_PORT   = 5433
 
 DB_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{SERVER_IP}:{DB_PORT}/{DB_NAME}"
 
@@ -171,14 +171,14 @@ async def seed():
             try:
                 await session.execute(text("""
                     INSERT INTO exercise (
-                        id_uc, topic_name, material_ref,
+                        id_exercise, id_uc, topic_name, material_ref,
                         type, question, solution, difficulty, explanation, published
                     ) VALUES (
-                        :id_uc, :topic, NULL,
-                        :type::exercise_type_enum,
+                        gen_random_uuid(), :id_uc, :topic, NULL,
+                        CAST(:type AS exercise_type_enum),
                         :question,
                         CAST(:solution AS jsonb),
-                        :difficulty::difficulty_level_enum,
+                        CAST(:difficulty AS difficulty_level_enum),
                         :explanation,
                         TRUE
                     )

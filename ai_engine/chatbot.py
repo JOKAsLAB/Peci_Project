@@ -39,6 +39,7 @@ class Chatbot:
             persist_directory=db_path,
             embedding_function=self.embeddings,
             collection_name="conhecimento_geral",
+            collection_metadata={"hnsw:space": "cosine"},
             relevance_score_fn=lambda distance: 1 - distance
         )
 
@@ -108,7 +109,13 @@ class Chatbot:
                 7. ÉS O COMPANHEIRO DE ESTUDO DO ALUNO SÊ DIVERTIDO E DIDÁTICO, NÃO UM MOTOR DE BUSCA.
                 """
         try:
+            self.llm.thread_id = str(uuid.uuid4())
             res = self.llm.invoke(prompt)
             return res.content, sorted(list(fontes))
         except Exception as e:
-            return f"Erro API: {str(e)}", []
+            print(f"IAEdu falhou ({e}), a tentar Groq...")
+            try:
+                res = self.llm_groq.invoke(prompt)
+                return res.content, sorted(list(fontes))
+            except Exception as e2:
+                return f"Erro API: {str(e2)}", []

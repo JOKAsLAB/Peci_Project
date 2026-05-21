@@ -20,9 +20,9 @@ RUN pip install --no-cache-dir \
 
 
 COPY ai_engine/  ./ai_engine/
-COPY backend/backend/ ./backend/
+COPY backend/backend/ ./backend/backend/
 
-WORKDIR /app/backend
+WORKDIR /app/backend/backend
 
 EXPOSE 8000
 
