@@ -453,7 +453,7 @@ async def create_progress(
 	)
 	if not has_today:
 		await db.execute(
-			raw_text("INSERT INTO streak (id_streak, id_student, log_date) VALUES (gen_random_uuid(), :uid, :d)"),
+			raw_text("INSERT INTO streak (id_streak, id_student, log_date, sync_status) VALUES (gen_random_uuid(), :uid, :d, 'Synced')"),
 			{"uid": uid, "d": today},
 		)
 
