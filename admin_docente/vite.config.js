@@ -8,7 +8,7 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['chatbot.png', 'icons/icon-180.png'],
+      includeAssets: ['chatbot.png', 'icon_app_projeto_preto.png'],
       manifest: {
         name: 'LogicStreak',
         short_name: 'LogicStreak',
@@ -19,15 +19,16 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/icons/icon-192.png',
+            src: '/icon_app_projeto_preto.png',
             sizes: '192x192',
             type: 'image/png',
+            purpose: 'any',
           },
           {
-            src: '/icons/icon-512.png',
+            src: '/icon_app_projeto_preto.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable',
+            purpose: 'any',
           },
         ],
       },

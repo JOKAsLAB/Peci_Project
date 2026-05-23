@@ -3,7 +3,7 @@
 ## O que está incluído
 
 | Serviço    | Tecnologia          | Acesso externo |
-|------------|---------------------|----------------|
+| ---------- | ------------------- | -------------- |
 | Frontend   | Vue 3 + nginx       | porta **80**   |
 | Backend    | FastAPI + AI Engine | interno        |
 | Base dados | PostgreSQL 16       | interno        |
@@ -15,6 +15,7 @@ Só a porta 80 fica exposta. O backend e a BD ficam na rede interna do Docker.
 ## Pré-requisitos
 
 ### Linux (servidor Ubuntu/Debian)
+
 ```bash
 # Docker + Docker Compose (uma linha)
 curl -fsSL https://get.docker.com | sh
@@ -25,11 +26,14 @@ docker compose version
 ```
 
 ### Windows
+
 Instala o **Docker Desktop para Windows**:
+
 1. Descarrega em https://www.docker.com/products/docker-desktop/
 2. Instala e reinicia o PC
 3. Abre o Docker Desktop e aguarda até o ícone ficar verde ("Engine running")
 4. Verifica numa janela PowerShell:
+
 ```powershell
 docker --version
 docker compose version
@@ -41,19 +45,6 @@ docker compose version
 
 ## 1. Colocar o projeto no servidor/PC
 
-### Linux
-**Opção A — via Git (recomendado)**
-```bash
-git clone https://github.com/JOKAsLAB/Peci_Project.git
-cd Peci_Project
-```
-
-**Opção B — via SCP (do teu PC Windows para o servidor)**
-```powershell
-scp -r "C:\Users\joaob\Documents\GitHub\Peci_Project" user@IP_SERVIDOR:~/peci
-```
-
-### Windows
 ```powershell
 git clone https://github.com/JOKAsLAB/Peci_Project.git
 cd Peci_Project
@@ -66,11 +57,13 @@ cd Peci_Project
 Edita o ficheiro `backend/backend/app/.env`:
 
 ### Linux
+
 ```bash
 nano backend/backend/app/.env
 ```
 
 ### Windows (PowerShell)
+
 ```powershell
 notepad backend\backend\app\.env
 # ou, se tiveres VS Code:
@@ -123,6 +116,7 @@ docker compose up -d --build
 - **Primeira vez demora 10–20 min** (descarrega modelos de IA ~300 MB)
 
 Verificar se está tudo a correr:
+
 ```bash
 docker compose ps
 ```
@@ -140,14 +134,17 @@ A primeira conta Admin é criada automaticamente pelo backend ao arrancar (crede
 Se precisares de criar manualmente via BD:
 
 ### Linux
+
 ```bash
 docker compose exec db psql -U PECI_USER -d PECI_LOCAL
 ```
 
 ### Windows (PowerShell)
+
 ```powershell
 docker compose exec db psql -U PECI_USER -d PECI_LOCAL
 ```
+
 > O comando `docker compose exec` é igual — só muda como corres o Python abaixo.
 
 ```sql
@@ -191,7 +188,7 @@ docker compose down
 # Atualizar o projeto (depois de git pull)
 docker compose up -d --build
 
-# Apagar TUDO incluindo a base de dados ⚠️
+# Apagar TUDO incluindo a base de dados
 docker compose down -v
 ```
 
@@ -200,16 +197,59 @@ docker compose down -v
 ## Estrutura de rede (resumo)
 
 ```
-Internet
-   │
-   ▼ porta 80
- [nginx]
-   ├── /          → ficheiros Vue (estáticos)
-   ├── /api/*     → http://backend:8000  ← só interno
-   └── /ws/*      → ws://backend:8000   ← só interno
-
- [backend] ←→ [db:5432]  ← nunca exposta ao exterior
+Eduroam / Rede local
+        │
+        │  IP da máquina (192.168.1.140)
+        │  porta 80
+        ▼
+┌─────────────────────────────────────────────────┐
+│  Servidor físico                                │
+│                                                 │
+│  bridge: peci_network  172.20.0.0/24            │
+│  gateway:              172.20.0.1               │
+│                                                 │
+│  ┌──────────────────────────────────────────┐  │
+│  │ peci_frontend  172.20.0.30               │  │
+│  │ nginx : 80                               │  │
+│  │   /          → ficheiros Vue (estáticos) │  │
+│  │   /api/*     → 172.20.0.20:8000          │  │
+│  │   /ws/*      → 172.20.0.20:8000          │  │
+│  └──────────────┬───────────────────────────┘  │
+│                 │                               │
+│  ┌──────────────▼───────────────────────────┐  │
+│  │ peci_backend  172.20.0.20                │  │
+│  │ FastAPI + AI Engine : 8000               │  │
+│  └──────────────┬───────────────────────────┘  │
+│                 │                               │
+│  ┌──────────────▼───────────────────────────┐  │
+│  │ peci_db  172.20.0.10                     │  │
+│  │ PostgreSQL : 5432  (nunca exposta)        │  │
+│  └──────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────┘
 ```
 
-Não precisas de configurar nenhuma URL no frontend —
-o nginx trata de reencaminhar `/api/` e `/ws/` para o backend automaticamente.
+| Serviço        | IP interno   | Porta interna | Porta externa |
+|----------------|-------------|---------------|---------------|
+| peci_frontend  | 172.20.0.30 | 80            | **80**        |
+| peci_backend   | 172.20.0.20 | 8000          | —             |
+| peci_db        | 172.20.0.10 | 5432          | —             |
+
+## Seed de perguntas na base de dados
+
+### `backend/database/tests/seed_remote.py`
+
+Insere perguntas a partir de um ficheiro JSON na base de dados (local ou remota).
+
+Comando base (aponta para o JSON por defeito `perguntas_uc.json`):
+
+```powershell
+python backend/database/tests/seed_remote.py
+```
+
+Comando com ficheiro especifico:
+
+```powershell
+python backend/database/tests/seed_remote.py backend/database/tests/perguntas_uc.json
+```
+
+> Edita as variaveis `SERVER_IP`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` no topo do ficheiro para apontar para o servidor certo antes de correr.

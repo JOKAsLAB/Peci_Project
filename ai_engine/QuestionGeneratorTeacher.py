@@ -63,12 +63,12 @@ class QuestionGeneratorTeacher:
         self.llm_groq = ChatGroq(model_name="openai/gpt-oss-120b", temperature=0.2)
 
     def _invoke_llm_qg(self, prompt: str) -> str:
-        self.llm_qg.thread_id = str(uuid.uuid4())
+        self.llm.thread_id = str(uuid.uuid4())
         raw = None
         attempt = 0
         while raw is None:
             try:
-                raw = self.llm_qg.invoke(prompt).content
+                raw = self.llm.invoke(prompt).content
             except Exception as e:
                 wait = min(10 * (attempt + 1), 300)
                 print(f"Erro na API de geração: {e}. A aguardar {wait}s... (tentativa {attempt + 1})")
@@ -188,7 +188,6 @@ class QuestionGeneratorTeacher:
 
         print(f"A chamar LLM para gerar {n_perguntas} perguntas ({question_type}, {difficulty})...")
         try:
-            self.llm.thread_id = str(uuid.uuid4())
             raw = self.llm.invoke(prompt).content.strip()
             print(f"Resposta do LLM recebida: {len(raw)} caracteres")
         except Exception as e:
@@ -264,6 +263,8 @@ class QuestionGeneratorTeacher:
             import traceback
             traceback.print_exc()
             print(f"{'='*70}\n")
+            if "429" in str(e) or "rate limit" in str(e).lower():
+                raise
             return []
 
     def export_json(self, perguntas: List[Dict], nome_arquivo: str):

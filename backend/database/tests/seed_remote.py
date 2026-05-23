@@ -9,11 +9,12 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 
-SERVER_IP = "localhost"   
+SERVER_IP = "192.168.1.140"
 DB_USER   = "PECI_USER"
-DB_PASS   = "12345678"
+DB_PASS   = "PECIBD_PASSWORD"
 DB_NAME   = "PECI_LOCAL"
 DB_PORT   = 5433
+
 
 DB_URL = f"postgresql+asyncpg://{DB_USER}:{DB_PASS}@{SERVER_IP}:{DB_PORT}/{DB_NAME}"
 

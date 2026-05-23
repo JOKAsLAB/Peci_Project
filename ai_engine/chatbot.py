@@ -5,6 +5,7 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from IAEduAPI import IAEduAPI
+import uuid
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _CHROMA_PATH = os.path.join(_BASE_DIR, "chroma_db")

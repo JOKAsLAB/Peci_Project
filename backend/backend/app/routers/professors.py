@@ -408,7 +408,7 @@ async def delete_material(
         try:
             indexer.remover_ficheiro(str(material_id))
         except Exception as e:
-            print(f"⚠️ Erro ao remover do ChromaDB: {e}")
+            print(f"Erro ao remover do ChromaDB: {e}")
 
     await db.execute(delete(Teaching_Material).where(Teaching_Material.ID_Material == material_id))
     await db.commit()
@@ -526,7 +526,7 @@ async def generate_questions(
         raise HTTPException(status_code=503, detail="AI Engine não disponível")
 
     try:
-        print(f"📊 A chamar gerador com:\n  - filename: {payload.filename}\n  - topic: {payload.topic}\n  - n_perguntas: {payload.n_perguntas}\n  - difficulty: {payload.difficulty}\n  - question_type: {payload.question_type}")
+        print(f"A chamar gerador com:\n  - filename: {payload.filename}\n  - topic: {payload.topic}\n  - n_perguntas: {payload.n_perguntas}\n  - difficulty: {payload.difficulty}\n  - question_type: {payload.question_type}")
 
         db_topics = (
             await db.scalars(
@@ -537,14 +537,20 @@ async def generate_questions(
         if not topics_list:
             raise HTTPException(status_code=400, detail="A UC não tem tópicos definidos. Adiciona tópicos antes de gerar perguntas.")
 
-        perguntas = gerador.generate_questions_by_topic(
-            ficheiro_id=payload.filename,
-            topic=payload.topic,
-            n_perguntas=payload.n_perguntas,
-            difficulty=payload.difficulty,
-            question_type=payload.question_type,
-            topics_override=topics_list,
-        )
+        try:
+            perguntas = gerador.generate_questions_by_topic(
+                ficheiro_id=payload.filename,
+                topic=payload.topic,
+                n_perguntas=payload.n_perguntas,
+                difficulty=payload.difficulty,
+                question_type=payload.question_type,
+                topics_override=topics_list,
+            )
+        except Exception as e:
+            msg = str(e)
+            if "429" in msg or "Rate limit" in msg.lower():
+                raise HTTPException(status_code=429, detail="Limite de pedidos à API de IA atingido. Tenta novamente mais tarde.")
+            raise HTTPException(status_code=503, detail="Erro interno da API de IA. Tenta novamente mais tarde.")
 
         print(f"Gerador retornou {len(perguntas)} perguntas")
 
@@ -592,7 +598,7 @@ async def generate_questions(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Erro na rota generate-questions: {str(e)}")
+        print(f"Erro na rota generate-questions: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Erro ao gerar perguntas: {str(e)}")
@@ -831,11 +837,11 @@ async def index_material(
 
     try:
         file_content = await file.read()
-        print(f"📥 Ficheiro recebido: {file.filename} ({len(file_content)} bytes)")
+        print(f"Ficheiro recebido: {file.filename} ({len(file_content)} bytes)")
 
         ficheiro_id = uuid.uuid4()
 
-        print("🔄 A indexar ficheiro...")
+        print("A indexar ficheiro...")
         resultado = indexer.indexar_com_upload(
             file_content=file_content,
             original_filename=file.filename,

@@ -214,6 +214,28 @@ Parametros uteis:
 - `-IncludeAlunoArtifacts`
 - `-KeepTempLogs`
 
+## Seed de perguntas na base de dados
+
+### `backend/database/tests/seed_remote.py`
+
+Insere perguntas a partir de um ficheiro JSON na base de dados (local ou remota).
+
+Comando base (aponta para o JSON por defeito `perguntas_uc.json`):
+
+```powershell
+python backend/database/tests/seed_remote.py
+```
+
+Comando com ficheiro especifico:
+
+```powershell
+python backend/database/tests/seed_remote.py backend/database/tests/perguntas_uc.json
+```
+
+> Edita as variaveis `SERVER_IP`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` no topo do ficheiro para apontar para o servidor certo antes de correr.
+
+---
+
 ## Fluxos recomendados
 
 ### Fluxo web rapido
