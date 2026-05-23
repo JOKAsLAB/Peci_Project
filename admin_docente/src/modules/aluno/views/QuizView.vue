@@ -224,9 +224,8 @@ const accuracy = computed(() =>
 )
 
 function getWsUrl(sid) {
-  const apiBase = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '')
-  const wsBase = apiBase.replace('https://', 'wss://').replace('http://', 'ws://')
-  return `${wsBase}/api/v1/quizzes/ws/student/${sid}?token=${authStore.token}`
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${location.host}/api/v1/quizzes/ws/student/${sid}?token=${authStore.token}`
 }
 
 function stripPrefix(option) {
