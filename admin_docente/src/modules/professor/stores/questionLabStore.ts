@@ -10,10 +10,17 @@ export const useQuestionLabStore = defineStore('questionLab', () => {
   const error = ref(null);
   const hasLoaded = ref(false);
 
-  async function loadDocuments(force = false) {
+  // Backend usa Status=Pending enquanto o ficheiro está a ser indexado em segundo
+  // plano. Na UI isso corresponde a "A processar" (Indexed = pronto, Error = falhou).
+  function mapStatus(rawStatus) {
+    const s = rawStatus?.toLowerCase() ?? 'pending';
+    return s === 'pending' ? 'processing' : s;
+  }
+
+  async function loadDocuments(force = false, silent = false) {
     if (hasLoaded.value && !force) return;
 
-    isLoading.value = true;
+    if (!silent) isLoading.value = true;
     error.value = null;
     try {
       const { data } = await http.get('/api/v1/professors/materials');
@@ -23,7 +30,7 @@ export const useQuestionLabStore = defineStore('questionLab', () => {
             id_uc: doc.id_uc,
             name: doc.title,
             discipline: doc.id_uc,
-            status: doc.status?.toLowerCase() ?? 'pending',
+            status: mapStatus(doc.status),
             fileType: doc.title?.split('.').pop()?.toLowerCase() ?? 'pdf',
             uploadedAt: doc.upload_date
               ? new Date(doc.upload_date).toLocaleDateString('pt-PT')
@@ -34,12 +41,35 @@ export const useQuestionLabStore = defineStore('questionLab', () => {
         : [];
       hasLoaded.value = true;
     } catch (e) {
-      availableDocuments.value = [];
+      if (!silent) {
+        availableDocuments.value = [];
+        error.value = getApiErrorMessage(e, 'Erro ao carregar documentos.');
+      }
       hasLoaded.value = true;
-      error.value = getApiErrorMessage(e, 'Erro ao carregar documentos.');
     } finally {
-      isLoading.value = false;
+      if (!silent) isLoading.value = false;
     }
+  }
+
+  // Refresca a lista em segundo plano até nenhum documento estar "a processar".
+  let pollTimer = null;
+
+  function stopPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  function startPolling() {
+    stopPolling();
+    pollTimer = setInterval(async () => {
+      await loadDocuments(true, true);
+      const stillProcessing = availableDocuments.value.some(
+        (d) => d.status === 'processing',
+      );
+      if (!stillProcessing) stopPolling();
+    }, 3000);
   }
 
   async function generateQuestions(draftPayload) {
@@ -134,6 +164,7 @@ export const useQuestionLabStore = defineStore('questionLab', () => {
       await http.post(`/api/v1/professors/materials/${docId}/reindex`);
       const doc = availableDocuments.value.find((d) => d.id_material === docId);
       if (doc) doc.status = 'processing';
+      startPolling();
     } catch (e) {
       error.value = getApiErrorMessage(
         e,
@@ -151,6 +182,8 @@ export const useQuestionLabStore = defineStore('questionLab', () => {
     error,
     hasLoaded,
     loadDocuments,
+    startPolling,
+    stopPolling,
     generateQuestions,
     removeDraft,
     markDraftReady,

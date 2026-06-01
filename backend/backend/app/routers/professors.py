@@ -1,12 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status, UploadFile, File
 from sqlalchemy import and_, select, delete, update, func as sa_func
 from sqlalchemy.ext.asyncio import AsyncSession
 from uuid import UUID
+import asyncio
 import glob
 import uuid
 import os
 from typing import Optional
-from app.database import get_db
+from app.database import get_db, AsyncSessionLocal
 from app.models import (
     Base_User,
     Course_Unit,
@@ -17,7 +18,7 @@ from app.models import (
     Teaching_Material,
     Topic,
 )
-from app.models.enums import RequestStatus
+from app.models.enums import RequestStatus, MaterialStatus
 from app.routers.deps import require_roles
 from app.schemas.academic import (
     CourseUnitResponse,
@@ -36,6 +37,85 @@ from app.schemas.admin import AdminRequestResponse, ProfessorRequestCreateReques
 
 
 router = APIRouter(prefix="/api/v1/professors", tags=["professors"])
+
+
+# Serializa as operações pesadas de IA (indexação/geração). O modelo de embeddings
+# e o ChromaDB são partilhados — corre uma de cada vez para evitar conflitos de escrita.
+# O event loop continua livre (o trabalho corre em threads), por isso o resto da app
+# (logins, quizzes, listagens) nunca fica bloqueado à espera destas tarefas.
+_ai_engine_lock = asyncio.Lock()
+
+
+async def _process_material_indexing(
+    indexer,
+    material_id: uuid.UUID,
+    file_content: bytes,
+    original_filename: str,
+    uc_id: int,
+) -> None:
+    """Indexa um material em segundo plano e atualiza o Status na BD.
+
+    Corre fora do ciclo do pedido HTTP, por isso usa a sua própria sessão de BD.
+    """
+    status_final = MaterialStatus.INDEXED
+    try:
+        async with _ai_engine_lock:
+            await asyncio.to_thread(
+                indexer.indexar_com_upload,
+                file_content=file_content,
+                original_filename=original_filename,
+                uc_id=uc_id,
+                ficheiro_id=str(material_id),
+            )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"Erro ao indexar material {material_id}: {e}")
+        status_final = MaterialStatus.ERROR
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(
+            update(Teaching_Material)
+            .where(Teaching_Material.ID_Material == material_id)
+            .values(Status=status_final)
+        )
+        await session.commit()
+
+
+async def _reprocess_material_indexing(
+    indexer,
+    material_id: uuid.UUID,
+    file_path: str,
+    uc_id: int,
+    original_filename: str,
+) -> None:
+    """Re-indexa um material existente em segundo plano e atualiza o Status na BD."""
+    status_final = MaterialStatus.INDEXED
+    try:
+        def _work():
+            indexer.remover_ficheiro(str(material_id))
+            indexer.indexar_total(
+                pdf_path=file_path,
+                uc_id=uc_id,
+                ficheiro_id=str(material_id),
+                original_filename=original_filename,
+            )
+
+        async with _ai_engine_lock:
+            await asyncio.to_thread(_work)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"Erro ao re-indexar material {material_id}: {e}")
+        status_final = MaterialStatus.ERROR
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(
+            update(Teaching_Material)
+            .where(Teaching_Material.ID_Material == material_id)
+            .values(Status=status_final)
+        )
+        await session.commit()
 
 
 def to_course_response(course: Course_Unit) -> CourseUnitResponse:
@@ -414,10 +494,11 @@ async def delete_material(
     await db.commit()
 
 
-@router.post("/materials/{material_id}/reindex", response_model=IndexMaterialResponse)
+@router.post("/materials/{material_id}/reindex", response_model=IndexMaterialResponse, status_code=status.HTTP_202_ACCEPTED)
 async def reindex_material(
     material_id: uuid.UUID,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_professor: Base_User = Depends(require_roles("Professor")),
 ):
@@ -445,30 +526,30 @@ async def reindex_material(
 
     file_path = matches[0]
 
-    try:
-        indexer.remover_ficheiro(ficheiro_id)
+    # Captura os valores antes do commit (o objeto expira após commit) e marca como
+    # Pending. A re-indexação pesada corre em segundo plano, sem bloquear o servidor.
+    uc_id = material.ID_UC
+    title = material.Title
 
-        resultado = indexer.indexar_total(
-            pdf_path=file_path,
-            uc_id=material.ID_UC,
-            ficheiro_id=ficheiro_id,
-            original_filename=material.Title,
-        )
+    material.Status = MaterialStatus.PENDING
+    await db.flush()
+    await db.commit()
 
-        material.Status = "Indexed"
-        await db.flush()
-        await db.commit()
+    background_tasks.add_task(
+        _reprocess_material_indexing,
+        indexer,
+        material_id,
+        file_path,
+        uc_id,
+        title,
+    )
 
-        return IndexMaterialResponse(
-            status="success",
-            id=ficheiro_id,
-            file=material.Title,
-            message="Material re-indexado com sucesso",
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Erro ao re-indexar: {str(e)}")
+    return IndexMaterialResponse(
+        status="processing",
+        id=ficheiro_id,
+        file=title,
+        message="Material a ser re-indexado em segundo plano...",
+    )
 
 
 @router.get("/requests", response_model=list[AdminRequestResponse])
@@ -538,14 +619,18 @@ async def generate_questions(
             raise HTTPException(status_code=400, detail="A UC não tem tópicos definidos. Adiciona tópicos antes de gerar perguntas.")
 
         try:
-            perguntas = gerador.generate_questions_by_topic(
-                ficheiro_id=payload.filename,
-                topic=payload.topic,
-                n_perguntas=payload.n_perguntas,
-                difficulty=payload.difficulty,
-                question_type=payload.question_type,
-                topics_override=topics_list,
-            )
+            # Corre numa thread (e serializado com o lock) para não bloquear o event
+            # loop — outros utilizadores continuam a usar a app enquanto isto gera.
+            async with _ai_engine_lock:
+                perguntas = await asyncio.to_thread(
+                    gerador.generate_questions_by_topic,
+                    ficheiro_id=payload.filename,
+                    topic=payload.topic,
+                    n_perguntas=payload.n_perguntas,
+                    difficulty=payload.difficulty,
+                    question_type=payload.question_type,
+                    topics_override=topics_list,
+                )
         except Exception as e:
             msg = str(e)
             if "429" in msg or "Rate limit" in msg.lower():
@@ -804,9 +889,10 @@ async def delete_topic(
 
 # ─── End topic management ──────────────────────────────────────────────────────
 
-@router.post("/index-material", response_model=IndexMaterialResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/index-material", response_model=IndexMaterialResponse, status_code=status.HTTP_202_ACCEPTED)
 async def index_material(
     request: Request,
+    background_tasks: BackgroundTasks,
     id_uc: int = Query(..., description="ID da Unidade Curricular"),
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
@@ -835,41 +921,38 @@ async def index_material(
     if indexer is None:
         raise HTTPException(status_code=503, detail="AI Engine não disponível")
 
-    try:
-        file_content = await file.read()
-        print(f"Ficheiro recebido: {file.filename} ({len(file_content)} bytes)")
+    # Lê o conteúdo já (o UploadFile fecha quando o pedido termina) e cria o registo
+    # com Status=Pending. A indexação pesada corre em segundo plano — o professor
+    # recebe resposta imediata e os outros utilizadores nunca ficam bloqueados.
+    file_content = await file.read()
+    print(f"Ficheiro recebido: {file.filename} ({len(file_content)} bytes)")
 
-        ficheiro_id = uuid.uuid4()
+    ficheiro_id = uuid.uuid4()
+    filename = file.filename
 
-        print("A indexar ficheiro...")
-        resultado = indexer.indexar_com_upload(
-            file_content=file_content,
-            original_filename=file.filename,
-            uc_id=id_uc,
-            ficheiro_id=str(ficheiro_id),
-        )
+    material = Teaching_Material(
+        ID_Material=ficheiro_id,
+        ID_UC=id_uc,
+        ID_Professor=current_professor.ID_User,
+        Status=MaterialStatus.PENDING,
+        Title=filename,
+    )
+    db.add(material)
+    await db.flush()
+    await db.commit()
 
-        material = Teaching_Material(
-            ID_Material=ficheiro_id,
-            ID_UC=id_uc,
-            ID_Professor=current_professor.ID_User,
-            Status="Indexed",
-            Title=file.filename,
-        )
-        db.add(material)
-        await db.flush()
-        await db.commit()
+    background_tasks.add_task(
+        _process_material_indexing,
+        indexer,
+        ficheiro_id,
+        file_content,
+        filename,
+        id_uc,
+    )
 
-        return IndexMaterialResponse(
-            status="success",
-            id=str(ficheiro_id),
-            file=file.filename,
-            message=f"Ficheiro {file.filename} enviado e indexado com sucesso",
-        )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Erro ao indexar ficheiro: {str(e)}")
+    return IndexMaterialResponse(
+        status="processing",
+        id=str(ficheiro_id),
+        file=filename,
+        message=f"Ficheiro {filename} recebido. A indexar em segundo plano...",
+    )

@@ -382,7 +382,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, watch } from 'vue';
+import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue';
 import { useAuthStore } from '../../../stores/authStore';
 import { useQuestionLabStore } from '../stores/questionLabStore';
 import { http } from '../../../services/http';
@@ -392,6 +392,17 @@ const questionLabStore = useQuestionLabStore();
 
 onMounted(async () => {
   await questionLabStore.loadDocuments();
+  // Se já houver documentos a processar (ex.: upload feito antes de recarregar a
+  // página), retoma o polling para os ver passar a "Disponível".
+  if (
+    questionLabStore.availableDocuments.some((d) => d.status === 'processing')
+  ) {
+    questionLabStore.startPolling();
+  }
+});
+
+onUnmounted(() => {
+  questionLabStore.stopPolling();
 });
 
 const disciplineFilter = ref('');
@@ -462,7 +473,10 @@ async function handleUpload() {
       formData,
     );
 
+    // O backend devolve 202 imediatamente e indexa em segundo plano. Recarrega a
+    // lista (mostra o novo doc como "A processar") e faz polling até ficar pronto.
     await questionLabStore.loadDocuments(true);
+    questionLabStore.startPolling();
 
     uploadForm.fileName = '';
     uploadForm.file = null;
