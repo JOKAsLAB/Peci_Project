@@ -4,18 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LogicStreak — Plataforma de Aprendizagem UA</title>
-
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdn.jsdelivr.net/npm/primeicons@7.0.0/primeicons.css"
-      rel="stylesheet"
-    />
-
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/primeicons@7.0.0/primeicons.css" rel="stylesheet" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -37,261 +29,259 @@
       };
     </script>
     <style>
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: #121212;
-        color: #ffffff;
-        overflow-x: hidden;
-      }
-      .glass-card {
-        background: rgba(30, 30, 30, 0.7);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-      }
-      .orb-brand {
-        background: radial-gradient(
-          circle,
-          rgba(0, 177, 64, 0.15) 0%,
-          rgba(18, 18, 18, 0) 70%
-        );
-      }
-      .orb-blue {
-        background: radial-gradient(
-          circle,
-          rgba(59, 130, 246, 0.15) 0%,
-          rgba(18, 18, 18, 0) 70%
-        );
-      }
-      details > summary {
-        list-style: none;
-      }
-      details > summary::-webkit-details-marker {
-        display: none;
-      }
+      body { font-family: 'Inter', sans-serif; background-color: #121212; color: #ffffff; overflow-x: hidden; }
+      .glass-card { background: rgba(30,30,30,0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.05); }
+      .orb-brand { background: radial-gradient(circle, rgba(0,177,64,0.15) 0%, rgba(18,18,18,0) 70%); }
+      .orb-blue  { background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(18,18,18,0) 70%); }
+      details > summary { list-style: none; }
+      details > summary::-webkit-details-marker { display: none; }
+      .screenshot-card img { transition: transform 0.4s ease; }
+      .screenshot-card:hover img { transform: scale(1.02); }
+      .video-glow { box-shadow: 0 0 80px rgba(0,177,64,0.12); }
     </style>
   </head>
   <body class="antialiased relative">
-    <div
-      class="fixed top-[-10%] left-[-10%] w-[800px] h-[800px] orb-brand rounded-full pointer-events-none z-0"
-    ></div>
-    <div
-      class="fixed bottom-[-10%] right-[-10%] w-[600px] h-[600px] orb-blue rounded-full pointer-events-none z-0"
-    ></div>
 
+    <div class="fixed top-[-10%] left-[-10%] w-[800px] h-[800px] orb-brand rounded-full pointer-events-none z-0"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[600px] h-[600px] orb-blue rounded-full pointer-events-none z-0"></div>
+
+    <!-- ══════════════════════════════════════════════════════ NAVBAR -->
     <nav class="fixed w-full z-50 glass-card border-b-0 border-white/5">
       <div class="max-w-7xl mx-auto px-6 lg:px-8">
         <div class="flex items-center justify-between h-20">
           <div class="flex items-center gap-3">
-            <div
-              class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center shadow-lg shadow-brand/20"
-            >
-              <span class="font-bold text-white text-xl">P8</span>
-            </div>
-            <span class="font-bold text-xl tracking-tight"
-              >PECI <span class="text-brand">2025/2026</span></span
-            >
+            <img src="./icon_app_projeto.png" alt="LogicStreak" class="w-9 h-9 rounded-xl object-cover shadow-lg shadow-brand/30" />
+            <span class="font-bold text-xl tracking-tight">Logic<span class="text-brand">Streak</span></span>
           </div>
           <div class="hidden md:block">
-            <div
-              class="flex items-baseline space-x-8 text-sm font-medium text-textSecondary"
-            >
-              <a href="#contexto" class="hover:text-white transition-colors"
-                >O Desafio</a
-              >
-              <a href="#plataforma" class="hover:text-white transition-colors"
-                >Plataforma</a
-              >
-              <a href="#ia" class="hover:text-white transition-colors"
-                >Sistema de IA</a
-              >
-              <a href="#equipa" class="hover:text-white transition-colors"
-                >Equipa</a
-              >
+            <div class="flex items-baseline space-x-8 text-sm font-medium text-textSecondary">
+              <a href="#contexto"   class="hover:text-white transition-colors">O Desafio</a>
+              <a href="#video-demo" class="hover:text-white transition-colors">Vídeo</a>
+              <a href="#plataforma" class="hover:text-white transition-colors">Plataforma</a>
+              <a href="#ia"         class="hover:text-white transition-colors">Sistema de IA</a>
+              <a href="#equipa"     class="hover:text-white transition-colors">Equipa</a>
             </div>
           </div>
         </div>
       </div>
     </nav>
 
-    <!-- HERO -->
-    <section
-      class="relative z-10 pt-48 pb-20 overflow-hidden flex flex-col items-center justify-center text-center"
-    >
+    <!-- ══════════════════════════════════════════════════════ HERO -->
+    <section class="relative z-10 pt-48 pb-20 overflow-hidden flex flex-col items-center justify-center text-center">
       <div class="max-w-4xl px-6">
-        <h1
-          class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight"
-        >
+        <div class="inline-flex items-center gap-2 bg-brand/10 border border-brand/20 text-brand text-sm font-medium px-4 py-2 rounded-full mb-8">
+          <span class="w-2 h-2 bg-brand rounded-full animate-pulse"></span>
+          LogicStreak · LECI · UA · 2026
+        </div>
+        <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 leading-tight">
           Interactive Application<br />to Support Learning,
-          <span
-            class="text-transparent bg-clip-text bg-gradient-to-r from-brand to-emerald-400"
-            >from Digital Systems to Embedded Systems.</span
-          >
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand to-emerald-400">
+            from Digital Systems to Embedded Systems.
+          </span>
         </h1>
-        <p
-          class="text-lg md:text-xl text-textSecondary mb-10 max-w-2xl mx-auto leading-relaxed"
-        >
+        <p class="text-lg md:text-xl text-textSecondary mb-10 max-w-2xl mx-auto leading-relaxed">
           Plataforma educativa que combina gamificação e IA contextual para
           transformar o estudo de Sistemas Digitais e Arquitetura de
-          Computadores em sessões de micro-aprendizagem interativas e
-          adaptativas.
+          Computadores em sessões de micro-aprendizagem interativas e adaptativas.
         </p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a
-            href="#video-demo"
-            class="bg-surface border border-white/10 text-white px-8 py-4 rounded-xl font-bold hover:bg-white/5 transition-all flex items-center justify-center gap-2"
-          >
-            <i class="pi pi-play-circle text-brand text-lg"></i> Vídeo
-            Promocional
+          <a href="#video-demo" class="bg-brand text-white px-8 py-4 rounded-xl font-bold hover:bg-brand/90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-brand/20">
+            <i class="pi pi-play-circle text-lg"></i> Ver Vídeo
+          </a>
+          <a href="#plataforma" class="bg-surface border border-white/10 text-white px-8 py-4 rounded-xl font-bold hover:bg-white/5 transition-all flex items-center justify-center gap-2">
+            <i class="pi pi-th-large text-brand text-lg"></i> Explorar Plataforma
           </a>
         </div>
       </div>
 
       <!-- 4 feature cards -->
-      <div
-        class="mt-16 w-full max-w-6xl px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
-      >
-        <div
-          class="glass-card p-6 rounded-2xl text-left border border-white/10 hover:border-brand/30 transition-all"
-        >
-          <div
-            class="w-12 h-12 bg-brand/10 rounded-xl flex items-center justify-center mb-4"
-          >
+      <div class="mt-16 w-full max-w-6xl px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="glass-card p-6 rounded-2xl text-left border border-white/10 hover:border-brand/30 transition-all">
+          <div class="w-12 h-12 bg-brand/10 rounded-xl flex items-center justify-center mb-4">
             <i class="pi pi-trophy text-xl text-brand"></i>
           </div>
           <h3 class="font-bold text-lg mb-2">Gamificação</h3>
-          <p class="text-sm text-textSecondary leading-relaxed">
-            XP, níveis e streaks diárias. Exercícios adaptativos por tópico com
-            limite diário e percursos de aprendizagem sequenciais.
-          </p>
+          <p class="text-sm text-textSecondary leading-relaxed">XP, níveis e streaks diárias. Exercícios adaptativos por tópico com limite diário e percursos de aprendizagem sequenciais.</p>
         </div>
-        <div
-          class="glass-card p-6 rounded-2xl text-left border border-white/10 hover:border-brand/30 transition-all"
-        >
-          <div
-            class="w-12 h-12 bg-brand/10 rounded-xl flex items-center justify-center mb-4"
-          >
+        <div class="glass-card p-6 rounded-2xl text-left border border-white/10 hover:border-brand/30 transition-all">
+          <div class="w-12 h-12 bg-brand/10 rounded-xl flex items-center justify-center mb-4">
             <i class="pi pi-comments text-xl text-brand"></i>
           </div>
           <h3 class="font-bold text-lg mb-2">Tutor de IA</h3>
-          <p class="text-sm text-textSecondary leading-relaxed">
-            Chatbot <em>Andy</em> ancorado nos documentos do curso. Responde com
-            fundamentação bibliográfica e recusa perguntas fora do currículo.
-          </p>
+          <p class="text-sm text-textSecondary leading-relaxed">Chatbot <em>Andy</em> ancorado nos documentos do curso. Responde com fundamentação bibliográfica e recusa perguntas fora do currículo.</p>
         </div>
-        <div
-          class="glass-card p-6 rounded-2xl text-left border border-white/10 hover:border-brand/30 transition-all"
-        >
-          <div
-            class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-4"
-          >
+        <div class="glass-card p-6 rounded-2xl text-left border border-white/10 hover:border-brand/30 transition-all">
+          <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-4">
             <i class="pi pi-bolt text-xl text-warning"></i>
           </div>
           <h3 class="font-bold text-lg mb-2">Quiz ao Vivo</h3>
-          <p class="text-sm text-textSecondary leading-relaxed">
-            Sessões sincronizadas em tempo real (estilo Kahoot). O professor
-            controla o ritmo via WebSocket e os alunos vêem o leaderboard final.
-          </p>
+          <p class="text-sm text-textSecondary leading-relaxed">Sessões sincronizadas em tempo real (estilo Kahoot). O professor controla o ritmo via WebSocket e os alunos vêem o leaderboard final.</p>
         </div>
-        <div
-          class="glass-card p-6 rounded-2xl text-left border border-white/10 hover:border-brand/30 transition-all"
-        >
-          <div
-            class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-4"
-          >
+        <div class="glass-card p-6 rounded-2xl text-left border border-white/10 hover:border-brand/30 transition-all">
+          <div class="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-4">
             <i class="pi pi-chart-bar text-xl text-white"></i>
           </div>
           <h3 class="font-bold text-lg mb-2">Painel de Gestão</h3>
-          <p class="text-sm text-textSecondary leading-relaxed">
-            Painel web para professores gerarem exercícios por IA, construírem
-            percursos e monitorizarem o desempenho por tópico.
-          </p>
+          <p class="text-sm text-textSecondary leading-relaxed">Painel web para professores gerarem exercícios por IA, construírem percursos e monitorizarem o desempenho por tópico.</p>
         </div>
       </div>
     </section>
 
-    <!-- O DESAFIO -->
-    <section
-      id="contexto"
-      class="py-24 relative z-10 border-t border-white/5 bg-black/20"
-    >
+    <!-- ══════════════════════════════════════════════════ VÍDEO -->
+    <section id="video-demo" class="py-24 relative z-10 border-t border-white/5">
+      <div class="max-w-5xl mx-auto px-6">
+        <div class="text-center mb-12">
+          <h2 class="text-brand font-bold text-sm uppercase tracking-widest mb-2">Demonstração</h2>
+          <h3 class="text-3xl md:text-4xl font-bold">Vídeo Promocional</h3>
+        </div>
+        <div class="glass-card rounded-2xl border border-white/10 overflow-hidden video-glow">
+          <video
+            controls
+            preload="metadata"
+            class="w-full block"
+            poster=""
+          >
+            <source src="./video_acabado.mp4" type="video/mp4" />
+            O teu browser não suporta vídeo HTML5.
+          </video>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════ SCREENSHOTS -->
+    <section id="screenshots" class="py-24 relative z-10 border-t border-white/5 bg-black/20">
+      <div class="max-w-7xl mx-auto px-6 lg:px-8">
+        <div class="text-center mb-20">
+          <h2 class="text-brand font-bold text-sm uppercase tracking-widest mb-2">Interfaces</h2>
+          <h3 class="text-3xl md:text-4xl font-bold">A plataforma em detalhe</h3>
+          <p class="text-textSecondary mt-4 max-w-xl mx-auto text-sm leading-relaxed">
+            Interfaces distintas para alunos e professores — desenhadas com o mesmo sistema visual para uma experiência coesa.
+          </p>
+        </div>
+
+        <!-- BLOCO 1: App mobile — mockup + texto -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center mb-24">
+
+          <!-- Mockup do telemóvel -->
+          <div class="flex justify-center">
+            <div class="relative" style="width: 260px;">
+              <!-- Glow verde atrás do telemóvel -->
+              <div class="absolute inset-0 rounded-[40px] blur-3xl opacity-20" style="background: #00B140; transform: scale(0.85);"></div>
+              <!-- Frame do telemóvel -->
+              <div class="relative rounded-[40px] overflow-hidden border-2 border-white/10 shadow-2xl" style="box-shadow: 0 40px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05);">
+                <img
+                  src="./app_feed.png"
+                  alt="LogicStreak App — Exercícios"
+                  class="w-full block"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Texto ao lado -->
+          <div>
+            <div class="inline-flex items-center gap-2 bg-brand/10 border border-brand/20 text-brand text-xs font-medium px-3 py-1.5 rounded-full mb-6">
+              <i class="pi pi-mobile text-xs"></i> App Aluno · Flutter
+            </div>
+            <h3 class="text-3xl font-bold mb-4">Aprende ao teu ritmo, onde quiseres.</h3>
+            <p class="text-textSecondary leading-relaxed mb-8">
+              Feed de exercícios interativos sobre Sistemas Digitais e Arquitetura de Computadores.
+              Filtra por tópico, dificuldade e tipo de pergunta — e recebe feedback imediato a cada resposta.
+            </p>
+            <ul class="space-y-4">
+              <li class="flex items-start gap-4">
+                <div class="w-9 h-9 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
+                  <i class="pi pi-trophy text-brand text-sm"></i>
+                </div>
+                <div>
+                  <p class="font-semibold text-sm">XP, níveis e streaks diárias</p>
+                  <p class="text-textSecondary text-sm mt-0.5">Cada resposta certa vale pontos. Mantém o streak ativo todos os dias.</p>
+                </div>
+              </li>
+              <li class="flex items-start gap-4">
+                <div class="w-9 h-9 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
+                  <i class="pi pi-filter text-brand text-sm"></i>
+                </div>
+                <div>
+                  <p class="font-semibold text-sm">Filtros por tópico e dificuldade</p>
+                  <p class="text-textSecondary text-sm mt-0.5">Escolha múltipla ou V/F. Fácil, Médio ou Difícil. Sempre adaptado ao que precisas.</p>
+                </div>
+              </li>
+              <li class="flex items-start gap-4">
+                <div class="w-9 h-9 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
+                  <i class="pi pi-comments text-brand text-sm"></i>
+                </div>
+                <div>
+                  <p class="font-semibold text-sm">Tutor IA integrado</p>
+                  <p class="text-textSecondary text-sm mt-0.5">Erraste? O Andy explica o porquê, com base nos documentos do curso.</p>
+                </div>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- BLOCO 2: Portal professor — full width -->
+        <div>
+          <div class="mb-6 flex items-center gap-3">
+            <span class="w-2.5 h-2.5 rounded-full bg-warning"></span>
+            <span class="text-sm font-medium text-textSecondary">Portal Professor · Geração de Perguntas com IA</span>
+          </div>
+          <div class="screenshot-card glass-card rounded-2xl border border-warning/10 overflow-hidden hover:border-warning/30 transition-all">
+            <img
+              src="./professor_dashboard.png"
+              alt="Portal Professor — Gerador de Perguntas"
+              class="w-full block object-cover object-top"
+            />
+          </div>
+          <p class="text-textSecondary text-sm mt-4 text-center">
+            Seleciona a disciplina, o PDF indexado, o tipo e dificuldade das perguntas — e deixa a IA gerar o banco de exercícios.
+          </p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════ O DESAFIO -->
+    <section id="contexto" class="py-24 relative z-10 border-t border-white/5">
       <div class="max-w-7xl mx-auto px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
-            <h2
-              class="text-brand font-bold text-sm uppercase tracking-widest mb-2"
-            >
-              O Desafio
-            </h2>
-            <h3 class="text-3xl md:text-4xl font-bold mb-6">
-              Porque desenvolvemos esta plataforma?
-            </h3>
+            <h2 class="text-brand font-bold text-sm uppercase tracking-widest mb-2">O Desafio</h2>
+            <h3 class="text-3xl md:text-4xl font-bold mb-6">Porque desenvolvemos esta plataforma?</h3>
             <p class="text-textSecondary leading-relaxed mb-4 text-lg">
-              O ensino de disciplinas de <i>hardware</i>, como Sistemas Digitais
-              (SD) e Arquitetura de Computadores (AC), é intrinsecamente
-              complexo e exige dedicação prolongada.
+              O ensino de disciplinas de <i>hardware</i>, como Sistemas Digitais (SD) e Arquitetura de Computadores (AC), é intrinsecamente complexo e exige dedicação prolongada.
             </p>
             <p class="text-textSecondary leading-relaxed mb-8 text-lg">
-              Os alunos enfrentam frequentemente manuais densos e uma desconexão
-              entre o estudo teórico e o feedback prático, o que gera perda de
-              motivação e passividade perante a matéria.
+              Os alunos enfrentam frequentemente manuais densos e uma desconexão entre o estudo teórico e o feedback prático, o que gera perda de motivação e passividade perante a matéria.
             </p>
-
             <div class="space-y-4">
-              <div
-                class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5"
-              >
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
                 <i class="pi pi-book text-error text-xl shrink-0"></i>
-                <p class="text-sm font-medium">
-                  Elevada densidade teórica dos apontamentos PDF tradicionais.
-                </p>
+                <p class="text-sm font-medium">Elevada densidade teórica dos apontamentos PDF tradicionais.</p>
               </div>
-              <div
-                class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5"
-              >
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
                 <i class="pi pi-clock text-warning text-xl shrink-0"></i>
-                <p class="text-sm font-medium">
-                  Falta de feedback imediato durante o estudo autónomo.
-                </p>
+                <p class="text-sm font-medium">Falta de feedback imediato durante o estudo autónomo.</p>
               </div>
-              <div
-                class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5"
-              >
+              <div class="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/5">
                 <i class="pi pi-lightbulb text-success text-xl shrink-0"></i>
-                <p class="text-sm font-medium">
-                  A nossa solução: micro-lições diárias gamificadas com IA
-                  contextual.
-                </p>
+                <p class="text-sm font-medium">A nossa solução: micro-lições diárias gamificadas com IA contextual.</p>
               </div>
             </div>
           </div>
-
           <div class="relative">
-            <div
-              class="glass-card p-2 rounded-2xl border border-white/10 shadow-2xl"
-            >
-              <div
-                class="bg-surface rounded-xl overflow-hidden aspect-video flex flex-col items-center justify-center p-8 text-center"
-              >
+            <div class="glass-card p-2 rounded-2xl border border-white/10 shadow-2xl">
+              <div class="bg-surface rounded-xl overflow-hidden aspect-video flex flex-col items-center justify-center p-8 text-center">
                 <div class="flex items-center justify-center gap-6 w-full">
-                  <div
-                    class="w-24 h-32 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center opacity-50"
-                  >
+                  <div class="w-24 h-32 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center opacity-50">
                     <i class="pi pi-file-pdf text-3xl"></i>
                   </div>
-                  <i
-                    class="pi pi-arrow-right text-brand text-2xl animate-pulse"
-                  ></i>
-                  <div
-                    class="w-24 h-40 bg-brand/10 border border-brand/30 rounded-3xl flex items-center justify-center shadow-lg shadow-brand/20"
-                  >
+                  <i class="pi pi-arrow-right text-brand text-2xl animate-pulse"></i>
+                  <div class="w-24 h-40 bg-brand/10 border border-brand/30 rounded-3xl flex items-center justify-center shadow-lg shadow-brand/20">
                     <i class="pi pi-mobile text-4xl text-brand"></i>
                   </div>
                 </div>
-                <p
-                  class="mt-8 text-sm font-mono text-textSecondary uppercase tracking-widest"
-                >
-                  Transformação Pedagógica
-                </p>
+                <p class="mt-8 text-sm font-mono text-textSecondary uppercase tracking-widest">Transformação Pedagógica</p>
               </div>
             </div>
           </div>
@@ -299,313 +289,119 @@
       </div>
     </section>
 
-    <!-- PLATAFORMA -->
-    <section
-      id="plataforma"
-      class="py-24 relative z-10 border-t border-white/5"
-    >
+    <!-- ═══════════════════════════════════════════════════ PLATAFORMA -->
+    <section id="plataforma" class="py-24 relative z-10 border-t border-white/5 bg-black/20">
       <div class="max-w-7xl mx-auto px-6 lg:px-8">
         <div class="mb-16 text-center">
-          <h2
-            class="text-brand font-bold text-sm uppercase tracking-widest mb-2"
-          >
-            Arquitetura Integrada
-          </h2>
-          <h3 class="text-3xl md:text-4xl font-bold">
-            Uma Plataforma, Quatro Interfaces
-          </h3>
+          <h2 class="text-brand font-bold text-sm uppercase tracking-widest mb-2">Arquitetura Integrada</h2>
+          <h3 class="text-3xl md:text-4xl font-bold">Uma Plataforma, Quatro Interfaces</h3>
         </div>
-
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <!-- Mobile -->
-          <div
-            class="bg-surface border border-white/5 p-8 rounded-2xl relative overflow-hidden group hover:border-brand/30 transition-all"
-          >
-            <div
-              class="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-bl-full pointer-events-none"
-            ></div>
-            <h4 class="text-xl font-bold mb-1 relative z-10">
-              Aplicação Mobile
-            </h4>
-            <p class="text-xs text-brand font-mono mb-6 relative z-10">
-              Utilizador: Aluno (Flutter)
-            </p>
+          <div class="bg-surface border border-white/5 p-8 rounded-2xl relative overflow-hidden group hover:border-brand/30 transition-all">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-bl-full pointer-events-none"></div>
+            <h4 class="text-xl font-bold mb-1 relative z-10">Aplicação Mobile</h4>
+            <p class="text-xs text-brand font-mono mb-6 relative z-10">Utilizador: Aluno (Flutter)</p>
             <ul class="space-y-4 text-sm text-textSecondary relative z-10">
-              <li class="flex items-start gap-3">
-                <i class="pi pi-check-circle text-brand mt-0.5"></i>
-                <span
-                  >Exercícios de escolha múltipla e verdadeiro/falso, com
-                  progressão por XP, níveis e streaks diárias.</span
-                >
-              </li>
-              <li class="flex items-start gap-3">
-                <i class="pi pi-check-circle text-brand mt-0.5"></i>
-                <span
-                  >Chatbot <em>Andy</em> integrado para esclarecimento de
-                  dúvidas com base nos documentos da UC.</span
-                >
-              </li>
-              <li class="flex items-start gap-3">
-                <i class="pi pi-check-circle text-brand mt-0.5"></i>
-                <span
-                  >Participação em quizzes ao vivo e estatísticas de desempenho
-                  por tópico.</span
-                >
-              </li>
+              <li class="flex items-start gap-3"><i class="pi pi-check-circle text-brand mt-0.5"></i><span>Exercícios de escolha múltipla e verdadeiro/falso, com progressão por XP, níveis e streaks diárias.</span></li>
+              <li class="flex items-start gap-3"><i class="pi pi-check-circle text-brand mt-0.5"></i><span>Chatbot <em>Andy</em> integrado para esclarecimento de dúvidas com base nos documentos da UC.</span></li>
+              <li class="flex items-start gap-3"><i class="pi pi-check-circle text-brand mt-0.5"></i><span>Participação em quizzes ao vivo e estatísticas de desempenho por tópico.</span></li>
             </ul>
           </div>
-
-          <!-- Web Aluno -->
-          <div
-            class="bg-surface border border-white/5 p-8 rounded-2xl relative overflow-hidden group hover:border-brand/30 transition-all"
-          >
-            <div
-              class="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-bl-full pointer-events-none"
-            ></div>
-            <h4 class="text-xl font-bold mb-1 relative z-10">
-              Aplicação Web
-            </h4>
-            <p class="text-xs text-brand font-mono mb-6 relative z-10">
-              Utilizador: Aluno (Vue 3 Web)
-            </p>
+          <div class="bg-surface border border-white/5 p-8 rounded-2xl relative overflow-hidden group hover:border-brand/30 transition-all">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-bl-full pointer-events-none"></div>
+            <h4 class="text-xl font-bold mb-1 relative z-10">Aplicação Web</h4>
+            <p class="text-xs text-brand font-mono mb-6 relative z-10">Utilizador: Aluno (Vue 3 Web)</p>
             <ul class="space-y-4 text-sm text-textSecondary relative z-10">
-              <li class="flex items-start gap-3">
-                <i class="pi pi-check-circle text-brand mt-0.5"></i>
-                <span>Acesso à plataforma via browser, com a mesma experiência gamificada da aplicação mobile.</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <i class="pi pi-check-circle text-brand mt-0.5"></i>
-                <span>Chatbot <em>Andy</em> e percursos de aprendizagem acessíveis sem instalação de aplicação.</span>
-              </li>
-              <li class="flex items-start gap-3">
-                <i class="pi pi-check-circle text-brand mt-0.5"></i>
-                <span>Participação em quizzes ao vivo e consulta de estatísticas de desempenho por tópico.</span>
-              </li>
+              <li class="flex items-start gap-3"><i class="pi pi-check-circle text-brand mt-0.5"></i><span>Acesso à plataforma via browser, com a mesma experiência gamificada da aplicação mobile.</span></li>
+              <li class="flex items-start gap-3"><i class="pi pi-check-circle text-brand mt-0.5"></i><span>Dashboard com progresso por UC, percursos de aprendizagem e histórico de desempenho.</span></li>
+              <li class="flex items-start gap-3"><i class="pi pi-check-circle text-brand mt-0.5"></i><span>Participação em quizzes ao vivo com leaderboard em tempo real.</span></li>
             </ul>
           </div>
-
-          <!-- Professor -->
-          <div
-            class="bg-surface border border-white/5 p-8 rounded-2xl relative overflow-hidden group hover:border-warning/30 transition-all"
-          >
-            <div
-              class="absolute top-0 right-0 w-32 h-32 bg-warning/5 rounded-bl-full pointer-events-none"
-            ></div>
+          <div class="bg-surface border border-white/5 p-8 rounded-2xl relative overflow-hidden group hover:border-warning/30 transition-all">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-warning/5 rounded-bl-full pointer-events-none"></div>
             <h4 class="text-xl font-bold mb-1 relative z-10">Painel Docente</h4>
-            <p class="text-xs text-warning font-mono mb-6 relative z-10">
-              Utilizador: Professor (Vue 3 Web)
-            </p>
+            <p class="text-xs text-warning font-mono mb-6 relative z-10">Utilizador: Professor (Vue 3 Web)</p>
             <ul class="space-y-4 text-sm text-textSecondary relative z-10">
-              <li class="flex items-start gap-3">
-                <i class="pi pi-check-circle text-warning mt-0.5"></i>
-                <span
-                  >Upload de PDFs indexados por RAG — o sistema de IA gera
-                  exercícios contextualizados para revisão docente.</span
-                >
-              </li>
-              <li class="flex items-start gap-3">
-                <i class="pi pi-check-circle text-warning mt-0.5"></i>
-                <span
-                  >Construção de percursos de aprendizagem sequenciais com
-                  desbloqueio por tópico.</span
-                >
-              </li>
-              <li class="flex items-start gap-3">
-                <i class="pi pi-check-circle text-warning mt-0.5"></i>
-                <span
-                  >Criação e condução de quizzes ao vivo com leaderboard em
-                  tempo real.</span
-                >
-              </li>
+              <li class="flex items-start gap-3"><i class="pi pi-check-circle text-warning mt-0.5"></i><span>Upload de PDFs indexados por RAG — o sistema de IA gera exercícios contextualizados para revisão docente.</span></li>
+              <li class="flex items-start gap-3"><i class="pi pi-check-circle text-warning mt-0.5"></i><span>Construção de percursos de aprendizagem sequenciais com desbloqueio por tópico.</span></li>
+              <li class="flex items-start gap-3"><i class="pi pi-check-circle text-warning mt-0.5"></i><span>Criação e condução de quizzes ao vivo com leaderboard em tempo real.</span></li>
             </ul>
           </div>
-
-          <!-- Admin -->
-          <div
-            class="bg-surface border border-white/5 p-8 rounded-2xl relative overflow-hidden group hover:border-blue-500/30 transition-all"
-          >
-            <div
-              class="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-bl-full pointer-events-none"
-            ></div>
-            <h4 class="text-xl font-bold mb-1 relative z-10">
-              Painel de Admin
-            </h4>
-            <p class="text-xs text-blue-400 font-mono mb-6 relative z-10">
-              Utilizador: DETI/Staff (Vue 3 Web)
-            </p>
+          <div class="bg-surface border border-white/5 p-8 rounded-2xl relative overflow-hidden group hover:border-blue-500/30 transition-all">
+            <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-bl-full pointer-events-none"></div>
+            <h4 class="text-xl font-bold mb-1 relative z-10">Painel de Admin</h4>
+            <p class="text-xs text-blue-400 font-mono mb-6 relative z-10">Utilizador: DETI/Staff (Vue 3 Web)</p>
             <ul class="space-y-4 text-sm text-textSecondary relative z-10">
-              <li class="flex items-start gap-3">
-                <i class="pi pi-check-circle text-blue-400 mt-0.5"></i>
-                <span
-                  >Aprovação de contas docentes e gestão do ciclo de vida de
-                  todos os utilizadores.</span
-                >
-              </li>
-              <li class="flex items-start gap-3">
-                <i class="pi pi-check-circle text-blue-400 mt-0.5"></i>
-                <span
-                  >Criação e atribuição de Unidades Curriculares (ex: SD, AC)
-                  com associação de docentes.</span
-                >
-              </li>
-              <li class="flex items-start gap-3">
-                <i class="pi pi-check-circle text-blue-400 mt-0.5"></i>
-                <span
-                  >Registo imutável de todas as ações administrativas para
-                  auditoria e conformidade.</span
-                >
-              </li>
+              <li class="flex items-start gap-3"><i class="pi pi-check-circle text-blue-400 mt-0.5"></i><span>Aprovação de contas docentes e gestão do ciclo de vida de todos os utilizadores.</span></li>
+              <li class="flex items-start gap-3"><i class="pi pi-check-circle text-blue-400 mt-0.5"></i><span>Criação e atribuição de Unidades Curriculares (ex: SD, AC) com associação de docentes.</span></li>
+              <li class="flex items-start gap-3"><i class="pi pi-check-circle text-blue-400 mt-0.5"></i><span>Registo imutável de todas as ações administrativas para auditoria e conformidade.</span></li>
             </ul>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- SISTEMA DE IA -->
-    <section
-      id="ia"
-      class="py-24 relative z-10 border-t border-white/5 bg-black/20"
-    >
+    <!-- ══════════════════════════════════════════════════ SISTEMA IA -->
+    <section id="ia" class="py-24 relative z-10 border-t border-white/5">
       <div class="max-w-7xl mx-auto px-6 lg:px-8">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <!-- Pipeline visual -->
-          <div
-            class="order-2 lg:order-1 glass-card p-8 rounded-2xl border border-white/10 relative"
-          >
-            <div
-              class="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent rounded-2xl pointer-events-none"
-            ></div>
+          <div class="order-2 lg:order-1 glass-card p-8 rounded-2xl border border-white/10 relative">
+            <div class="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent rounded-2xl pointer-events-none"></div>
             <div class="flex flex-col gap-3 relative z-10 font-mono text-sm">
-              <div
-                class="bg-surface border border-white/10 p-4 rounded-xl text-center font-bold"
-              >
-                Professor submete documento PDF
+              <div class="bg-surface border border-white/10 p-4 rounded-xl text-center font-bold">Professor submete documento PDF</div>
+              <div class="flex justify-center text-white/30"><i class="pi pi-arrow-down"></i></div>
+              <div class="bg-blue-500/10 border border-blue-500/30 text-blue-400 p-4 rounded-xl text-center">
+                <i class="pi pi-database block mb-1 text-lg"></i>Chunking + Embeddings (ChromaDB)
               </div>
-              <div class="flex justify-center text-white/30">
-                <i class="pi pi-arrow-down"></i>
-              </div>
-              <div
-                class="bg-blue-500/10 border border-blue-500/30 text-blue-400 p-4 rounded-xl text-center"
-              >
-                <i class="pi pi-database block mb-1 text-lg"></i>
-                Chunking + Embeddings (ChromaDB)
-              </div>
-              <div class="flex justify-center text-white/30">
-                <i class="pi pi-arrow-down"></i>
-              </div>
+              <div class="flex justify-center text-white/30"><i class="pi pi-arrow-down"></i></div>
               <div class="grid grid-cols-2 gap-3">
-                <div
-                  class="bg-purple-500/10 border border-purple-500/30 text-purple-400 p-4 rounded-xl text-center text-xs"
-                >
-                  <i class="pi pi-language block mb-1"></i>
-                  Decomposição<br />PT→EN (Groq)
+                <div class="bg-purple-500/10 border border-purple-500/30 text-purple-400 p-4 rounded-xl text-center text-xs">
+                  <i class="pi pi-language block mb-1"></i>Decomposição<br />PT→EN (Groq)
                 </div>
-                <div
-                  class="bg-warning/10 border border-warning/30 text-warning p-4 rounded-xl text-center text-xs"
-                >
-                  <i class="pi pi-search block mb-1"></i>
-                  Recuperação MMR<br />(ChromaDB, k=15)
+                <div class="bg-warning/10 border border-warning/30 text-warning p-4 rounded-xl text-center text-xs">
+                  <i class="pi pi-search block mb-1"></i>Recuperação MMR<br />(ChromaDB, k=15)
                 </div>
               </div>
-              <div class="flex justify-center text-white/30">
-                <i class="pi pi-arrow-down"></i>
-              </div>
-              <div
-                class="bg-brand/10 border border-brand/30 text-brand p-4 rounded-xl text-center font-bold"
-              >
-                <i class="pi pi-check-square block mb-1 text-lg"></i>
-                Geração + Validação → Revisão Docente
+              <div class="flex justify-center text-white/30"><i class="pi pi-arrow-down"></i></div>
+              <div class="bg-brand/10 border border-brand/30 text-brand p-4 rounded-xl text-center font-bold">
+                <i class="pi pi-check-square block mb-1 text-lg"></i>Geração + Validação → Revisão Docente
               </div>
             </div>
           </div>
-
-          <!-- Text -->
           <div class="order-1 lg:order-2">
-            <h2
-              class="text-brand font-bold text-sm uppercase tracking-widest mb-2"
-            >
-              Sistema de IA
-            </h2>
-            <h3 class="text-3xl md:text-4xl font-bold mb-6">
-              Confinamento Semântico (RAG)
-            </h3>
+            <h2 class="text-brand font-bold text-sm uppercase tracking-widest mb-2">Sistema de IA</h2>
+            <h3 class="text-3xl md:text-4xl font-bold mb-6">Confinamento Semântico (RAG)</h3>
             <p class="text-textSecondary leading-relaxed mb-6">
-              O problema clássico das "alucinações" nos modelos de linguagem é
-              resolvido pela arquitectura
-              <strong>Retrieval-Augmented Generation</strong>. O sistema baseia
-              todas as respostas estritamente nos documentos carregados pela
-              instituição, com um limiar de relevância que recusa perguntas fora
-              da matéria.
+              O problema clássico das "alucinações" nos modelos de linguagem é resolvido pela arquitectura
+              <strong>Retrieval-Augmented Generation</strong>. O sistema baseia todas as respostas estritamente
+              nos documentos carregados pela instituição, com um limiar de relevância que recusa perguntas fora da matéria.
             </p>
-
             <div class="space-y-3">
-              <details
-                class="group bg-surface border border-white/5 rounded-xl [&_summary::-webkit-details-marker]:hidden"
-              >
-                <summary
-                  class="flex items-center justify-between p-4 font-bold cursor-pointer hover:bg-white/5 transition-colors rounded-xl"
-                >
+              <details class="group bg-surface border border-white/5 rounded-xl">
+                <summary class="flex items-center justify-between p-4 font-bold cursor-pointer hover:bg-white/5 transition-colors rounded-xl">
                   1. O que é RAG (Retrieval-Augmented Generation)?
-                  <span class="transition group-open:rotate-180">
-                    <i class="pi pi-chevron-down text-brand text-sm"></i>
-                  </span>
+                  <span class="transition group-open:rotate-180"><i class="pi pi-chevron-down text-brand text-sm"></i></span>
                 </summary>
-                <div
-                  class="p-4 pt-0 text-sm text-textSecondary leading-relaxed border-t border-white/5 mt-2"
-                >
-                  É uma técnica que liga um modelo de linguagem (LLM) a uma base
-                  de dados privada. Em vez de a IA tentar "lembrar-se" da
-                  matéria baseando-se no que treinou na internet, o sistema
-                  primeiro pesquisa os PDFs do professor (via ChromaDB) e obriga
-                  a IA a basear a resposta unicamente nos parágrafos recuperados
-                  — garantindo exactidão curricular.
+                <div class="p-4 pt-0 text-sm text-textSecondary leading-relaxed border-t border-white/5 mt-2">
+                  É uma técnica que liga um modelo de linguagem (LLM) a uma base de dados privada. Em vez de a IA tentar "lembrar-se" da matéria baseando-se no que treinou na internet, o sistema primeiro pesquisa os PDFs do professor (via ChromaDB) e obriga a IA a basear a resposta unicamente nos parágrafos recuperados — garantindo exactidão curricular.
                 </div>
               </details>
-
-              <details
-                class="group bg-surface border border-white/5 rounded-xl [&_summary::-webkit-details-marker]:hidden"
-              >
-                <summary
-                  class="flex items-center justify-between p-4 font-bold cursor-pointer hover:bg-white/5 transition-colors rounded-xl"
-                >
+              <details class="group bg-surface border border-white/5 rounded-xl">
+                <summary class="flex items-center justify-between p-4 font-bold cursor-pointer hover:bg-white/5 transition-colors rounded-xl">
                   2. Como funciona o pipeline de geração de exercícios?
-                  <span class="transition group-open:rotate-180">
-                    <i class="pi pi-chevron-down text-brand text-sm"></i>
-                  </span>
+                  <span class="transition group-open:rotate-180"><i class="pi pi-chevron-down text-brand text-sm"></i></span>
                 </summary>
-                <div
-                  class="p-4 pt-0 text-sm text-textSecondary leading-relaxed border-t border-white/5 mt-2"
-                >
-                  O tópico em português é primeiro traduzido para inglês (Groq),
-                  ampliando os termos técnicos para melhorar a pesquisa nos
-                  manuais em inglês. Segue-se recuperação MMR no ChromaDB para
-                  obter contexto diversificado. O LLM gera a questão num esquema
-                  JSON estrito; cada exercício passa por três critérios de
-                  validação antes de ser apresentado ao professor para revisão —
-                  nenhum exercício chega ao aluno sem aprovação docente.
+                <div class="p-4 pt-0 text-sm text-textSecondary leading-relaxed border-t border-white/5 mt-2">
+                  O tópico em português é primeiro traduzido para inglês (Groq), ampliando os termos técnicos para melhorar a pesquisa nos manuais em inglês. Segue-se recuperação MMR no ChromaDB para obter contexto diversificado. O LLM gera a questão num esquema JSON estrito; cada exercício passa por três critérios de validação antes de ser apresentado ao professor para revisão — nenhum exercício chega ao aluno sem aprovação docente.
                 </div>
               </details>
-
-              <details
-                class="group bg-surface border border-white/5 rounded-xl [&_summary::-webkit-details-marker]:hidden"
-              >
-                <summary
-                  class="flex items-center justify-between p-4 font-bold cursor-pointer hover:bg-white/5 transition-colors rounded-xl"
-                >
+              <details class="group bg-surface border border-white/5 rounded-xl">
+                <summary class="flex items-center justify-between p-4 font-bold cursor-pointer hover:bg-white/5 transition-colors rounded-xl">
                   3. Como funciona o chatbot Andy?
-                  <span class="transition group-open:rotate-180">
-                    <i class="pi pi-chevron-down text-brand text-sm"></i>
-                  </span>
+                  <span class="transition group-open:rotate-180"><i class="pi pi-chevron-down text-brand text-sm"></i></span>
                 </summary>
-                <div
-                  class="p-4 pt-0 text-sm text-textSecondary leading-relaxed border-t border-white/5 mt-2"
-                >
-                  A pergunta do aluno é expandida bilingue (PT+EN) e pesquisada
-                  em todos os documentos indexados da plataforma. Um limiar de
-                  similaridade de coseno (0,40) filtra perguntas sem cobertura
-                  nos manuais — que recebem uma mensagem explícita em vez de uma
-                  resposta inventada. As respostas são limitadas a 300 palavras,
-                  em Markdown, com tom didáctico.
+                <div class="p-4 pt-0 text-sm text-textSecondary leading-relaxed border-t border-white/5 mt-2">
+                  A pergunta do aluno é expandida bilingue (PT+EN) e pesquisada em todos os documentos indexados da plataforma. Um limiar de similaridade de coseno (0,40) filtra perguntas sem cobertura nos manuais — que recebem uma mensagem explícita em vez de uma resposta inventada. As respostas são limitadas a 300 palavras, em Markdown, com tom didáctico.
                 </div>
               </details>
             </div>
@@ -614,114 +410,44 @@
       </div>
     </section>
 
-    <!-- ARTEFACTOS -->
-    <section class="py-16 relative z-10 border-t border-white/5">
-      <div class="max-w-4xl mx-auto px-6 text-center">
-        <h2 class="text-2xl font-bold mb-4">Artefactos do Projeto</h2>
-        <p class="text-textSecondary mb-8 text-sm">
-          Aceda ao repositório institucional e aos relatórios das milestones de
-          desenvolvimento.
-        </p>
-        <div class="flex flex-col sm:flex-row justify-center gap-4">
-          <a
-            href="https://github.com/"
-            target="_blank"
-            class="glass-card px-6 py-3 rounded-btn font-bold hover:bg-white/5 transition-all flex items-center justify-center gap-3"
-          >
-            <i class="pi pi-github text-xl"></i> Repositório Privado
-          </a>
-          <a
-            href="#"
-            class="bg-surface border border-white/10 px-6 py-3 rounded-btn font-bold hover:bg-white/5 transition-all flex items-center justify-center gap-3"
-          >
-            <i class="pi pi-file-pdf text-xl text-brand"></i> Relatório Técnico
-            (Brevemente)
-          </a>
-        </div>
-      </div>
-    </section>
-
-    <!-- EQUIPA -->
-    <section
-      id="equipa"
-      class="py-24 relative z-10 border-t border-white/5 bg-black/20"
-    >
+    <!-- ════════════════════════════════════════════════════ EQUIPA -->
+    <section id="equipa" class="py-24 relative z-10 border-t border-white/5 bg-black/20">
       <div class="max-w-7xl mx-auto px-6 lg:px-8">
         <div class="text-center mb-16">
-          <h2
-            class="text-brand font-bold text-sm uppercase tracking-widest mb-2"
-          >
-            Desenvolvimento
-          </h2>
+          <h2 class="text-brand font-bold text-sm uppercase tracking-widest mb-2">Desenvolvimento</h2>
           <h3 class="text-3xl md:text-4xl font-bold">Equipa P8</h3>
         </div>
-
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          <div
-            class="glass-card p-6 rounded-xl border border-white/5 text-center hover:border-brand/30 transition-all"
-          >
-            <div
-              class="w-14 h-14 mx-auto rounded-full bg-surface border border-white/10 text-white flex items-center justify-center font-bold text-lg mb-4"
-            >
-              JM
-            </div>
+          <div class="glass-card p-6 rounded-xl border border-white/5 text-center hover:border-brand/30 transition-all">
+            <img src="./joca.jpg" alt="Joaquim Martins" class="w-14 h-14 mx-auto rounded-full object-cover border border-white/10 mb-4" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <div class="w-14 h-14 mx-auto rounded-full bg-surface border border-white/10 items-center justify-center font-bold text-lg mb-4" style="display:none;">JM</div>
             <p class="font-bold text-sm leading-tight">Joaquim<br />Martins</p>
             <p class="text-xs text-textSecondary mt-2 font-mono">115931</p>
           </div>
-          <div
-            class="glass-card p-6 rounded-xl border border-white/5 text-center hover:border-brand/30 transition-all"
-          >
-            <div
-              class="w-14 h-14 mx-auto rounded-full bg-surface border border-white/10 text-white flex items-center justify-center font-bold text-lg mb-4"
-            >
-              DL
-            </div>
+          <div class="glass-card p-6 rounded-xl border border-white/5 text-center hover:border-brand/30 transition-all">
+            <div class="w-14 h-14 mx-auto rounded-full bg-surface border border-white/10 flex items-center justify-center font-bold text-lg mb-4">DL</div>
             <p class="font-bold text-sm leading-tight">Duarte<br />Lourenço</p>
             <p class="text-xs text-textSecondary mt-2 font-mono">114421</p>
           </div>
-          <div
-            class="glass-card p-6 rounded-xl border border-white/5 text-center hover:border-brand/30 transition-all"
-          >
-            <div
-              class="w-14 h-14 mx-auto rounded-full bg-surface border border-white/10 text-white flex items-center justify-center font-bold text-lg mb-4"
-            >
-              CV
-            </div>
-            <p class="font-bold text-sm leading-tight">
-              Carlos<br />Verenzuela
-            </p>
+          <div class="glass-card p-6 rounded-xl border border-white/5 text-center hover:border-brand/30 transition-all">
+            <div class="w-14 h-14 mx-auto rounded-full bg-surface border border-white/10 flex items-center justify-center font-bold text-lg mb-4">CV</div>
+            <p class="font-bold text-sm leading-tight">Carlos<br />Verenzuela</p>
             <p class="text-xs text-textSecondary mt-2 font-mono">114597</p>
           </div>
-          <div
-            class="glass-card p-6 rounded-xl border border-white/5 text-center hover:border-brand/30 transition-all"
-          >
-            <div
-              class="w-14 h-14 mx-auto rounded-full bg-surface border border-white/10 text-white flex items-center justify-center font-bold text-lg mb-4"
-            >
-              FM
-            </div>
+          <div class="glass-card p-6 rounded-xl border border-white/5 text-center hover:border-brand/30 transition-all">
+            <img src="./matos.jpeg" alt="Francisco Matos" class="w-14 h-14 mx-auto rounded-full object-cover border border-white/10 mb-4" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <div class="w-14 h-14 mx-auto rounded-full bg-surface border border-white/10 items-center justify-center font-bold text-lg mb-4" style="display:none;">FM</div>
             <p class="font-bold text-sm leading-tight">Francisco<br />Matos</p>
             <p class="text-xs text-textSecondary mt-2 font-mono">113726</p>
           </div>
-          <div
-            class="glass-card p-6 rounded-xl border border-white/5 text-center hover:border-brand/30 transition-all"
-          >
-            <div
-              class="w-14 h-14 mx-auto rounded-full bg-surface border border-white/10 text-white flex items-center justify-center font-bold text-lg mb-4"
-            >
-              JP
-            </div>
+          <div class="glass-card p-6 rounded-xl border border-white/5 text-center hover:border-brand/30 transition-all">
+            <img src="./pinho.png" alt="João Pinho" class="w-14 h-14 mx-auto rounded-full object-cover border border-white/10 mb-4" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+            <div class="w-14 h-14 mx-auto rounded-full bg-surface border border-white/10 items-center justify-center font-bold text-lg mb-4" style="display:none;">JP</div>
             <p class="font-bold text-sm leading-tight">João<br />Pinho</p>
             <p class="text-xs text-textSecondary mt-2 font-mono">113602</p>
           </div>
-          <div
-            class="glass-card p-6 rounded-xl border border-white/5 text-center hover:border-brand/30 transition-all"
-          >
-            <div
-              class="w-14 h-14 mx-auto rounded-full bg-surface border border-white/10 text-white flex items-center justify-center font-bold text-lg mb-4"
-            >
-              GG
-            </div>
+          <div class="glass-card p-6 rounded-xl border border-white/5 text-center hover:border-brand/30 transition-all">
+            <div class="w-14 h-14 mx-auto rounded-full bg-surface border border-white/10 flex items-center justify-center font-bold text-lg mb-4">GG</div>
             <p class="font-bold text-sm leading-tight">Guilherme<br />Gabino</p>
             <p class="text-xs text-textSecondary mt-2 font-mono">114947</p>
           </div>
@@ -729,29 +455,16 @@
       </div>
     </section>
 
+    <!-- ════════════════════════════════════════════════════ FOOTER -->
     <footer class="border-t border-white/5 bg-black py-12 relative z-10">
-      <div
-        class="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6"
-      >
+      <div class="max-w-7xl mx-auto px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
         <div class="flex items-center gap-3">
-          <div
-            class="w-8 h-8 bg-brand rounded-lg flex items-center justify-center"
-          >
-            <span class="font-bold text-white text-xs">P8</span>
-          </div>
-          <span class="text-sm font-bold text-textSecondary">Projeto #8</span>
+          <img src="./icon_app_projeto.png" alt="LogicStreak" class="w-7 h-7 rounded-lg object-cover" />
+          <span class="text-sm font-bold text-textSecondary">Logic<span class="text-brand">Streak</span></span>
         </div>
-        <div
-          class="text-center md:text-right text-xs text-textSecondary space-y-1"
-        >
-          <p>
-            Universidade de Aveiro · Departamento de Eletrónica,
-            Telecomunicações e Informática
-          </p>
-          <p>
-            Unidade Curricular de Projeto em Engenharia de Computadores e
-            Informática (41953)
-          </p>
+        <div class="text-center md:text-right text-xs text-textSecondary space-y-1">
+          <p>Universidade de Aveiro · Departamento de Eletrónica, Telecomunicações e Informática</p>
+          <p>Unidade Curricular de Projeto em Engenharia de Computadores e Informática (41953)</p>
         </div>
       </div>
     </footer>
