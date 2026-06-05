@@ -21,33 +21,16 @@ final _shellNavigatorProfileKey = GlobalKey<NavigatorState>(debugLabel: 'shell_p
 final _shellNavigatorQuizKey = GlobalKey<NavigatorState>(debugLabel: 'shell_quiz');
 
 final routerProvider = Provider<GoRouter>((ref) {
-  // A magia está aqui: o router "ouve" o authProvider
-  final authState = ref.watch(authProvider);
-  print('[ROUTER] Auth state changed: isAuthenticated=${authState.isAuthenticated}, error=${authState.error}');
-
-  return GoRouter(
+  final goRouter = GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: '/courses',
-    // O redirect corre sempre que o authState mudar
     redirect: (context, state) {
+      final authState = ref.read(authProvider);
       final isAuthenticated = authState.isAuthenticated;
       final isGoingToAuth = state.matchedLocation == '/login' || state.matchedLocation == '/register';
-      
-      print('[ROUTER REDIRECT] location=${state.matchedLocation}, authenticated=$isAuthenticated, goingToAuth=$isGoingToAuth');
 
-      // Se não está logado e tenta aceder a algo que não seja login/register -> vai para login
-      if (!isAuthenticated && !isGoingToAuth) {
-        print('[ROUTER REDIRECT] -> Redirecting to /login (not authenticated)');
-        return '/login';
-      }
-
-      // Se já está logado e tenta ir ao login -> vai para a home (courses)
-      if (isAuthenticated && isGoingToAuth) {
-        print('[ROUTER REDIRECT] -> Redirecting to /courses (already authenticated)');
-        return '/courses';
-      }
-
-      print('[ROUTER REDIRECT] -> No redirect needed');
+      if (!isAuthenticated && !isGoingToAuth) return '/login';
+      if (isAuthenticated && isGoingToAuth) return '/courses';
       return null;
     },
     routes: [
@@ -125,4 +108,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  ref.listen<AuthState>(authProvider, (previous, next) {
+    goRouter.refresh();
+  });
+
+  ref.onDispose(goRouter.dispose);
+
+  return goRouter;
 });

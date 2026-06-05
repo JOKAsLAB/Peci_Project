@@ -6,8 +6,7 @@ import 'auth_storage.dart';
 //const _baseUrl = 'http://10.0.2.2:8000/api/v1';
 //const _baseUrl = 'http://192.168.1.140:8000/api/v1';
 
-// const apiBaseUrl = 'http://192.168.1.140/api/v1';
-const apiBaseUrl = 'https://dislocate-chatting-extenuate.ngrok-free.dev/api/v1';
+const apiBaseUrl = 'http://193.136.92.69/api/v1';
 const _baseUrl = apiBaseUrl;
 
 

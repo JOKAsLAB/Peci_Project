@@ -82,40 +82,14 @@ class AuthNotifier extends Notifier<AuthState> {
     required String password,
     required String role,
   }) async {
-    print('[AUTH] Starting register for $email as $role');
     state = state.copyWith(isLoading: true, clearError: true, registrationSuccess: false);
 
     try {
-      final data = await _repo.register(
-        name: name,
-        email: email,
-        password: password,
-        role: role,
-      );
-      print('[AUTH] Register response received');
-
-      final token = data['access_token'] as String?;
-
-      if (token != null) {
-        print('[AUTH] Token received, storing');
-        ref.read(authTokenProvider.notifier).setToken(token);
-        print('[AUTH] Token stored, updating auth state');
-
-        state = AuthState(
-          isAuthenticated: true,
-          isLoading: false,
-          user: data['user'] as Map<String, dynamic>?,
-        );
-        print('[AUTH] Auth state updated: authenticated=true');
-      } else {
-        print('[AUTH] No token - registration requires approval');
-        state = const AuthState(
-          isLoading: false,
-          registrationSuccess: true,
-        );
-      }
+      await _repo.register(name: name, email: email, password: password, role: role);
+      // Ignore any token returned — account is SUSPENDED until email is verified.
+      // User must verify email first, then log in normally.
+      state = const AuthState(isLoading: false, registrationSuccess: true);
     } catch (e) {
-      print('[AUTH] Exception during register: $e');
       state = AuthState(
         isLoading: false,
         error: e.toString().replaceAll('Exception: ', ''),

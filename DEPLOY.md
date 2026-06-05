@@ -197,42 +197,42 @@ docker compose down -v
 ## Estrutura de rede (resumo)
 
 ```
-Eduroam / Rede local
+    Rede
         │
         │  IP da máquina (192.168.1.140)
         │  porta 80
         ▼
 ┌─────────────────────────────────────────────────┐
-│  Servidor físico                                │
+│  Container                                      │
 │                                                 │
 │  bridge: peci_network  172.20.0.0/24            │
 │  gateway:              172.20.0.1               │
 │                                                 │
-│  ┌──────────────────────────────────────────┐  │
-│  │ peci_frontend  172.20.0.30               │  │
-│  │ nginx : 80                               │  │
-│  │   /          → ficheiros Vue (estáticos) │  │
-│  │   /api/*     → 172.20.0.20:8000          │  │
-│  │   /ws/*      → 172.20.0.20:8000          │  │
-│  └──────────────┬───────────────────────────┘  │
+│  ┌──────────────────────────────────────────┐   │
+│  │ peci_frontend  172.20.0.30               │   │
+│  │ nginx : 80                               │   │
+│  │   /          → ficheiros Vue (estáticos) │   │
+│  │   /api/*     → 172.20.0.20:8000          │   │
+│  │   /ws/*      → 172.20.0.20:8000          │   │
+│  └──────────────┬───────────────────────────┘   │
 │                 │                               │
-│  ┌──────────────▼───────────────────────────┐  │
-│  │ peci_backend  172.20.0.20                │  │
-│  │ FastAPI + AI Engine : 8000               │  │
-│  └──────────────┬───────────────────────────┘  │
+│  ┌──────────────▼───────────────────────────┐   │
+│  │ peci_backend  172.20.0.20                │   │
+│  │ FastAPI + AI Engine : 8000               │   │
+│  └──────────────┬───────────────────────────┘   │
 │                 │                               │
-│  ┌──────────────▼───────────────────────────┐  │
-│  │ peci_db  172.20.0.10                     │  │
-│  │ PostgreSQL : 5432  (nunca exposta)        │  │
-│  └──────────────────────────────────────────┘  │
+│  ┌──────────────▼───────────────────────────┐   │
+│  │ peci_db  172.20.0.10                     │   │
+│  │ PostgreSQL : 5432  (nunca exposta)       │   │
+│  └──────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────┘
 ```
 
-| Serviço        | IP interno   | Porta interna | Porta externa |
-|----------------|-------------|---------------|---------------|
-| peci_frontend  | 172.20.0.30 | 80            | **80**        |
-| peci_backend   | 172.20.0.20 | 8000          | —             |
-| peci_db        | 172.20.0.10 | 5432          | —             |
+| Serviço       | IP interno  | Porta interna | Porta externa |
+| ------------- | ----------- | ------------- | ------------- |
+| peci_frontend | 172.20.0.30 | 80            | **80**        |
+| peci_backend  | 172.20.0.20 | 8000          | —             |
+| peci_db       | 172.20.0.10 | 5432          | —             |
 
 ## Seed de perguntas na base de dados
 
@@ -252,4 +252,8 @@ Comando com ficheiro especifico:
 python backend/database/tests/seed_remote.py backend/database/tests/perguntas_uc.json
 ```
 
-> Edita as variaveis `SERVER_IP`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_NAME` no topo do ficheiro para apontar para o servidor certo antes de correr.
+Inserir todos os exericios
+
+```powershell
+python backend/database/tests/seed_remote.py exports
+```

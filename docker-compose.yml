@@ -7,7 +7,7 @@ networks:
           gateway: 172.20.0.1
 
 services:
-  # ── Base de Dados ────────────────────────────────────────────────────────────
+  # Base de Dados
   db:
     image: postgres:16-alpine
     container_name: peci_db
@@ -29,7 +29,7 @@ services:
       peci_network:
         ipv4_address: 172.20.0.10
 
-  # ── Backend (FastAPI + AI Engine) ────────────────────────────────────────────
+  #Backend
   backend:
     build:
       context: .
@@ -53,10 +53,10 @@ services:
       peci_network:
         ipv4_address: 172.20.0.20
 
-  # ── Frontend (Vue → nginx) ───────────────────────────────────────────────────
+  #Frontend
   frontend:
     build:
-      context: admin_docente
+      context: web
       dockerfile: Dockerfile
     container_name: peci_frontend
     restart: unless-stopped
